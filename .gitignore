@@ -1,0 +1,14 @@
+dependencies_ima
+dependencies_sources
+libs-x64
+Models
+ResultTest
+results
+*.png
+*.jpg
+test.bat
+RayCasting/Doxygen
+RayCasting/Project 2017/.vs
+RayCasting/Project 2017/Release
+RayCasting/Project 2017/x64
+RayCasting/Project 2017/*.exr
