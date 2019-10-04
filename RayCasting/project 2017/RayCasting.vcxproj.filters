@@ -1,0 +1,326 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{81c7a03f-c8e9-4048-b807-20696f5f8d78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Geometry">
+      <UniqueIdentifier>{bd191254-481a-4712-852a-b0090cbd3b84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Math">
+      <UniqueIdentifier>{149ceb61-5dc8-4d82-a4cd-efca24722174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Set">
+      <UniqueIdentifier>{382a093e-37e2-4b74-8616-a01acdc61efc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Spy">
+      <UniqueIdentifier>{4f2d995a-a97f-4dc7-8c44-6d62e4f147eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\System">
+      <UniqueIdentifier>{46a739c1-b52b-4bbd-9819-713bc078ba8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Visualizer">
+      <UniqueIdentifier>{3acd9419-9307-4ab1-8802-df731bac441a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Math\src">
+      <UniqueIdentifier>{3366cf61-5fa0-4a57-a85c-00e123cc3e11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Image">
+      <UniqueIdentifier>{47ab8e3b-f923-4ff8-90fe-ea3df2bb76c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Integrators">
+      <UniqueIdentifier>{f8613ee3-3ebc-427d-8000-6ecdde9794c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Auto">
+      <UniqueIdentifier>{a57b83dc-4472-46f1-977c-8f78a9373f0b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\Geometry\BoundingBox.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Camera.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\CastedRay.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Cone.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Cornel.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Cube.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Cylinder.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Disk.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Geometry.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\IntersecitonSet.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\LightCache.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Material.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\namespaceDoc.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\PointLight.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Ray.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\RayTriangleIntersection.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Refraction.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\RGBColor.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Scene.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Square.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Triangle.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\namespaceDoc.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Object.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Quaternion.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\RandomDirection.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Set\set_operators.h">
+      <Filter>src\Set</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Visualizer\namespaceDoc.h">
+      <Filter>src\Visualizer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Visualizer\Visualizer.h">
+      <Filter>src\Visualizer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\System\aligned_allocator.h">
+      <Filter>src\System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Spy\Spy.h">
+      <Filter>src\Spy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\SpecificVisual.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Visualizer\Visualizer_backup.h">
+      <Filter>src\Visualizer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Loader3ds.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\finite.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Matrix4x4.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Matrix4x4f.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Vector.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Vectorf.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Constant.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Texture.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\ComputeVertexNormals.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\sobol.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\LightSampler.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\octo_tree.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils.h" />
+    <ClInclude Include="..\src\struct\static_dual_tree.h" />
+    <ClInclude Include="..\src\Geometry\RGBAColor.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\medium.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\TriangleMultipleTexture.hpp">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Array.h" />
+    <ClInclude Include="..\src\Geometry\Hit.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Skybox.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\BoundedStack.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\DirectionalLight.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Sphere.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\generic_texture.hpp">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Intersection.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\RaySphereIntersection.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\TriangleTetxture.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\CartoonMaterial.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\GeometryBase.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\BRDFViewer.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\settings.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Image\Image.h">
+      <Filter>src\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\Integrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Image\MultiSample.h">
+      <Filter>src\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Image\ImWrite.h">
+      <Filter>src\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Lambert.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Specular.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\DeltaMirror.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\Sampler.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\System\ScopedAssignment.h">
+      <Filter>src\System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\DirectIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\RegularIntegrators.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\RayTracingBaseIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\LightIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\LightIntegratorBase.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\MISPathTracingIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\ZIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\SolidAngleSampler.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\BidirectionalBase.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\BidirectionalIntegrator.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Auto\Auto.h">
+      <Filter>src\Auto</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Auto\RenderResult.h">
+      <Filter>src\Auto</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Auto\TestScenes.h">
+      <Filter>src\Auto</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Image\ImageIO.h">
+      <Filter>src\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Image\ImRead.h">
+      <Filter>src\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\EnvironmentMap.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Primitive.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\BVH.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Phong.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Math\OptiMISSolver.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Math\src\sobol.cpp">
+      <Filter>src\Math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Geometry\Scene.cpp" />
+    <ClCompile Include="..\src\Geometry\Material.cpp" />
+  </ItemGroup>
+</Project>
