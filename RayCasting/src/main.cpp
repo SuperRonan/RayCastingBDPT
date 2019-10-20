@@ -1437,7 +1437,11 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
+<<<<<<< HEAD
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+=======
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+>>>>>>> MIS avec heuristic qui marche (un) peu
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
 	Auto::initVeach(scene, visu.width(), visu.height());
@@ -1480,9 +1484,12 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
-										
-	unsigned int maxBounce = 10;
+	//unsigned int sample_per_pixel = 1024 * 1024;
+	unsigned int sample_per_pixel = 512;
+
+	unsigned int maxBounce = 10;			// Maximum number of bounces
+
+	unsigned int lights_divisions = 16;
 
 	unsigned int lights_divisions = 16*16;
 
