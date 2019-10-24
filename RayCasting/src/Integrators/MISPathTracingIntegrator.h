@@ -33,13 +33,13 @@ namespace Integrator
 		RGBColor MISAddDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
 		{
 			RGBColor res, light_contribution, surface_contribution;
-			double light_pdf = 1, surface_pdf, total_pdf;
+			double wl(0), ws(0);
 			bool multi_light = false; // To sample all the lights at a time
+			double beta = 2;
 			//switching from point to direction from the hit
 
 			// Light sampling ///////////////////////////////////////////
 			StackN<double> distStack;
-			SurfaceLightSample sls;
 
 			LightSampleStack ps;
 			if (multi_light)
@@ -55,6 +55,7 @@ namespace Integrator
 			}
 			else
 			{
+				SurfaceLightSample sls;
 				sampleOneLight(scene, hit, sampler, sls);
 				ps.push(sls);
 			}
@@ -68,7 +69,6 @@ namespace Integrator
 			}
 
 			ColorStack bsdfs;
-			//bsdfs.push(material.BSDF(hit, sls.vector));
 			hit.geometry->getMaterial()->BSDF(hit, bsdfs, ps);
 			for (size_t i = 0; i < bsdfs.size(); ++i)
 			{
@@ -83,49 +83,53 @@ namespace Integrator
 					{
 						RGBColor color = light_hit.geometry->getMaterial()->Le(light_hit.facing, light_hit.tex_uv);
 						double dist2 = light_hit.z * light_hit.z;
-						double cosl = light_hit.primitive_normal * (-ray.direction().normalized());
-						light_pdf *= ps[i].pdf;
-						light_contribution += prod * cosl * color / (ps[i].pdf * m_direct_samples * dist2);
+						double cosl = light_hit.primitive_normal * (-ray.direction());
+						double light_pdf = (ps[i].pdf); // Shouldnt divide by lightnumber because the sampler should do it BUT do "pdf = 1.0 / surface()"
+						double conversion = cosl / dist2;
+						double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, ray.direction()) * conversion;
+						light_contribution += prod * cosl * color / (light_pdf * m_direct_samples * dist2);
+						wl += pow(light_pdf, beta) / (pow(bsdf_pdf, beta) + pow(light_pdf, beta)); // Densité de surface
 					}
 				}
 			}
-
+			if (multi_light) wl /= scene.m_surface_lights.size();
 			// Surface sampling ///////////////////////////////////////////
-			//for (size_t i = 0; i < bsdfs.size(); ++i)
 			{
-				//RGBColor const& bsdf = bsdfs[i];
 				// sample direction
 				Geometry::DirectionSample dir;
 				hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, dir, sampler);
-				RGBColor const& bsdf = hit.geometry->getMaterial()->BSDF(hit, dir.direction.normalized());
-				const double cosi = std::abs(hit.primitive_normal * dir.direction.normalized());
+				RGBColor const& bsdf = hit.geometry->getMaterial()->BSDF(hit, dir.direction);
+				const double cosi = std::abs(hit.primitive_normal * dir.direction);
 				RGBColor prod = bsdf * cosi;
-
-				Math::Vector3f dir2 = (dir.direction - hit.point);
-				double dist = dir2.norm();
 
 				if (!prod.isBlack()) //or almost black ???
 				{
 					Hit surface_hit;
 					Ray ray(hit.point, dir.direction.normalized());
-					if (scene.full_intersection(ray, surface_hit) && dir.direction * ray.direction() > 0 /*&& samePoint(surface_hit, dist, hit.geometry)*/)
+					if (scene.full_intersection(ray, surface_hit) && dir.direction * ray.direction() > 0)
 					{
 						double dist2 = surface_hit.z * surface_hit.z;
 						double cosl = surface_hit.primitive_normal * (-ray.direction());
-						surface_pdf = dir.pdf;
 						RGBColor color;
 						if (surface_hit.geometry->getMaterial()->is_emissive())
 						{
 							color = surface_hit.geometry->getMaterial()->Le(surface_hit.facing, surface_hit.tex_uv);
+							surface_contribution = prod * cosl * color / (dir.pdf * m_direct_samples /** dist2*/) / cosl; // Not necessary to divide by dist2 because the point is already sampled
+							double cos_arrival = surface_hit.primitive_normal * (-dir.direction);
+							double conversion = cos_arrival / dist2;
+							double surface_pdf = dir.pdf;
+							double light_pdf = surface_hit.geometry->pdfSamplingPoint() / conversion / scene.m_surface_lights.size();
+							ws = pow(surface_pdf, beta) / (pow(light_pdf, beta) + pow(surface_pdf, beta)); // Densité d'angle solide
 						}
-						surface_contribution = prod * cosl * color / (dir.pdf * m_direct_samples * dist2) * dist2 / cosl;
 					}
 				}
 			}
-			total_pdf = light_pdf + surface_pdf;
-			//light_pdf = surface_pdf = 0.5; total_pdf = 1;
-			//light_pdf = surface_pdf = 1; total_pdf = 2;
-			res = light_contribution * light_pdf / total_pdf + surface_contribution * surface_pdf / total_pdf;
+			//ws = wl = 0.5;
+			//ws = 0; wl = 1;
+			//ws = 1; wl = 0;
+			//wl = 0;
+			res = light_contribution * wl + surface_contribution * ws;
+			//res = RGBColor(1, 0, 0) * wl +RGBColor(0, 0, 1) * ws;
 			if (res.anythingWrong())
 			{
 				return 0;
