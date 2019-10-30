@@ -1419,9 +1419,9 @@ int main(int argc, char ** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2000, 2000, scale);// pour les ecrans 4K
-	//Visualizer::Visualizer visu(1000, 1000, scale);
+	Visualizer::Visualizer visu(1000, 1000, scale);
 	//Visualizer::Visualizer visu(1900, 1000, scale);
-	Visualizer::Visualizer visu(500, 500, scale);
+	//Visualizer::Visualizer visu(500, 500, scale);
 	//Visualizer::Visualizer visu(300, 300, scale) ;
 	//Visualizer::Visualizer visu(250, 250, scale) ;
 	//Visualizer::Visualizer visu(200, 200, scale) ;
@@ -1481,11 +1481,11 @@ int main(int argc, char ** argv)
 	scene.printStats();
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 1024*1024;
+	unsigned int sample_per_pixel = 1024/4;
 										
 	unsigned int maxBounce = 10;			// Maximum number of bounces
 
-	unsigned int lights_divisions = 256;
+	unsigned int lights_divisions = 16;
 
 
 

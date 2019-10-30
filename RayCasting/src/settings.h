@@ -39,7 +39,7 @@ static std::string RESULT_FOLDER = "../../results/";
 //#define TIME_SEED
 
 //Use the same seed for all the pixels at each frame, which reduces significantly the noise (to 0 naiiiiiiiiiiisu)
-#define SAMPLER_BIAS
+//#define SAMPLER_BIAS
 
 //for MIS, show the weight of MIS
 //#define MIS_SHOW_WEIGHTS
