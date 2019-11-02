@@ -46,6 +46,11 @@ inline Math::Vector3f spherical_coordinate(Math::Vector3f const& vec)
 	return res;
 }
 
+inline Math::Vector2f inclinationAzimuthOfNormalized(Math::Vector3f const& vec)
+{
+	return Math::Vector2f(acos(vec[2]), atan2(vec[1], vec[0]));
+}
+
 
 
 inline std::string & operator+=(std::string & str, int i)

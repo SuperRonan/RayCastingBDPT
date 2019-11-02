@@ -6,6 +6,11 @@
 #include <Geometry/Ray.h>
 #include <math.h>
 #include <Math/Constant.h>
+#include <utils.h>
+
+
+//#define USE_CAMERA_PLANE
+
 
 namespace Geometry
 {
@@ -30,12 +35,19 @@ namespace Geometry
 		double	      m_planeWidth ;
 		/// \brief	Height of the projection rectangle.
 		double		  m_planeHeight ;
+
+#ifndef USE_CAMERA_PLANE
+		double sin_theta;
+#endif
+
 		/// \brief	The front vector of the camera.
 		Math::Vector3f m_front ;
 		/// \brief	The right vector.
 		Math::Vector3f m_right ;
 		/// \brief	The down vector.
 		Math::Vector3f m_down ;
+
+
 
 	
 		////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,6 +98,7 @@ namespace Geometry
 		    m_planeWidth(planeWidth / planeDist), 
 			m_planeHeight(planeHeight / planeDist)
 		{
+			sin_theta = 2*sin(m_planeHeight / 2);
 			computeParameters() ;
 		}
 
@@ -149,33 +162,47 @@ namespace Geometry
 		{
 			m_planeWidth *= scale;
 			m_planeHeight *= scale;
-		}
 
-		////////////////////////////////////////////////////////////////////////////////////////////////////
-		/// \fn	Ray Camera::getRay(double coordX, double coordY) const
-		///
-		/// \brief	Get a primary ray from screen coordinates (coordX, coordY)
-		/// 		
-		/// \author	F. Lamarche, Université de Rennes 1
-		/// \date	04/12/2013
-		///
-		/// \param	coordX	X coordinate in the projection rectangle.
-		/// \param	coordY	Y coordinate in the projection rectangle.
-		///
-		/// \return	The ray.
-		////////////////////////////////////////////////////////////////////////////////////////////////////
-		Ray getRay(double coordX, double coordY) const
-		{
-			return Ray(m_position, m_front - m_right * (0.5-coordX) * m_planeWidth - m_down * (0.5 - coordY) * m_planeHeight) ;
-		}
+#ifndef USE_CAMERA_PLANE
+			if (m_planeHeight > Math::pi)
+			{
+				m_planeHeight = Math::pi;
+			}
+			if (m_planeWidth > Math::twoPi)
+			{
+				m_planeWidth = Math::twoPi;
+			}
+			sin_theta = 2 * sin(m_planeHeight / 2);
+#endif
 
+		}
 
 		//returns the position on the screen of the point p (in world space)
 		__forceinline Math::Vector2f screen_position(Math::Vector3f p)const
 		{
 			p -= m_position;
 			return screen_direction(p.normalized());
-			
+
+		}
+
+		__forceinline bool validRaster(Math::Vector2f const& raster)const
+		{
+			return raster[0] >= 0 && raster[0] <= 1 && raster[1] >= 0 && raster[1] <= 1;
+		}
+
+		__forceinline Math::Vector2f raster(Math::Vector3f const& dir)const
+		{
+			return screen_direction(dir);
+		}
+
+
+
+#ifdef USE_CAMERA_PLANE
+
+
+		Ray getRay(double coordX, double coordY) const
+		{
+			return Ray(m_position, m_front - m_right * (0.5-coordX) * m_planeWidth - m_down * (0.5 - coordY) * m_planeHeight) ;
 		}
 
 
@@ -191,22 +218,13 @@ namespace Geometry
 			return { u + 0.5, 1 - v - 0.5 };
 		}
 
-		__forceinline bool validRaster(Math::Vector2f const& raster)const
-		{
-			return raster[0] >= 0 && raster[0] <= 1 && raster[1] >= 0 && raster[1] <= 1;
-		}
-
-		__forceinline Math::Vector2f raster(Math::Vector3f const& dir)const
-		{
-			return screen_direction(dir);
-		}
-
-
-
 		__forceinline double We(Math::Vector3f const& dir)const
 		{
 			if (validRaster(raster(dir)))
-				return 1.0 / (m_planeWidth * m_planeHeight);
+			{
+				double cost = dir * m_front;
+				return pdfWeArea() / (cost * cost * cost);
+			}
 			return 0;
 		}
 
@@ -224,11 +242,61 @@ namespace Geometry
 			return 0;
 		}
 
+
 		__forceinline double pdfWeArea()const
 		{
 			return 1.0 / (m_planeWidth * m_planeHeight);
 		}
+#else
 
+		Ray getRay(double coordX, double coordY) const
+		{
+			double inclination = Math::piDiv2 + (0.5 - coordY) * m_planeHeight;
+			double azimuth = (0.5 - coordX) * m_planeWidth;
+			Math::Vector3f sphere_dir = Math::Vector3f::make_sphere(inclination, azimuth);
+			Math::Vector3f dir = m_front * sphere_dir[0] - m_right * sphere_dir[1] + m_down * sphere_dir[2];
+			return Ray(m_position, dir.normalized());
+		}
+
+
+		__forceinline Math::Vector2f screen_direction(Math::Vector3f const& direction)const
+		{
+			//first, we need the direction in the camera basis
+			Math::Vector3f camera_direction = {(direction * m_front), -direction * m_right, -(direction * m_down)};
+
+			Math::Vector2f inc_azi = inclinationAzimuthOfNormalized(camera_direction);
+
+			return Math::Vector2f(0.5 - (inc_azi[1]) / m_planeWidth, 0.5+ (inc_azi[0] - Math::piDiv2) / m_planeHeight);
+		}
+
+
+
+		__forceinline double We(Math::Vector3f const& dir)const
+		{
+			return pdfWeSolidAngle(dir);
+		}
+
+
+		//returns the pdf of sampling a direction
+		//assumes dir is normalized
+		//return a solid angle pdf
+		double pdfWeSolidAngle(Math::Vector3f const& dir)const
+		{
+			if (validRaster(raster(dir)))
+			{
+				double cos_inclination = dir * m_down;
+				double sin_inclination = std::sqrt(1 - cos_inclination * cos_inclination);
+				return pdfWeArea() / sin_inclination;
+			}
+			return 0;
+		}
+
+
+		__forceinline double pdfWeArea()const
+		{
+			return 1.0 / (m_planeWidth * m_planeHeight);
+		}
+#endif
 
 	} ;
 }

@@ -35,7 +35,6 @@ namespace Integrator
 					RGBColor Li = tracePath(scene, Ray(hit.point, direction), sampler, next_em, hit.primitve, depth + 1);
 
 					res += prod * Li;
-
 				}
 			}
 			return res;
@@ -122,8 +121,12 @@ namespace Integrator
 			Ray ray = pray;
 			bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
-			RGBColor prod_color = scene.m_camera.We(ray.direction()) * (1 / (cost * cost * cost));
+			RGBColor prod_color = scene.m_camera.We(ray.direction());
 			double prod_pdf = scene.m_camera.pdfWeSolidAngle(pray.direction());
+			if (prod_pdf == 0)
+			{
+				return 0;
+			}
 			RGBColor res = 0;
 			for (int depth = 0; depth < m_max_depth + 1; ++depth)
 			{
@@ -169,7 +172,8 @@ namespace Integrator
 				}
 				else
 				{
-					res += prod_color * scene.getBackgroundColor(ray.direction()) / prod_pdf;
+					if(prod_pdf != 0)
+						res += prod_color * scene.getBackgroundColor(ray.direction()) / prod_pdf;
 					break;
 				}
 			}
@@ -191,8 +195,8 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
-			RGBColor prod_color = 1;
-			double prod_pdf = 1;
+			RGBColor prod_color = scene.m_camera.We(ray.direction());
+			double prod_pdf = scene.m_camera.pdfWeSolidAngle(ray.direction());
 			RGBColor res = 0;
 			for (int depth = 0; depth <= m_max_depth + 1; ++depth)
 			{

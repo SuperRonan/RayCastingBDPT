@@ -86,7 +86,7 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray(pray);
-			RGBColor T = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeArea();
+			RGBColor T = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction());
 			RGBColor res = 0;
 			int depth = 0;
 			Hit hit;
