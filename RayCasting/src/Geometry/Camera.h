@@ -9,7 +9,7 @@
 #include <utils.h>
 
 
-//#define USE_CAMERA_PLANE
+#define USE_CAMERA_PLANE
 
 
 namespace Geometry
@@ -36,9 +36,6 @@ namespace Geometry
 		/// \brief	Height of the projection rectangle.
 		double		  m_planeHeight ;
 
-#ifndef USE_CAMERA_PLANE
-		double sin_theta;
-#endif
 
 		/// \brief	The front vector of the camera.
 		Math::Vector3f m_front ;
@@ -98,7 +95,6 @@ namespace Geometry
 		    m_planeWidth(planeWidth / planeDist), 
 			m_planeHeight(planeHeight / planeDist)
 		{
-			sin_theta = 2*sin(m_planeHeight / 2);
 			computeParameters() ;
 		}
 
@@ -172,7 +168,6 @@ namespace Geometry
 			{
 				m_planeWidth = Math::twoPi;
 			}
-			sin_theta = 2 * sin(m_planeHeight / 2);
 #endif
 
 		}
