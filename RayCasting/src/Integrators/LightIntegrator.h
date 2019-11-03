@@ -87,7 +87,7 @@ namespace Integrator
 			beta = beta * cosl / next_dir_pdf;
 
 			unsigned int depth = 0;
-			while(true)
+			while(!beta.isBlack())
 			{
 				++depth;
 				Ray ray(hit.point, next_dir);

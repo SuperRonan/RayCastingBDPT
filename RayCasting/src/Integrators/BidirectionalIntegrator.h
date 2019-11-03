@@ -53,10 +53,48 @@ namespace Integrator
 			// delta_works: if true, the pdf returned by the delta pdf will be assumed to be 1, 
 			// delta works should be true when the connection has beed sampled by the bsdf (like during the random walk), for deterministic connection, it should be false
 			//////////////////////////////////
-			double pdf(Vertex const& next, const Vertex* prev, bool delta_works)const
+			template <bool DENSITY_AREA=true>
+			double pdf(Geometry::Camera const& camera, Vertex const& next, const Vertex* prev, bool delta_works)const
 			{
-				// TODO
-				return 1;
+				double pdf_solid_angle;
+				Math::Vector3f to_vertex = next.hit.point - hit.point;
+				const double dist2 = to_vertex.norm2();
+				const double dist = std::sqrt(dist2);
+				to_vertex /= dist;
+				if (type == Type::Camera)
+				{
+					pdf_solid_angle = camera.pdfWeSolidAngle(to_vertex);
+				}
+				else if (type == Type::Light)
+				{
+					pdf_solid_angle = (hit.primitive_normal * to_vertex) / Math::pi;
+					if (pdf_solid_angle < 0)
+						pdf_solid_angle = 0;
+				}
+				else
+				{
+					pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex);
+				}
+				if constexpr (DENSITY_AREA)
+				{
+					double res = pdf_solid_angle / dist2;
+					
+					if (type != Type::Camera)
+					{
+						res *= std::abs(hit.primitive_normal * to_vertex);
+					}
+					
+					if (next.type != Type::Camera)
+					{
+						res *= std::abs(next.hit.primitive_normal * to_vertex);
+					}
+
+					return res;
+				}
+				else
+				{
+					return pdf_solid_angle;
+				}
 			}
 				
 		};
@@ -72,9 +110,20 @@ namespace Integrator
 		// -pdf is the solid angle probability of sampling ray.dir
 		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
 		///////////////////////////////////////////////
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_depth, TransportMode mode)const
+		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_depth, const TransportMode mode)const
 		{
-			// TODO
+			Hit hit;
+			double pdf_solid_angle = pdf;
+			Vertex* prev = &res.top();
+			for (int nv = 0; nv < max_depth; ++nv)
+			{
+				if (scene.full_intersection(ray, hit))
+				{
+					
+				}
+				else
+					break;
+			}
 			return 0;
 		}
 

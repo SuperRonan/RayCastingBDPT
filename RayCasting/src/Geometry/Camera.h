@@ -9,7 +9,7 @@
 #include <utils.h>
 
 
-#define USE_CAMERA_PLANE
+//#define USE_CAMERA_PLANE
 
 
 namespace Geometry
