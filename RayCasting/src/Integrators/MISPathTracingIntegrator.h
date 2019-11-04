@@ -162,7 +162,6 @@ namespace Integrator
 						light_contribution = prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf; //emissif
 					}
 					first_bounce = false;
-
 					//double pdf_surface = material.pdf(hit, ray.direction().normalized());
 					RGBColor direct_contribution = prod_color * MISAddDirectIllumination(scene, hit, sampler) / prod_pdf;
 

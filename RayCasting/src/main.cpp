@@ -1478,7 +1478,6 @@ int main(int argc, char ** argv)
 	// Shows stats
 	scene.printStats();
 
-
 	// 3 - Computes the scene
 	//unsigned int sample_per_pixel = 1024 * 1024;
 	unsigned int sample_per_pixel = 64;
