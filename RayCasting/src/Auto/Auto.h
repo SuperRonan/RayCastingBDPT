@@ -226,9 +226,9 @@ namespace Auto
 		};
 
 
-		static void writeResult(std::vector<TestResult> const& res, RenderResult const& ref, Option const& op)
+		static void writeResult(std::vector<TestResult> const& res, Option const& op)
 		{
-			std::string str = strResults(res, ref, op);
+			//std::string str = strResults(res, ref, op);
 
 			if (!std::filesystem::is_directory(op.main_path) || !std::filesystem::exists(op.main_path))
 			{
@@ -261,16 +261,16 @@ namespace Auto
 			}
 			
 			
-			std::ofstream file(path.string() + "\\" + "Report.txt");
+			//std::ofstream file(path.string() + "\\" + "Report.txt");
 
-			file << str;
+			//file << str;
 
-			file.close();
+			//file.close();
 
-			std::cout << str << std::endl;
+			//std::cout << str << std::endl;
 
 
-			Image::ImWrite::write(ref.image, path.string() + "\\" + "ref.exr");
+			//Image::ImWrite::write(ref.image, path.string() + "\\" + "ref.exr");
 			
 			for (TestResult const& tr : res)
 			{
@@ -409,13 +409,13 @@ namespace Auto
 			// ipt
 			///////////////////////////////////////////
 
-			if (!(options.use_npt || options.use_pt))
+			/*if (!(options.use_npt || options.use_pt))
 			{
 				std::cout << "No reference result can be rendered!" << std::endl;
 				return 1;
-			}
-			int ref_index = options.use_npt ? 0 : 1;
-			RenderResult& ref = integrators[ref_index].res;
+			}*/
+			//int ref_index = options.use_npt ? 0 : 1;
+			//RenderResult& ref = integrators[ref_index].res;
 
 			//compute the iterators results
 			for (TestIntegrator& test : integrators)
@@ -429,12 +429,12 @@ namespace Auto
 			int index = 0;
 			for (TestIntegrator& test : integrators)
 			{
-				if (index != ref_index && test.active)
+				if (/*index != ref_index && */test.active)
 				{
 					TestResult res;
 					res.result = test.res.image;
 					res.name = test.name;
-					res.dif = ref.image - test.res.image;
+					//res.dif = ref.image - test.res.image;
 					res.time = test.res.time;
 					results.push_back(res);
 				}
@@ -442,7 +442,7 @@ namespace Auto
 			}
 
 
-			writeResult(results, ref, options);
+			writeResult(results, options);
 			
 
 			return 0;
