@@ -17,13 +17,13 @@ namespace Integrator
 
 		}
 
-		template <bool LIGHT_VERTEX>
-		inline bool connectVertexToCamera(Scene const& scene, RGBColor const& beta, Hit const& hit, LightVertexStack & res)const
+		inline bool connectVertexToCamera(Scene const& scene, RGBColor const& beta, Hit const& hit, LightVertexStack& res, bool isLight = false)const
 		{
 			Math::Vector3f vertex_to_camera = scene.m_camera.getPosition() - hit.point;
 			const double dist2 = vertex_to_camera.norm2();
 			const double dist = std::sqrt(dist2);
-			vertex_to_camera /= dist;
+			//vertex_to_camera /= dist; //normalize
+			vertex_to_camera = vertex_to_camera.normalized();
 
 			LightVertex vertex;
 			vertex.uv = scene.m_camera.raster(-vertex_to_camera);
@@ -34,9 +34,9 @@ namespace Integrator
 				return false;
 			}
 
-			double G = std::abs(vertex_to_camera * hit.primitive_normal) / dist2;
+			double G = std::abs(vertex_to_camera * hit.primitive_normal) / dist2; // Geometric term
 
-			if constexpr (LIGHT_VERTEX)
+			if (isLight)
 			{
 				vertex.light = beta;
 			}
@@ -56,45 +56,40 @@ namespace Integrator
 			return true;
 		}
 
+
 		void traceLight(Scene const& scene, LightVertexStack& lvs, Math::Sampler& sampler)const final override
 		{
 			//first, sample a point a light
-			SurfaceLightSample light_point;
-			sampleLight(scene, light_point, sampler);
+			SurfaceLightSample sls;
+			sampleLight(scene, sls, sampler);
 
-
-			RGBColor beta = light_point.geo->getMaterial()->Le(true, light_point.uv) / light_point.pdf;
+			RGBColor beta = sls.geo->getMaterial()->Le(true, sls.uv) / sls.pdf;
 
 			Hit hit;
-			hit.point = light_point.vector;
-			hit.normal = hit.primitive_normal = light_point.normal;
-			hit.tex_uv = light_point.uv;
-			hit.geometry = light_point.geo;
+			hit.point = sls.vector;
+			hit.normal = hit.primitive_normal = sls.normal;
+			hit.tex_uv = sls.uv;
+			hit.geometry = sls.geo;
 
-			connectVertexToCamera<true>(scene, beta, hit, lvs);
+			connectVertexToCamera(scene, beta, hit, lvs, true);
 
-			Math::RandomDirection Le_sampler(&sampler, light_point.normal, 1);
-			Math::Vector3f next_dir = Le_sampler.generate();
-			double cosl = light_point.normal * next_dir;
-			if (cosl < 0)
-			{
-				cosl = -cosl;
-				next_dir = -next_dir;
-			}
-			double next_dir_pdf = cosl / Math::pi;
+			DirectionSample dir_from_light = sls.geo->getMaterial()->sampleLightDirection(sls, sampler); // Uses dedicated function
 
+			double cosl = std::abs(sls.normal * dir_from_light.direction);
 
-			beta = beta * cosl / next_dir_pdf;
+			beta = beta * cosl / dir_from_light.pdf;
 
 			unsigned int depth = 0;
-			while(!beta.isBlack())
+			Math::Vector3f next_dir(dir_from_light.direction);
+
+			while (!beta.isBlack())
 			{
 				++depth;
 				Ray ray(hit.point, next_dir);
 				if (scene.full_intersection(ray, hit))
 				{
-					connectVertexToCamera<false>(scene, beta, hit, lvs);
-					
+					connectVertexToCamera(scene, beta, hit, lvs);
+
 					//sample next dir
 
 					if (depth <= m_max_depth)
@@ -111,8 +106,6 @@ namespace Integrator
 				else
 					break;
 			}
-			
 		}
-
 	};
 }

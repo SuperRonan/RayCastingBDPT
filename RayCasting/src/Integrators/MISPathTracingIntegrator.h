@@ -144,7 +144,7 @@ namespace Integrator
 			Ray ray = pray;
 			//bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
-			RGBColor prod_color = scene.m_camera.We(ray.direction()) * (1 / (cost * cost * cost));
+			RGBColor prod_color = scene.m_camera.We(ray.direction());
 			double prod_pdf = scene.m_camera.pdfWeSolidAngle(pray.direction());
 			RGBColor res = 0;
 			bool first_bounce = true;
