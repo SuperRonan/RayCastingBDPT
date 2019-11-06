@@ -198,7 +198,7 @@ namespace Integrator
 			visu.clean();
 			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels;
+			const size_t sample_pass = npixels / 2;
 
 			OMP_PARALLEL_FOR
 				for (long sample = 0; sample < sample_pass; ++sample)

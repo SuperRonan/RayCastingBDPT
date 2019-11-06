@@ -27,11 +27,11 @@ namespace Integrator
 			//wether the bsdf of this has a delta distribution, which would make it unconnectable
 			bool delta;
 
-			//Maybe the same concept of pdf fwd and rev as PBRT is actually better for the engine
-			double pdf_inportance, pdf_radiance;
+		protected:
+			double pdf_importance, pdf_radiance;
 
-			//I am too lazy to do a union of hit for the different types of vertices
-			const CameraType* camera=nullptr;
+
+		public:
 
 			Vertex(Type t, RGBColor b, Hit const& h, bool d):
 				type(t),
@@ -45,6 +45,42 @@ namespace Integrator
 
 			Vertex()
 			{}
+
+			template <TransportMode MODE>
+			double pdfForward()const
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					return pdf_importance;
+				else
+					return pdf_radiance;
+			}
+
+			template <TransportMode MODE>
+			double pdfReverse()const
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					return pdf_radiance;
+				else
+					return pdf_importance;
+			}
+
+			template <TransportMode MODE>
+			void setPdfForward(double pdf)
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					pdf_importance = pdf;
+				else
+					pdf_radiance = pdf;
+			}
+
+			template <TransportMode MODE>
+			void setPdfReverse(double pdf)
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					pdf_radiance = pdf;
+				else
+					pdf_importance = pdf;
+			}
 
 			//////////////////////////////////
 			// returns the probability of sampling the direction from this to next, knowing this has been sampled from prev
@@ -73,7 +109,10 @@ namespace Integrator
 				}
 				else
 				{
-					pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex);
+					if (hit.geometry->getMaterial()->delta())
+						pdf_solid_angle = 1;
+					else
+						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized());
 				}
 				if constexpr (DENSITY_AREA)
 				{
@@ -110,37 +149,81 @@ namespace Integrator
 		// -pdf is the solid angle probability of sampling ray.dir
 		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
 		///////////////////////////////////////////////
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_depth, const TransportMode mode)const
+		template <TransportMode MODE>
+		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_len)const
 		{
 			Hit hit;
 			double pdf_solid_angle = pdf;
 			Vertex* prev = &res.top();
-			for (int nv = 0; nv < max_depth; ++nv)
+			double cos_prev = std::abs(prev->hit.primitive_normal * ray.direction());
+			int nv = 0;
+			for (nv = 0; nv < max_len; ++nv)
 			{
 				if (scene.full_intersection(ray, hit))
 				{
-					
+					const double dist = hit.z;
+					const double dist2 = dist * dist;
+
+					res.grow();
+					Vertex& vertex = res.top();
+					vertex = Vertex(Vertex::Type::Surface, beta, hit, hit.geometry->getMaterial()->delta());
+					const double cos_vertex = std::abs(hit.primitive_normal * ray.direction());
+					vertex.setPdfForward<MODE>(pdf_solid_angle * cos_vertex / dist2);
+
+					//sample next direction
+
+					DirectionSample next_dir;
+					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler);
+
+					// This assumes to have symetric bsdf / pdf
+					prev->setPdfReverse<MODE>(next_dir.pdf * cos_prev / dist2);
+
+					ray = Ray(hit.point, next_dir.direction);
+					prev = &vertex;
+
+					cos_prev = std::abs(next_dir.direction * hit.primitive_normal);
+					beta = beta * next_dir.bsdf * cos_prev;
+					if (beta.isBlack())
+						break;
+					beta = beta / next_dir.pdf;
+					pdf_solid_angle = next_dir.pdf;
 				}
 				else
 					break;
 			}
-			return 0;
-		}
-
-		__forceinline void computeReverseProbabilities(VertexStack& sub_path, TransportMode const& mode)const
-		{
-			// TODO
+			return nv;
 		}
 
 		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray const& ray)const
 		{
-			// TODO
-			return 0;
+			res.grow();
+			Vertex& camera_vertex = res.top();
+			camera_vertex.beta = 1;
+			camera_vertex.delta = false;
+			camera_vertex.type = Vertex::Type::Camera;
+			camera_vertex.setPdfForward<TransportMode::Importance>(1);
+			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
+			camera_vertex.hit.point = scene.m_camera.getPosition();
+
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth + 1);
+
+			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
+			return nv + 1;
 		}
 
 		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res)const
 		{
-			// TODO
+			res.grow();
+			Vertex& light_vertex = res.top();
+			light_vertex.beta = 1;
+			light_vertex.delta = false;
+			light_vertex.type = Vertex::Type::Light;
+
+			SurfaceLightSample sls;
+			sampleLight(scene, sls, sampler);
+
+			light_vertex.setPdfForward<TransportMode::Radiance>(sls.pdf);
+
 			return 0;
 		}
 		
@@ -229,14 +312,21 @@ namespace Integrator
 							double xp = sampler.generateContinuous<double>();
 							double yp = sampler.generateContinuous<double>();
 
-							double v = ((double)y + yp) / m_frame_buffer.height();
+							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							Ray ray = scene.m_camera.getRay(u, v);
+							RGBColor pixel = 0;
+							LightVertexStack lvs;
 
-									
-									
+							computeSample(scene, u, v, sampler, pixel, lvs);
 
+							m_frame_buffer[x][y] += pixel;
+							for (LightVertex const& lv : lvs)
+							{
+								int lx = lv.uv[0] * visu.width();
+								int ly = lv.uv[1] * visu.height();
+								m_frame_buffer[lx][ly] += lv.light;
+							}
 						}//pixel x
 					}//pixel y
 
@@ -330,9 +420,18 @@ __render__end__loop__:
 							double v = ((double)y + yp) / m_frame_buffer.height();
 							double u = ((double)x + xp) / m_frame_buffer.width();
 
-							Ray ray = scene.m_camera.getRay(u, v);
-									
+							RGBColor pixel = 0;
+							LightVertexStack lvs;
 
+							computeSample(scene, u, v, sampler, pixel, lvs);
+
+							m_frame_buffer[x][y] += pixel;
+							for (LightVertex const& lv : lvs)
+							{
+								int lx = lv.uv[0] * m_frame_buffer.width();
+								int ly = lv.uv[1] * m_frame_buffer.height();
+								m_frame_buffer[lx][ly] += lv.light;
+							}
 									
 							//visu.plot(x, y, pixel);
 						}//pixel x
@@ -388,7 +487,18 @@ __render__end__loop__:
 						size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), 0);
 						Math::Sampler sampler(seed);
 
-						RGBColor result;
+						RGBColor pixel = 0;
+						LightVertexStack lvs;
+
+						computeSample(scene, u, v, sampler, pixel, lvs);
+
+						m_frame_buffer[x][y] += pixel;
+						for (LightVertex const& lv : lvs)
+						{
+							int lx = lv.uv[0] * visu.width();
+							int ly = lv.uv[1] * visu.height();
+							m_frame_buffer[lx][ly] += lv.light;
+						}
 
 					}//pixel x
 				}//pixel y
