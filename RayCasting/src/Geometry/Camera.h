@@ -9,7 +9,7 @@
 #include <utils.h>
 
 
-//#define USE_CAMERA_PLANE
+#define USE_CAMERA_PLANE
 
 
 namespace Geometry
@@ -44,6 +44,7 @@ namespace Geometry
 		/// \brief	The down vector.
 		Math::Vector3f m_down ;
 
+		int resolution;
 
 
 	
@@ -215,12 +216,7 @@ namespace Geometry
 
 		__forceinline double We(Math::Vector3f const& dir)const
 		{
-			if (validRaster(raster(dir)))
-			{
-				double cost = dir * m_front;
-				return pdfWeArea() / (cost * cost * cost);
-			}
-			return 0;
+			return pdfWeSolidAngle(dir);
 		}
 
 
@@ -240,7 +236,7 @@ namespace Geometry
 
 		__forceinline double pdfWeArea()const
 		{
-			return 1.0 / (m_planeWidth * m_planeHeight);
+			return resolution / (m_planeWidth * m_planeHeight);
 		}
 #else
 
@@ -289,7 +285,7 @@ namespace Geometry
 
 		__forceinline double pdfWeArea()const
 		{
-			return 1.0 / (m_planeWidth * m_planeHeight);
+			return resolution / (m_planeWidth * m_planeHeight);
 		}
 #endif
 

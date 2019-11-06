@@ -377,6 +377,7 @@ namespace Auto
 
 			scene.compute_light_samplers(options.light_division);
 
+			scene.m_camera.resolution = options.width * options.height;
 			
 			Integrator::NaivePathTracingIntegrator npti(options.sample_per_pixel * options.naive_times, options.width, options.height);
 			Integrator::IterativePathTracingIntegrator ipti(options.sample_per_pixel, options.width, options.height);
