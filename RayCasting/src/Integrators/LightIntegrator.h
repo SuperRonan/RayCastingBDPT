@@ -38,7 +38,7 @@ namespace Integrator
 
 			if constexpr (LIGHT_VERTEX)
 			{
-				vertex.light = beta;
+				vertex.light = beta * hit.geometry->getMaterial()->Le(vertex_to_camera * hit.primitive_normal > 0, hit.tex_uv);
 			}
 			else
 			{
@@ -71,7 +71,7 @@ namespace Integrator
 			hit.tex_uv = light_point.uv;
 			hit.geometry = light_point.geo;
 
-			connectVertexToCamera<true>(scene, beta, hit, lvs);
+			connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
 
 			Math::RandomDirection Le_sampler(&sampler, light_point.normal, 1);
 			Math::Vector3f next_dir = Le_sampler.generate();
@@ -84,7 +84,7 @@ namespace Integrator
 			double next_dir_pdf = cosl / Math::pi;
 
 
-			beta = beta * cosl / next_dir_pdf;
+			beta = beta * (cosl / next_dir_pdf);
 
 			unsigned int depth = 0;
 			while(!beta.isBlack())

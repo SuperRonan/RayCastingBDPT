@@ -1419,11 +1419,11 @@ int main(int argc, char ** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2000, 2000, scale);// pour les ecrans 4K
-	Visualizer::Visualizer visu(1000, 1000, scale);
+	//Visualizer::Visualizer visu(1000, 1000, scale);
 	//Visualizer::Visualizer visu(2000, 1000, scale);
 	//Visualizer::Visualizer visu(1900, 1000, scale);
 	//Visualizer::Visualizer visu(1000, 500, scale);
-	//Visualizer::Visualizer visu(500, 500, scale);
+	Visualizer::Visualizer visu(500, 500, scale);
 	//Visualizer::Visualizer visu(300, 300, scale) ;
 	//Visualizer::Visualizer visu(250, 250, scale) ;
 	//Visualizer::Visualizer visu(200, 200, scale) ;
@@ -1438,10 +1438,10 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
-	Auto::initVeach(scene, visu.width(), visu.height());
+	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//initDiffuse(scene, visu);
@@ -1481,7 +1481,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*2;
+	unsigned int sample_per_pixel = 16*2*2;
 										
 	unsigned int maxBounce = 10;
 

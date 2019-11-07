@@ -119,6 +119,8 @@ namespace Integrator
 					{
 						break;
 					}
+					if (T.isBlack())
+						break;
 				}
 				else
 				{

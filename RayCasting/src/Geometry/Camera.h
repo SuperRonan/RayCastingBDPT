@@ -44,7 +44,7 @@ namespace Geometry
 		/// \brief	The down vector.
 		Math::Vector3f m_down ;
 
-		int resolution;
+		double resolution;
 
 
 	
