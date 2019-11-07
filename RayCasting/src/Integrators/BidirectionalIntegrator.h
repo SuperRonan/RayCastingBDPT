@@ -65,6 +65,24 @@ namespace Integrator
 			}
 
 			template <TransportMode MODE>
+			double& pdfForward()
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					return pdf_importance;
+				else
+					return pdf_radiance;
+			}
+
+			template <TransportMode MODE>
+			double& pdfReverse()
+			{
+				if constexpr (MODE == TransportMode::Importance)
+					return pdf_radiance;
+				else
+					return pdf_importance;
+			}
+
+			template <TransportMode MODE>
 			void setPdfForward(double pdf)
 			{
 				if constexpr (MODE == TransportMode::Importance)
@@ -253,7 +271,7 @@ namespace Integrator
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			traceLightSubPath(scene, sampler, LightSubPath);
 
-			for (int t = 1; t <= cameraSubPath.size()*0+1; ++t)
+			for (int t = 1; t <= cameraSubPath.size(); ++t)
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
 				for (int s = 0; s <= LightSubPath.size(); ++s)
@@ -273,7 +291,7 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
-							//pixel_res += L * MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
+							pixel_res += L * MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
 						}
 					}
 					else
@@ -315,11 +333,11 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						//L *= MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
+						L *= MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
-							if (t == 1 && s ==1)
+							if (t == 1)
 							{
 								LightVertex lv;
 								lv.light = L / scene.m_camera.resolution;
@@ -328,7 +346,7 @@ namespace Integrator
 							}
 							else
 							{
-								//pixel_res += L;
+								pixel_res += L;
 							}
 						}
 					}
@@ -341,9 +359,23 @@ namespace Integrator
 		//Computes te MIS weights for the bidirectional path tracer
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double MISWeight(VertexStack & cameras, VertexStack & lights, const int this_s, const int this_t, double resolution, double pdf_sampling_point= -1)const
+		double MISWeight(VertexStack & cameras, VertexStack & lights, const int main_s, const int main_t, double resolution, double pdf_sampling_point= -1)const
 		{
-			return 1.0 / double(this_s + this_t);
+			Vertex* xt = cameras.begin() + (main_t - 1);
+			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
+			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
+			Vertex* ysm = main_s < 2 ? nullptr : lights.begin() + (main_s - 2);
+
+			ScopedAssignment<double> xt_pdf_rev_sa;
+			ScopedAssignment<double> ys_pdf_rev_sa;
+			ScopedAssignment<double> xtm_pdf_rev_sa;
+			ScopedAssignment<double> ysm_pdf_rev_sa;
+
+
+
+			double sum_ri = 1;
+
+			return 1.0 / sum_ri;
 		}
 
 	public:
