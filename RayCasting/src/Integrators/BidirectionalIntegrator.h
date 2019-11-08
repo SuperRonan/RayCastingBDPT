@@ -125,9 +125,16 @@ namespace Integrator
 					if (pdf_solid_angle < 0)
 						pdf_solid_angle = 0;
 				}
+				else if (prev == nullptr)
+				{
+					Math::Vector3f normal = hit.primitive_normal * (hit.facing ? 1 : -1);
+					pdf_solid_angle = (normal * to_vertex) / Math::pi;
+					if (pdf_solid_angle < 0)
+						pdf_solid_angle = 0;
+				}
 				else
 				{
-					if (hit.geometry->getMaterial()->delta())
+					if (hit.geometry->getMaterial()->delta() && delta_works)
 						pdf_solid_angle = 1;
 					else
 						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized());
@@ -145,7 +152,10 @@ namespace Integrator
 					{
 						res *= std::abs(next.hit.primitive_normal * to_vertex);
 					}
-
+					if (res < 0)
+					{
+						__debugbreak();
+					}
 					return res;
 				}
 				else
@@ -270,13 +280,15 @@ namespace Integrator
 
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			traceLightSubPath(scene, sampler, LightSubPath);
-
+			double Pt = 1;
 			for (int t = 1; t <= cameraSubPath.size(); ++t)
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
+				Pt *= camera_top.pdfForward<TransportMode::Importance>();
+				double Ps = 1;
 				for (int s = 0; s <= LightSubPath.size(); ++s)
 				{
-					if (s + t > m_max_depth)
+					if (s + t > m_max_depth+2)
 					{
 						break;
 					}
@@ -291,12 +303,15 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
-							pixel_res += L * MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
+							double pdf = LightSubPath[0].pdfForward<TransportMode::Radiance>();
+							double weight = MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
+							pixel_res += L * weight;
 						}
 					}
 					else
 					{
 						Vertex light_top = LightSubPath[s - 1];
+						Ps *= light_top.pdfForward<Radiance>();
 						if (camera_top.delta || light_top.delta)
 							continue;
 
@@ -333,7 +348,7 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						L *= MISWeight(cameraSubPath, LightSubPath, s, t, scene.m_camera.resolution);
+						L *= MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
@@ -359,8 +374,14 @@ namespace Integrator
 		//Computes te MIS weights for the bidirectional path tracer
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double MISWeight(VertexStack & cameras, VertexStack & lights, const int main_s, const int main_t, double resolution, double pdf_sampling_point= -1)const
+		double MISWeight(
+			VertexStack & cameras, VertexStack & lights, 
+			const Camera & camera, 
+			const int main_s, const int main_t, 
+			const double Pt, const double Ps, 
+			double resolution, double pdf_sampling_point= -1)const
 		{
+			//return 1.0 / double(main_t + main_s);
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -371,11 +392,68 @@ namespace Integrator
 			ScopedAssignment<double> xtm_pdf_rev_sa;
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
+			xt_pdf_rev_sa = { &xt->pdfReverse<TransportMode::Importance>(),[&]() {
+				if (ys)
+					return ys->pdf<true>(camera, *xt, ysm, false);
+				else
+					return pdf_sampling_point;
+			}() };
 
+			if (ys)
+			{
+				ys_pdf_rev_sa = { &ys->pdfReverse<TransportMode::Radiance>(), xt->pdf<true>(camera, *ys, xtm, false)};
+			}
 
-			double sum_ri = 1;
+			if (xtm)
+			{
+				xtm_pdf_rev_sa = { &xtm->pdfReverse<TransportMode::Importance>(), xt->pdf<true>(camera, *xtm, ys, false) };
+			}
 
-			return 1.0 / sum_ri;
+			if (ysm)
+			{
+				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<true>(camera, *ysm, xt, false) };
+			}
+
+			const double main_q = Ps * Pt * (main_t == 1 ? resolution : 1);
+
+			//compute the balance heuristic
+			double sum_qi = main_q;
+			
+			
+			//expand the camera sub path
+			{
+				double Ph = Ps * Pt;
+				for (int s = main_s; s >= 1; --s)
+				{
+					const Vertex& camera_end = lights[s - 1];
+					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
+					Ph *= camera_end.pdfReverse<TransportMode::Radiance>() / camera_end.pdfForward<TransportMode::Radiance>();
+
+					if (!(camera_end.delta || (light_end && light_end->delta)))
+					{
+						sum_qi += Ph;
+					}
+				}
+			}
+
+			//expand the light subpath
+			{
+				double Ph = Ps * Pt;
+				for (int t = main_t; t >= 2; --t)
+				{
+					const Vertex& light_end = cameras[t - 1];
+					const Vertex& camera_end = cameras[t - 2];
+					Ph *= light_end.pdfReverse<TransportMode::Importance>() / light_end.pdfForward<TransportMode::Importance>();
+
+					if (!(light_end.delta || camera_end.delta))
+					{
+						sum_qi += (Ph * (t == 2 ? resolution : 1));
+					}
+				}
+			}
+			
+			double weight = main_q / sum_qi;
+			return weight;
 		}
 
 	public:

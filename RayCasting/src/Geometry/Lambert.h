@@ -104,7 +104,9 @@ namespace Geometry
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			return (hit.primitive_normal * wi) / Math::pi;
+			if((wi * hit.primitive_normal) * (wo*hit.primitive_normal) > 0)
+				double res = std::abs(hit.primitive_normal * wi) / Math::pi;
+			return 0;
 		}
 	};
 }
