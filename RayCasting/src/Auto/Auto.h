@@ -96,6 +96,7 @@ namespace Auto
 			bool use_npt = false;
 			unsigned int naive_times = 1;
 
+			bool use_rt = false;
 			bool use_pt = false;
 			bool use_ptMIS = false;
 			bool use_lt = false;
@@ -160,6 +161,10 @@ namespace Auto
 						alpha = std::stod(next);
 						++i;
 					}
+					else if (arg == "-rt")
+					{
+						use_rt = true;
+					}
 					else if (arg == "-pt")
 					{
 						use_pt = true;
@@ -195,6 +200,10 @@ namespace Auto
 					else if (arg == "-nbdpt")
 					{
 						use_nbdpt = true;
+					}
+					else if (arg == "::")
+					{
+						break;
 					}
 					else
 					{
@@ -377,7 +386,9 @@ namespace Auto
 
 			scene.compute_light_samplers(options.light_division);
 
+			scene.m_camera.resolution = options.width * options.height;
 			
+			Integrator::RayTracingIntegrator rti(options.sample_per_pixel * options.naive_times, options.width, options.height);
 			Integrator::NaivePathTracingIntegrator npti(options.sample_per_pixel * options.naive_times, options.width, options.height);
 			Integrator::IterativePathTracingIntegrator ipti(options.sample_per_pixel, options.width, options.height);
 			Integrator::MISPathTracingIntegrator mispti(options.sample_per_pixel, options.width, options.height);
@@ -386,6 +397,7 @@ namespace Auto
 			//Integrator::NaiveBidirectionalIntegrator nbdpti(options.sample_per_pixel, options.width, options.height);
 
 			std::vector<TestIntegrator> integrators = { 
+				{&rti, options.use_rt, "Ray Tracing"},
 				{&npti, options.use_npt, "Naive Path Tracing"},
 				{&ipti, options.use_pt, "Path Tracing"},
 				{&mispti, options.use_ptMIS, "MIS Path Tracing"},

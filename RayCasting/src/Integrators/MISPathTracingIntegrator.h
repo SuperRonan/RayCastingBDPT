@@ -142,12 +142,11 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
-			//bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
 			RGBColor prod_color = scene.m_camera.We(ray.direction());
 			double prod_pdf = scene.m_camera.pdfWeSolidAngle(pray.direction());
 			RGBColor res = 0;
-			bool first_bounce = true;
+			bool use_emissive = true;
 			for (int depth = 0; depth < m_max_depth + 1; ++depth)
 			{
 				Hit hit;
@@ -156,16 +155,21 @@ namespace Integrator
 					const Material& material = *hit.geometry->getMaterial();
 					RGBColor light_contribution;
 					double pdf_light = 0;
-					if (first_bounce && material.is_emissive())
+					if (use_emissive && material.is_emissive())
 					{
 						//pdf_light = material.pdfLight(hit, ray.direction().normalized());
 						light_contribution = prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf; //emissif
 					}
-					first_bounce = false;
 					//double pdf_surface = material.pdf(hit, ray.direction().normalized());
-					RGBColor direct_contribution = prod_color * MISAddDirectIllumination(scene, hit, sampler) / prod_pdf;
+					
+					res += light_contribution;
 
-					res += light_contribution + direct_contribution;
+					use_emissive = material.delta();
+					if (!use_emissive)
+					{
+						RGBColor direct_contribution = prod_color * MISAddDirectIllumination(scene, hit, sampler) / prod_pdf;
+						res += direct_contribution;
+					}
 
 #ifdef SHORT_RUSSIAN
 					double alpha = depth < 3 ? 1 : m_alpha;

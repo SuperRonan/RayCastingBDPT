@@ -65,7 +65,7 @@ namespace Integrator
 						{
 							unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
 							RGBColor& pixel = m_frame_buffer[u][v];
-							RGBColor Ct = (lv.light) * sample_pass;
+							RGBColor Ct = (lv.light);
 							//TODO manage omp atomic
 							pixel += (Ct);
 						}
@@ -154,7 +154,7 @@ namespace Integrator
 						{
 							unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
 							RGBColor& pixel = m_frame_buffer[u][v];
-							RGBColor Ct = (lv.light) * npixels;
+							RGBColor Ct = (lv.light);
 							//TODO manage omp atomic
 							pixel += Ct;
 						}
@@ -216,7 +216,7 @@ namespace Integrator
 					{
 						unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
 						RGBColor& pixel = m_frame_buffer[u][v];
-						RGBColor Ct = (lv.light) * npixels;
+						RGBColor Ct = (lv.light);
 						
 						//TODO manage omp atomic
 						pixel += (Ct);

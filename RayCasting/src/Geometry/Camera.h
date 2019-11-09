@@ -9,7 +9,7 @@
 #include <utils.h>
 
 
-//#define USE_CAMERA_PLANE
+#define USE_CAMERA_PLANE
 
 
 namespace Geometry
@@ -26,27 +26,28 @@ namespace Geometry
 	{
 	public:
 		/// \brief	The camera position.
-		Math::Vector3f m_position ;
+		Math::Vector3f m_position;
 		/// \brief	The aim of the camera.
-		Math::Vector3f m_target ;
+		Math::Vector3f m_target;
 		/// \brief	Distance of the focal plane.
 		static double constexpr m_planeDistance = 1.0;
 		/// \brief	Width of the projection rectangle.
-		double	      m_planeWidth ;
+		double	      m_planeWidth;
 		/// \brief	Height of the projection rectangle.
-		double		  m_planeHeight ;
+		double		  m_planeHeight;
 
 
 		/// \brief	The front vector of the camera.
-		Math::Vector3f m_front ;
+		Math::Vector3f m_front;
 		/// \brief	The right vector.
-		Math::Vector3f m_right ;
+		Math::Vector3f m_right;
 		/// \brief	The down vector.
-		Math::Vector3f m_down ;
+		Math::Vector3f m_down;
+
+		double resolution;
 
 
 
-	
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		/// \fn	void Camera::computeParameters()
 		///
@@ -57,15 +58,15 @@ namespace Geometry
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		void computeParameters()
 		{
-			m_front = m_target-m_position ;
-			m_front = m_front/m_front.norm() ;
-			
-			m_right = Math::Quaternion<double>(Math::makeVector(0.0f, 0.0f, 1.0f), -3.14159265f/2.0f).rotate(m_front) ;
+			m_front = m_target - m_position;
+			m_front = m_front / m_front.norm();
+
+			m_right = Math::Quaternion<double>(Math::makeVector(0.0f, 0.0f, 1.0f), -3.14159265f / 2.0f).rotate(m_front);
 			m_right[2] = 0.0f;
-			m_right = m_right/m_right.norm() ;
-			
-			m_down  = m_front ^ m_right ;
-			m_down  = m_down/m_down.norm() ;
+			m_right = m_right / m_right.norm();
+
+			m_down = m_front ^ m_right;
+			m_down = m_down / m_down.norm();
 		}
 
 	public:
@@ -86,31 +87,31 @@ namespace Geometry
 		/// \param	planeWidth   	Width of the projection rectangle.
 		/// \param	planeHeight  	Height of the projection rectangle.
 		////////////////////////////////////////////////////////////////////////////////////////////////////
-		Camera(Math::Vector3f const & position = Math::makeVector(0.0f, 0.0f, 0.0f), 
-			   Math::Vector3f const & target = Math::makeVector(0.0f, 1.0f, 0.0f),
-			   double planeDist=1,
-			   double planeWidth=1.0f, double planeHeight=1.0f): 
-			m_position(position), 
-			m_target(target), 
-		    m_planeWidth(planeWidth / planeDist), 
+		Camera(Math::Vector3f const& position = Math::makeVector(0.0f, 0.0f, 0.0f),
+			Math::Vector3f const& target = Math::makeVector(0.0f, 1.0f, 0.0f),
+			double planeDist = 1,
+			double planeWidth = 1.0f, double planeHeight = 1.0f) :
+			m_position(position),
+			m_target(target),
+			m_planeWidth(planeWidth / planeDist),
 			m_planeHeight(planeHeight / planeDist)
 		{
-			computeParameters() ;
+			computeParameters();
 		}
 
 		/// <summary>
 		/// Translates the camera in local coordinates (X = right, Y = front, Z=up).
 		/// </summary>
 		/// <param name="translation">The translation vector.</param>
-		void translateLocal(Math::Vector3f const & translation)
+		void translateLocal(Math::Vector3f const& translation)
 		{
-			Math::Vector3f trans =m_right*translation[0] + m_front*translation[1] - m_down*translation[2];
+			Math::Vector3f trans = m_right * translation[0] + m_front * translation[1] - m_down * translation[2];
 			m_position = m_position + trans;
 			m_target = m_target + trans;
 		}
 
 
-		void update_both(Math::Vector3f const & position, Math::Vector3f const & target)
+		void update_both(Math::Vector3f const& position, Math::Vector3f const& target)
 		{
 			m_position = position;
 			m_target = target;
@@ -128,9 +129,9 @@ namespace Geometry
 		///
 		/// \param	position	The new camera position.
 		////////////////////////////////////////////////////////////////////////////////////////////////////
-		void setPosition(Math::Vector3f const & position)
+		void setPosition(Math::Vector3f const& position)
 		{
-			m_position = position ;
+			m_position = position;
 		}
 
 		Math::Vector3f const& getPosition()const
@@ -148,10 +149,10 @@ namespace Geometry
 		///
 		/// \param	target	The new target.
 		////////////////////////////////////////////////////////////////////////////////////////////////////
-		void setTarget(Math::Vector3f const & target)
+		void setTarget(Math::Vector3f const& target)
 		{
-			m_target = target ;
-			computeParameters() ;
+			m_target = target;
+			computeParameters();
 		}
 
 		void scale_screen(double scale)
@@ -197,7 +198,7 @@ namespace Geometry
 
 		Ray getRay(double coordX, double coordY) const
 		{
-			return Ray(m_position, m_front - m_right * (0.5-coordX) * m_planeWidth - m_down * (0.5 - coordY) * m_planeHeight) ;
+			return Ray(m_position, m_front - m_right * (0.5 - coordX) * m_planeWidth - m_down * (0.5 - coordY) * m_planeHeight);
 		}
 
 
@@ -215,12 +216,7 @@ namespace Geometry
 
 		__forceinline double We(Math::Vector3f const& dir)const
 		{
-			if (validRaster(raster(dir)))
-			{
-				double cost = dir * m_front;
-				return pdfWeArea() / (cost * cost * cost);
-			}
-			return 0;
+			return pdfWeSolidAngle(dir);
 		}
 
 
@@ -240,7 +236,7 @@ namespace Geometry
 
 		__forceinline double pdfWeArea()const
 		{
-			return 1.0 / (m_planeWidth * m_planeHeight);
+			return resolution / (m_planeWidth * m_planeHeight);
 		}
 #else
 
@@ -257,11 +253,11 @@ namespace Geometry
 		__forceinline Math::Vector2f screen_direction(Math::Vector3f const& direction)const
 		{
 			//first, we need the direction in the camera basis
-			Math::Vector3f camera_direction = {(direction * m_front), -direction * m_right, -(direction * m_down)};
+			Math::Vector3f camera_direction = { (direction * m_front), -direction * m_right, -(direction * m_down) };
 
 			Math::Vector2f inc_azi = inclinationAzimuthOfNormalized(camera_direction);
 
-			return Math::Vector2f(0.5 - (inc_azi[1]) / m_planeWidth, 0.5+ (inc_azi[0] - Math::piDiv2) / m_planeHeight);
+			return Math::Vector2f(0.5 - (inc_azi[1]) / m_planeWidth, 0.5 + (inc_azi[0] - Math::piDiv2) / m_planeHeight);
 		}
 
 
@@ -289,11 +285,11 @@ namespace Geometry
 
 		__forceinline double pdfWeArea()const
 		{
-			return 1.0 / (m_planeWidth * m_planeHeight);
+			return resolution / (m_planeWidth * m_planeHeight);
 		}
 #endif
 
-	} ;
+	};
 }
 
 #endif

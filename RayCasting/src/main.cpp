@@ -1645,6 +1645,8 @@ int main(int argc, char ** argv)
 
 			cam.update_both(pos + speed_vec, pos + dir);
 
+			cam.resolution = visu.width() * visu.height();
+
 #ifdef COUNT_RAYS
 			tbb::tick_count tic = tbb::tick_count::now();
 #endif
