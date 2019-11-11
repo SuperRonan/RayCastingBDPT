@@ -143,18 +143,9 @@ namespace Integrator
 				{
 					double res = pdf_solid_angle / dist2;
 					
-					if (type != Type::Camera)
-					{
-						res *= std::abs(hit.primitive_normal * to_vertex);
-					}
-					
 					if (next.type != Type::Camera)
 					{
 						res *= std::abs(next.hit.primitive_normal * to_vertex);
-					}
-					if (res < 0)
-					{
-						__debugbreak();
 					}
 					return res;
 				}
@@ -203,9 +194,9 @@ namespace Integrator
 					DirectionSample next_dir;
 					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler);
 
-					// This assumes to have symetric bsdf / pdf
-					prev->setPdfReverse<MODE>(next_dir.pdf * cos_prev / dist2);
+					prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
 
+					//update info for the next loop
 					ray = Ray(hit.point, next_dir.direction);
 					prev = &vertex;
 
@@ -243,7 +234,6 @@ namespace Integrator
 		{
 			res.grow();
 			Vertex& light_vertex = res.top();
-			light_vertex.beta = 1;
 			light_vertex.delta = false;
 			light_vertex.type = Vertex::Type::Light;
 
@@ -256,6 +246,7 @@ namespace Integrator
 			light_vertex.hit.point = sls.vector;
 
 			light_vertex.setPdfForward<TransportMode::Radiance>(sls.pdf);
+			light_vertex.beta = 1.0 / sls.pdf;
 
 			//generate a direction
 			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
@@ -285,6 +276,14 @@ namespace Integrator
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
 				Pt *= camera_top.pdfForward<TransportMode::Importance>();
+				//if(t >= 2)
+				//{
+				//	double p1 = cameraSubPath[t - 2].pdf(scene.m_camera, cameraSubPath[t - 1], t == 2 ? nullptr : &cameraSubPath[t - 3], true), p2 = camera_top.pdfForward<TransportMode::Importance>();
+				//	if (p1 != p2)
+				//	{
+				//		__debugbreak();
+				//	}
+				//}
 				double Ps = 1;
 				for (int s = 0; s <= LightSubPath.size(); ++s)
 				{

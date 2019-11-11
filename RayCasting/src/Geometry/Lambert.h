@@ -65,7 +65,9 @@ namespace Geometry
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			return m_diffuse * getTexturePixel(hit.tex_uv) * (wi * hit.primitive_normal > 0);
+			if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) > 0)
+				return m_diffuse * getTexturePixel(hit.tex_uv);
+			return 0;
 		}
 		
 
@@ -96,7 +98,7 @@ namespace Geometry
 			for (SurfaceLightSample const& wi : wis)
 			{
 				//should be inlined (I hope)
-				res.push(BSDF(hit, wi.vector, 0.0));
+				res.push(BSDF(hit, wi.vector, hit.to_view));
 				//res.push(m_diffuse * getTexturePixel(hit.tex_uv) * (wi.vector * hit.primitive_normal > 0));
 			}
 		}
@@ -104,8 +106,11 @@ namespace Geometry
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			if((wi * hit.primitive_normal) * (wo*hit.primitive_normal) > 0)
+			if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) > 0)
+			{
 				double res = std::abs(hit.primitive_normal * wi) / Math::pi;
+				return res;
+			}
 			return 0;
 		}
 	};

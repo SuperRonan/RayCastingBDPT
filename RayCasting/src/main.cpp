@@ -37,6 +37,7 @@
 #include <Integrators/LightIntegrator.h>
 #include <Integrators/MISPathTracingIntegrator.h>
 #include <Integrators/BidirectionalIntegrator.h>
+#include <Integrators/OptimalDirect.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -959,7 +960,7 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 
 enum RenderMode { rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8, 
-	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14 };
+	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14, OptimalDirect = 15 };
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxBounce, double alpha, unsigned int lights_divisions, size_t w, size_t h)
 {
@@ -968,6 +969,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	{
 		res[RenderMode::rayTracing] = new Integrator::RayTracingIntegrator(sample_per_pixel, w, h);
 		res[RenderMode::rayTracing]->setDepth(maxBounce);
+	}
+
+	{
+		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirect]->setDepth(maxBounce);
 	}
 
 	{
@@ -1227,6 +1233,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Ambient Occlusion" << std::endl;
 				render_mode = RenderMode::AmbientOcclusion;
 				break;
+			case SDLK_x:
+				if (render_mode != RenderMode::OptimalDirect)
+					std::cout << "switching to Optimis Direct" << std::endl;
+				render_mode = RenderMode::OptimalDirect;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1438,10 +1449,10 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
-	//Auto::initVeach(scene, visu.width(), visu.height());
+	Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//initDiffuse(scene, visu);
@@ -1481,7 +1492,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*2*2;
+	unsigned int sample_per_pixel = 16;
 										
 	unsigned int maxBounce = 10;
 
@@ -1498,7 +1509,7 @@ int main(int argc, char ** argv)
 
 	scene.check_capacity();
 
-	RenderOption render_option = RenderOption::RealTime;
+	RenderOption render_option = RenderOption::Pass;
 	RenderMode render_mode = RenderMode::bdpt;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxBounce, alpha, lights_divisions, visu.width(), visu.height());
@@ -1536,6 +1547,8 @@ int main(int argc, char ** argv)
 
 	inclination = dir_sphere[1];
 	azimuth = dir_sphere[2];
+
+	cam.resolution = visu.width() * visu.height();
 
 		
 	std::chrono::high_resolution_clock::time_point t2;

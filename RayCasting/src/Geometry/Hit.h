@@ -34,6 +34,7 @@ namespace Geometry
 		//Math::Vector3f reflected;
 
 		Hit():
+			z(-1),
 			geometry(nullptr),
 			primitve(nullptr)
 		{}
@@ -75,5 +76,9 @@ namespace Geometry
 			return normal.reflect(to_view);
 		}
 
+		bool valid()const
+		{
+			return z != -1;
+		}
 	};
 }

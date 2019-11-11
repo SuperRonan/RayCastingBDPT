@@ -268,6 +268,7 @@
     <ClInclude Include="..\src\Integrators\LightIntegrator.h" />
     <ClInclude Include="..\src\Integrators\LightIntegratorBase.h" />
     <ClInclude Include="..\src\Integrators\MISPathTracingIntegrator.h" />
+    <ClInclude Include="..\src\Integrators\OptimalDirect.h" />
     <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingBaseIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h" />

@@ -312,6 +312,9 @@
     <ClInclude Include="..\src\Math\OptiMISSolver.h">
       <Filter>src\Math</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\OptimalDirect.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

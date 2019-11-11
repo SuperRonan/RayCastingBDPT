@@ -19,19 +19,7 @@ namespace Integrator
 
 	protected:
 
-		__forceinline static bool samePoint(Hit const& hit, double dist, const GeometryBase* geo)
-		{
-#ifdef TRICK_DIRECT
-			return hit.geometry == geo;
-#else
-			return samePoint(hit, dist);
-#endif
-		}
 
-		__forceinline static bool samePoint(Hit const& hit, double dist)
-		{
-			return abs(dist - hit.z) < 0.00000001;
-		}
 
 	public:
 
@@ -96,54 +84,7 @@ namespace Integrator
 			return res;
 		}
 
-		//clever version
-		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler & sampler, SurfaceLightSample& res)const
-		{
-			//select one light
-			const GeometryBase* light;
-			double pdf;
 
-			
-			if (!scene.sampleOneLight(sampler, pdf, light))
-			{
-				return false;
-			}
-
-			/*
-			if (light == hit.geometry)
-			{
-				return false;
-			}
-			*/
-
-			//select a point on this light
-			//light->sampleLight(res, hit, sampler);
-			light->sampleLight(res, sampler);
-			res.pdf *= pdf;
-
-			return true;
-		}
-
-
-		//old version
-		bool sampleOneLight(Scene const& scene, Math::Sampler& sampler, SurfaceLightSample& res)const
-		{
-			if (scene.m_surface_lights.empty())
-			{
-				return false;
-			}
-
-			//select one light
-			const GeometryBase* light;
-			double pdf;
-			scene.sampleOneLight(sampler, pdf, light);
-
-			//select a point on this light
-			light->sampleLight(res, sampler);
-			res.pdf *= pdf;
-
-			return true;
-		}
 
 
 
