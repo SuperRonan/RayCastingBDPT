@@ -28,7 +28,7 @@ namespace Integrator
 			bool delta;
 
 			//Maybe the same concept of pdf fwd and rev as PBRT is actually better for the engine
-			double pdf_inportance, pdf_radiance;
+			double pdf_importance, pdf_radiance; // proba d'avoir été échant par la cam ou la lumière
 
 			//I am too lazy to do a union of hit for the different types of vertices
 			const CameraType* camera=nullptr;
@@ -110,21 +110,44 @@ namespace Integrator
 		// -pdf is the solid angle probability of sampling ray.dir
 		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
 		///////////////////////////////////////////////
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_depth, const TransportMode mode)const
+		template <TransportMode MODE>
+		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_depth)const
 		{
 			Hit hit;
-			double pdf_solid_angle = pdf;
-			Vertex* prev = &res.top();
-			for (int nv = 0; nv < max_depth; ++nv)
+			Vertex* prev = &res.top(); //used for reverse pdf
+			double pdf_solid_angle_prev = pdf;
+			double cos_prev = std::abs(prev->hit.primitive_normal * ray.direction());
+			int nv = 0;
+			for (nv = 0; nv < max_depth; ++nv)
 			{
 				if (scene.full_intersection(ray, hit))
 				{
-					
+					const double dist2 = hit.z * hit.z;
+					Vertex current_vertex(Vertex::Type::Surface, beta, hit, hit.geometry->getMaterial()->delta());
+					res.push(current_vertex);
+					const double cos_vertex = std::abs(ray.direction() * hit.primitive_normal);
+					const double conversion = cos_vertex / dist2;
+					if (MODE == TransportMode::Radiance)
+						res.end()->pdf_radiance = pdf_solid_angle_prev * conversion;
+					else
+						res.end()->pdf_importance = pdf_solid_angle_prev * conversion;
+
+					//sample next dir
+					DirectionSample next_dir;
+					hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, next_dir, sampler);
+					prev = &current_vertex;
+
+					cos_prev = std::abs(next_dir.direction * hit.primitive_normal);
+					beta = beta * next_dir.bsdf * cos_prev / next_dir.pdf;
+					if (beta.isBlack())
+						break;
+					ray = Ray(hit.point, next_dir.direction);
+					pdf_solid_angle_prev *= next_dir.pdf;
 				}
 				else
 					break;
 			}
-			return 0;
+			return nv;
 		}
 
 		__forceinline void computeReverseProbabilities(VertexStack& sub_path, TransportMode const& mode)const
@@ -134,32 +157,168 @@ namespace Integrator
 
 		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray const& ray)const
 		{
-			// TODO
-			return 0;
+			Hit hit;
+			hit.normal = hit.primitive_normal = ray.direction();
+			hit.point = scene.m_camera.getPosition();
+
+			Vertex cam_vertex(Vertex::Type::Camera, 1, hit, false);
+			res.push(cam_vertex);
+			cam_vertex.pdf_importance = 1;
+
+			return randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth)+ 1;
 		}
 
 		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res)const
 		{
-			// TODO
-			return 0;
+			SurfaceLightSample sls;
+			sampleLight(scene, sls, sampler);
+
+
+			Hit hit;
+			hit.point = sls.vector;
+			hit.normal = hit.primitive_normal = sls.normal;
+			hit.tex_uv = sls.uv;
+			hit.geometry = sls.geo;
+
+			//connectVertexToCamera(scene, beta, hit, lvs, true);
+			res.push(Vertex(Vertex::Type::Light, 1, hit, hit.geometry->getMaterial()->delta())); // init light
+			
+			res.begin()->pdf_radiance = sls.pdf; // area density
+
+			//generate a direction
+			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
+			DirectionSample dir_from_light = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
+
+			double cosl = std::abs(sls.normal * dir_from_light.direction);
+			double dist2 = hit.z * hit.z;
+			//double conversion = cosl / dist2;
+			//RGBColor beta = sls.geo->getMaterial()->Le(true, sls.uv) / sls.pdf;
+
+			//beta = beta * cosl / dir_from_light.pdf;
+
+			RGBColor beta = dir_from_light.bsdf * std::abs(dir_from_light.direction * sls.normal) / (sls.pdf * dir_from_light.pdf);
+
+
+			Ray ray(sls.vector, dir_from_light.direction);
+			if (beta.isBlack())
+				return 0;
+
+			return randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, sls.pdf * dir_from_light.pdf, max_light_depth) + 1;
 		}
 		
 
 
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler & sampler, __out RGBColor & pixel_res, LightVertexStack & lt_vertices)const
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
 		{
-			// TODO
+			VertexStack cameraSubPath, LightSubPath;
+
+			Ray ray = scene.m_camera.getRay(u, v);
+
+			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
+			traceLightSubPath(scene, sampler, LightSubPath);
+			double Pt = 1;
+			for (int t = 1; t <= cameraSubPath.size(); ++t)
+			{
+				Vertex& camera_top = cameraSubPath[t - 1];
+				Pt *= camera_top.pdf_importance;
+				double Ps = 1;
+				for (int s = 0; s <= LightSubPath.size(); ++s)
+				{
+					if (s + t > m_max_depth + 2)
+					{
+						break;
+					}
+					RGBColor L = 0;
+
+					// special cases of connections strategies
+					if (s + t == 1)
+						continue;
+					if (s == 0)
+					{
+						// naive path tracing
+						if (camera_top.hit.geometry->getMaterial()->is_emissive())
+						{
+							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
+							double pdf = LightSubPath[0].pdf_radiance;
+							double weight = MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
+							pixel_res += L * weight;
+						}
+					}
+					else
+					{
+						Vertex light_top = LightSubPath[s - 1];
+						Ps *= light_top.pdf_radiance;
+						if (camera_top.delta || light_top.delta)
+							continue;
+
+						Math::Vector3f dir = camera_top.hit.point - light_top.hit.point;
+						const double dist2 = dir.norm2();
+						const double dist = sqrt(dist2);
+						dir /= dist;
+
+						double G = std::abs(dir * light_top.hit.primitive_normal) / dist2;
+
+						RGBColor camera_connection, light_connection;
+
+						if (t == 1)
+						{
+							//light tracing
+							camera_connection = scene.m_camera.We(-dir);
+						}
+						else
+						{
+							//general case
+							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir);
+							G *= std::abs(camera_top.hit.primitive_normal * dir);
+						}
+
+						if (s == 1)
+						{
+							//direct lighting estimation
+							light_connection = light_top.hit.geometry->getMaterial()->Le((light_top.hit.primitive_normal * dir) > 0, light_top.hit.tex_uv);
+						}
+						else
+						{
+							//general case
+							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir);
+						}
+
+						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
+						L *= MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
+
+						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						{
+							if (t == 1)
+							{
+								LightVertex lv;
+								lv.light = L / scene.m_camera.resolution;
+								lv.uv = scene.m_camera.raster(-dir);
+								lt_vertices.push(lv);
+							}
+							else
+							{
+								pixel_res += L;
+							}
+						}
+					}
+				}
+			}
 		}
 
-
 		////////////////////////////////////////////////////////////////
-		//Computes te MIS weights for the bidirectional path tracer
+		//Computes the MIS weights for the bidirectional path tracer
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double MISWeight(VertexStack & cameras, VertexStack & lights, const int this_s, const int this_t, const double Ps, const double Pt, double pdf_sampling_point= -1)const
+		double MISWeight(
+			VertexStack& cameras, VertexStack& lights,
+			const Camera& camera,
+			const int main_s, const int main_t,
+			const double Pt, const double Ps,
+			double resolution, double pdf_sampling_point = -1)const
 		{
 			// TODO
-			return 0;
+			return 1.0 / (double)(main_s + main_t);
+			return 1;
 		}
 
 	public:
@@ -172,14 +331,12 @@ namespace Integrator
 			
 		}
 
-
 		virtual void setDepth(unsigned int d)override
 		{
 			Integrator::setDepth(d);
 			max_camera_depth = d;
 			max_light_depth = d;
 		}
-
 
 		static __forceinline size_t pixelSeed(size_t x, size_t y, size_t width, size_t height, size_t pass)
 		{
@@ -189,7 +346,6 @@ namespace Integrator
 			return (y * width + x) + (pass) * (width * height);
 #endif
 		}
-
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -220,7 +376,7 @@ namespace Integrator
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
 						int tid = omp_get_thread_num();
-								
+
 						for (size_t x = 0; x < visu.width(); x++)
 						{
 							size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), pass);
@@ -229,14 +385,21 @@ namespace Integrator
 							double xp = sampler.generateContinuous<double>();
 							double yp = sampler.generateContinuous<double>();
 
-							double v = ((double)y + yp) / m_frame_buffer.height();
+							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							Ray ray = scene.m_camera.getRay(u, v);
+							RGBColor pixel = 0;
+							LightVertexStack lvs;
 
-									
-									
+							computeSample(scene, u, v, sampler, pixel, lvs);
 
+							m_frame_buffer[x][y] += pixel;
+							for (LightVertex const& lv : lvs)
+							{
+								int lx = lv.uv[0] * visu.width();
+								int ly = lv.uv[1] * visu.height();
+								m_frame_buffer[lx][ly] += lv.light;
+							}
 						}//pixel x
 					}//pixel y
 
@@ -244,7 +407,7 @@ namespace Integrator
 				total += sample_pass;
 				++pass;
 
-				showFrame(visu, total);
+				showFrame(visu, pass);
 
 				scene.update_lights_offset(1);
 				kbr = visu.update();
@@ -259,11 +422,11 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer);
+					Image::ImWrite::write(m_frame_buffer, 1.0 / double(m_sample_per_pixel));
 				}
 			}//pass per pixel
 
-__render__end__loop__:
+		__render__end__loop__:
 			// stop timer
 			QueryPerformanceCounter(&t2);
 			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
@@ -277,19 +440,10 @@ __render__end__loop__:
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / (double)total);
+					Image::ImWrite::write(m_frame_buffer, 1.0 / (double)m_sample_per_pixel);
 				}
 			}
 		}
-
-
-
-
-
-
-
-
-
 
 		void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult& res)final override
 		{
@@ -311,7 +465,7 @@ __render__end__loop__:
 			size_t pass = 0;
 			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
 			{
-				
+
 				std::cout << '\r' + progession_bar(pass, m_sample_per_pixel, 100) << std::flush;
 
 				const size_t sample_pass = m_frame_buffer.size();
@@ -330,10 +484,19 @@ __render__end__loop__:
 							double v = ((double)y + yp) / m_frame_buffer.height();
 							double u = ((double)x + xp) / m_frame_buffer.width();
 
-							Ray ray = scene.m_camera.getRay(u, v);
-									
+							RGBColor pixel = 0;
+							LightVertexStack lvs;
 
-									
+							computeSample(scene, u, v, sampler, pixel, lvs);
+
+							m_frame_buffer[x][y] += pixel;
+							for (LightVertex const& lv : lvs)
+							{
+								int lx = lv.uv[0] * m_frame_buffer.width();
+								int ly = lv.uv[1] * m_frame_buffer.height();
+								m_frame_buffer[lx][ly] += lv.light;
+							}
+
 							//visu.plot(x, y, pixel);
 						}//pixel x
 					}//pixel y
@@ -341,14 +504,14 @@ __render__end__loop__:
 				total += sample_pass;
 				++pass;
 				scene.update_lights_offset(1);
-						
+
 			}//pass per pixel
 
 			std::cout << '\r' + progession_bar(100, 100, 100) << std::endl;
 			// stop timer
 			QueryPerformanceCounter(&t2);
 			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			
+
 			scene.reset_surface_lights();
 
 			//fill the result
@@ -358,13 +521,10 @@ __render__end__loop__:
 				OMP_PARALLEL_FOR
 					for (long i = 0; i < m_frame_buffer.size(); ++i)
 					{
-						res.image.m_data[i] = m_frame_buffer.m_data[i] / total;
+						res.image.m_data[i] = m_frame_buffer.m_data[i] / m_sample_per_pixel;
 					}
 			}
 		}
-
-
-
 
 		void fastRender(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -388,13 +548,24 @@ __render__end__loop__:
 						size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), 0);
 						Math::Sampler sampler(seed);
 
-						RGBColor result;
+						RGBColor pixel = 0;
+						LightVertexStack lvs;
+
+						computeSample(scene, u, v, sampler, pixel, lvs);
+
+						m_frame_buffer[x][y] += pixel;
+						for (LightVertex const& lv : lvs)
+						{
+							int lx = lv.uv[0] * visu.width();
+							int ly = lv.uv[1] * visu.height();
+							m_frame_buffer[lx][ly] += lv.light;
+						}
 
 					}//pixel x
 				}//pixel y
 				//the pass has been computed
 			total = npixels;
-			showFrame(visu, total);
+			showFrame(visu, 1);
 
 			visu.update();
 		}
@@ -475,7 +646,5 @@ __render__end__loop__:
 
 			//}
 		}
-
-
 	};
 }
