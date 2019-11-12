@@ -194,7 +194,8 @@ namespace Integrator
 					DirectionSample next_dir;
 					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler);
 
-					prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
+					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
+					prev->pdfReverse<MODE>() = next_dir.pdf * cos_prev / dist2;
 
 					//update info for the next loop
 					ray = Ray(hit.point, next_dir.direction);
@@ -256,7 +257,7 @@ namespace Integrator
 
 			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal) / (sls.pdf * next_dir.pdf);
 
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (sls.pdf * next_dir.pdf), max_light_depth);
+			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_depth);
 
 			return 1 + nv;
 		}
@@ -276,14 +277,7 @@ namespace Integrator
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
 				Pt *= camera_top.pdfForward<TransportMode::Importance>();
-				//if(t >= 2)
-				//{
-				//	double p1 = cameraSubPath[t - 2].pdf(scene.m_camera, cameraSubPath[t - 1], t == 2 ? nullptr : &cameraSubPath[t - 3], true), p2 = camera_top.pdfForward<TransportMode::Importance>();
-				//	if (p1 != p2)
-				//	{
-				//		__debugbreak();
-				//	}
-				//}
+
 				double Ps = 1;
 				for (int s = 0; s <= LightSubPath.size(); ++s)
 				{
@@ -302,7 +296,7 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
-							double pdf = LightSubPath[0].pdfForward<TransportMode::Radiance>();
+							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							double weight = MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
 							pixel_res += L * weight;
 						}

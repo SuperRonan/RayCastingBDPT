@@ -154,7 +154,7 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
-		double scale = 5;
+		double scale = 50;
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
 
 		double light_size = 1;
@@ -455,7 +455,8 @@ namespace Auto
 		{
 			Math::Vector3f base = { -1 * scale, 0, 5 * scale };
 			Math::Vector3f T = { 0, 0, -26 * scale };
-			Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
+			//Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
+			Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian(1));
 			cube->rotate(Math::Quaternion<double>({ 0, -1, 0 }, rad(corrections[i])));
 			cube->translate(T);
 
