@@ -1510,7 +1510,7 @@ int main(int argc, char ** argv)
 	scene.check_capacity();
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::bdpt;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxBounce, alpha, lights_divisions, visu.width(), visu.height());
 

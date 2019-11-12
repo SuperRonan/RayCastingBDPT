@@ -154,7 +154,7 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
-		double scale = 50;
+		double scale = 5;
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
 
 		double light_size = 1;
