@@ -455,8 +455,8 @@ namespace Auto
 		{
 			Math::Vector3f base = { -1 * scale, 0, 5 * scale };
 			Math::Vector3f T = { 0, 0, -26 * scale };
-			//Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
-			Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian(1));
+			Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
+			//Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian(1));
 			cube->rotate(Math::Quaternion<double>({ 0, -1, 0 }, rad(corrections[i])));
 			cube->translate(T);
 

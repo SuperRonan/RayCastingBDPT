@@ -1423,7 +1423,7 @@ int main(int argc, char ** argv)
 	omp_set_num_threads(nthread);
 
 #ifdef _DEBUG
-	int scale = 10;
+	int scale = 1;
 #else
 	int scale = 1;
 #endif
@@ -1449,10 +1449,10 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
-	//Auto::initVeach(scene, visu.width(), visu.height());
+	Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//initDiffuse(scene, visu);
@@ -1509,8 +1509,8 @@ int main(int argc, char ** argv)
 
 	scene.check_capacity();
 
-	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderOption render_option = RenderOption::Pass;
+	RenderMode render_mode = RenderMode::OptimalDirect;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxBounce, alpha, lights_divisions, visu.width(), visu.height());
 

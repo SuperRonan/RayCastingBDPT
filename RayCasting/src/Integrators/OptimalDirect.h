@@ -5,6 +5,7 @@
 #include <Geometry/RGBColor.h>
 #include <Image/MultiSample.h>
 #include <Image/ImWrite.h>
+#include <armadillo>
 
 
 namespace Integrator
@@ -55,20 +56,24 @@ namespace Integrator
 			double mat[3] = { 0, 0, 0 };
 			RGBColor vec[2] = { 0, 0 };
 
-			const auto updateSystem = [&mat, &vec, this](double p0, double p1, RGBColor const& f)
+			const int bsdf_samples = std::max(1u, m_direct_samples / 2);
+			const int surface_samples = std::max(1u, m_direct_samples / 2);
+
+			const auto updateSystem = [&](double p0, double p1, RGBColor const& f)
 			{
+				double q0 = bsdf_samples * p0;
+				double q1 = surface_samples * p1;
 				double sum_pdf = p0 + p1;
-				double S = 1.0 / (m_direct_samples * sum_pdf);
+				double sum_q = q0 + q1;
+				double S = 1.0 / (sum_q);
 				double w0 = p0 * S;
 				double w1 = p1 * S;
 
 				//RGBColor balance_estimate = estimated_f * (tech == 0 ? w0 : w1);
-				
+
 				mat[0] += w0 * w0;
 				mat[1] += w0 * w1;
 				mat[2] += w1 * w1;
-
-				
 
 				for (int k = 0; k < 3; ++k)
 				{
@@ -78,11 +83,13 @@ namespace Integrator
 			};
 
 			Material const& material = *hit.geometry->getMaterial();
-			
+
 			RGBColor res;
 
+			
+
 			//tech 0: BSDF
-			for (int j = 0; j < m_direct_samples; ++j)
+			for (int j = 0; j < bsdf_samples; ++j)
 			{
 				Hit light_hit;
 				DirectionSample dir;
@@ -105,13 +112,10 @@ namespace Integrator
 				}
 
 				updateSystem(bsdf_pdf, surface_pdf, f);
-
-				
 			}
-			
 
 			//tech 1: Sampling the light
-			for (int j = 0; j < m_direct_samples; ++j)
+			for (int j = 0; j < surface_samples; ++j)
 			{
 				SurfaceLightSample sls;
 				sampleOneLight(scene, sampler, sls, j);
@@ -122,7 +126,7 @@ namespace Integrator
 				double cos_light = std::abs(sls.normal * dir);
 				double convert = dist2 == 0 ? 1 : (cos_light / dist2);
 
-				RGBColor f = sls.geo->getMaterial()->Le(sls.normal * dir < 0, sls.uv) * hit.geometry->getMaterial()->BSDF(hit, dir) * std::abs(dir * hit.primitive_normal);
+				RGBColor f = sls.geo->getMaterial()->Le(sls.normal * dir < 0, sls.uv) * hit.geometry->getMaterial()->BSDF(hit, dir) * std::abs(dir * hit.primitive_normal) * convert;
 				Hit light_hit;
 				double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, dir) * convert;
 				if (!(scene.full_intersection(Ray(hit.point, dir), light_hit) && samePoint(light_hit, dist)))
@@ -131,22 +135,30 @@ namespace Integrator
 					bsdf_pdf = 0;
 				}
 
-
-				
 				updateSystem(bsdf_pdf, sls.pdf, f);
-
 			}
 
 			//solve the system
-			double det = mat[0] * mat[2] - mat[1] * mat[1];
-			double mat_inv[3] = {det*mat[2], -det*mat[1], det*mat[0]};
+			arma::mat22 armat;
+			armat(0, 0) = mat[0];
+			armat(0, 1) = mat[1];
+			armat(1, 0) = mat[1];
+			armat(1, 1) = mat[2];
+			for (int i = 0; i < 3; ++i)
+				if (std::isnan(mat[i]) || std::isinf(mat[i]))
+					__debugbreak();
+			const auto mat_inv = arma::pinv(armat);
 			
-
+			
 			for (int k = 0; k < 3; ++k)
 			{
-				double alpha_0 = mat_inv[0] * vec[0][k] + mat_inv[1] * vec[1][k];
-				double alpha_1 = mat_inv[1] * vec[0][k] + mat_inv[2] * vec[1][k];
-				res[k] = alpha_0 + alpha_1;
+				arma::vec2 contrib_vec;
+				contrib_vec[0] = vec[0][k];
+				contrib_vec[1] = vec[1][k];
+				
+				contrib_vec = mat_inv * contrib_vec;
+
+				res[k] = arma::sum(contrib_vec);
 			}
 			
 			return res;

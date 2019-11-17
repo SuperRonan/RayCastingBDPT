@@ -109,7 +109,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\SDL2-2.0.4\include;$(ProjectDir)..\src;$(ProjectDir)..\..\dependencies_ima\include;$(ProjectDir)..\..\libs-x64\zlib-1.2.11;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Iex;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Half;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IexMath;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IlmThread;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Imath;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImf;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImfUtil;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\SDL2-2.0.4\include;$(ProjectDir)..\src;$(ProjectDir)..\..\dependencies_ima\include;$(ProjectDir)..\..\libs-x64\zlib-1.2.11;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Iex;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Half;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IexMath;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IlmThread;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Imath;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImf;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImfUtil;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\config;$(ProjectDir)..\..\libs-x64\armadillo-9.800.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>false</OpenMPSupport>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <OpenMP>GenerateParallelCode</OpenMP>
@@ -117,8 +117,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\SDL2-2.0.4\lib\$(TargetedSDKArchitecture);$(ProjectDir)..\..\dependencies_ima\lib2017_x64\$(Configuration)\;$(ProjectDir)..\..\libs-x64\zlib-1.2.11\build\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;SOIL.lib;SDL2.lib;SDL2main.lib;lib3ds.lib;zlibd.lib;Iex-2_3_d.lib;Half-2_3_d.lib;IlmImf-2_3_d.lib;IlmImfUtil-2_3_d.lib;IlmThread-2_3_d.lib;Imath-2_3_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\SDL2-2.0.4\lib\$(TargetedSDKArchitecture);$(ProjectDir)..\..\dependencies_ima\lib2017_x64\$(Configuration)\;$(ProjectDir)..\..\libs-x64\zlib-1.2.11\build\$(Configuration);$(ProjectDir)..\..\libs-x64\armadillo-9.800.2\build\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;SOIL.lib;SDL2.lib;SDL2main.lib;lib3ds.lib;blas_win64_MT.lib;lapack_win64_MT.lib;zlibd.lib;Iex-2_3_d.lib;Half-2_3_d.lib;IlmImf-2_3_d.lib;IlmImfUtil-2_3_d.lib;IlmThread-2_3_d.lib;Imath-2_3_d.lib;%(AdditionalDependencies);armadillo.lib;armadillo.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(AnimRenduDep)\lib2017_x64\$(Configuration)\*.dll" "$(OutputPath)"
@@ -172,7 +172,7 @@
       <FunctionLevelLinking>false</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NOMINMAX;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\SDL2-2.0.4\include;$(ProjectDir)..\src;$(ProjectDir)..\..\dependencies_ima\include;$(ProjectDir)..\..\libs-x64\zlib-1.2.11;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Iex;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Half;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IexMath;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IlmThread;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Imath;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImf;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImfUtil;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\SDL2-2.0.4\include;$(ProjectDir)..\src;$(ProjectDir)..\..\dependencies_ima\include;$(ProjectDir)..\..\libs-x64\zlib-1.2.11;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Iex;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Half;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IexMath;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IlmThread;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Imath;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImf;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImfUtil;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\config;$(ProjectDir)..\..\libs-x64\armadillo-9.800.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
@@ -195,8 +195,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\SDL2-2.0.4\lib\$(TargetedSDKArchitecture);$(ProjectDir)..\..\dependencies_ima\lib2017_x64\$(Configuration)\;$(ProjectDir)..\..\libs-x64\zlib-1.2.11\build\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;SOIL.lib;SDL2.lib;SDL2main.lib;lib3ds.lib;zlib.lib;Iex-2_3.lib;Half-2_3.lib;IlmImf-2_3.lib;IlmImfUtil-2_3.lib;IlmThread-2_3.lib;Imath-2_3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\SDL2-2.0.4\lib\$(TargetedSDKArchitecture);$(ProjectDir)..\..\dependencies_ima\lib2017_x64\$(Configuration)\;$(ProjectDir)..\..\libs-x64\zlib-1.2.11\build\$(Configuration);$(ProjectDir)..\..\libs-x64\armadillo-9.800.2\build\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;SOIL.lib;SDL2.lib;SDL2main.lib;lib3ds.lib;blas_win64_MT.lib;lapack_win64_MT.lib;zlib.lib;Iex-2_3.lib;Half-2_3.lib;IlmImf-2_3.lib;IlmImfUtil-2_3.lib;IlmThread-2_3.lib;Imath-2_3.lib;%(AdditionalDependencies);armadillo.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(AnimRenduDep)\lib2017_x64\$(Configuration)\*.dll" "$(OutputPath)"
