@@ -76,7 +76,7 @@ namespace Geometry
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler)const override
+		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
 		{
 			Math::Vector3f reflected = hit.primitive_reflected();
 			Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);

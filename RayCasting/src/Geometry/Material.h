@@ -15,6 +15,7 @@
 #define SPECULAR_ID_COLOR {0, 0, 0.5}
 #define DELTA_MIRROR_ID_COLOR {0, 0, 1}
 #define PHONG_ID_COLOR {1, 0, 0.5};
+#define GLASS_ID_COLOR {0, 1, 0};
 
 namespace Geometry
 {
@@ -125,7 +126,7 @@ namespace Geometry
 		// what matters is that the bsdf is 0, and so there is no need to go further with the sample
 		//Do I need the whole hit?
 		/////////////////////////
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler & sampler)const
+		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler & sampler, bool RADIANCE=false)const
 		{
 			out.direction = hit.primitive_normal;
 			out.pdf = 1;

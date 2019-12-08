@@ -24,7 +24,7 @@ namespace Geometry
 			return PHONG_ID_COLOR;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler)const override
+		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
 		{
 			Material::sampleBSDF(hit, diffuse_samples, specular_samples, out, sampler);
 			return;

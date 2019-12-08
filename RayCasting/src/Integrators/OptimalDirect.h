@@ -43,7 +43,7 @@ namespace Integrator
 					return hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
 				}
 
-				return 0;
+				
 			}
 			else
 			{
@@ -111,6 +111,8 @@ namespace Integrator
 					surface_pdf = scene.pdfSamplingLight(light_hit.geometry);
 				}
 
+				res += f / bsdf_pdf * 0.5 / bsdf_samples;
+
 				updateSystem(bsdf_pdf, surface_pdf, f);
 			}
 
@@ -135,8 +137,11 @@ namespace Integrator
 					bsdf_pdf = 0;
 				}
 
+				res += f / sls.pdf * 0.5 / surface_samples;
+
 				updateSystem(bsdf_pdf, sls.pdf, f);
 			}
+			return res;
 
 			//solve the system
 			arma::mat22 armat;

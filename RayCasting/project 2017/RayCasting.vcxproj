@@ -226,6 +226,7 @@
     <ClInclude Include="..\src\Geometry\generic_texture.hpp" />
     <ClInclude Include="..\src\Geometry\Geometry.h" />
     <ClInclude Include="..\src\Geometry\GeometryBase.h" />
+    <ClInclude Include="..\src\Geometry\glass.h" />
     <ClInclude Include="..\src\Geometry\Hit.h" />
     <ClInclude Include="..\src\Geometry\IntersecitonSet.h" />
     <ClInclude Include="..\src\Geometry\Intersection.h" />
@@ -269,6 +270,7 @@
     <ClInclude Include="..\src\Integrators\LightIntegratorBase.h" />
     <ClInclude Include="..\src\Integrators\MISPathTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\OptimalDirect.h" />
+    <ClInclude Include="..\src\Integrators\OptiMISBDPT.h" />
     <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingBaseIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h" />

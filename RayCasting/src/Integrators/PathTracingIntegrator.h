@@ -156,7 +156,7 @@ namespace Integrator
 					{
 						DirectionSample next_dir;
 						material.sampleBSDF(hit, m_diffuse_samples, m_specular_samples, next_dir, sampler);
-						prod_color *= next_dir.bsdf * (next_dir.direction * hit.primitive_normal);
+						prod_color *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
 						prod_pdf *= next_dir.pdf * alpha;
 						ray = Ray(hit.point, next_dir.direction);
 					}
@@ -218,7 +218,7 @@ namespace Integrator
 					{
 						DirectionSample next_dir;
 						material.sampleBSDF(hit, m_diffuse_samples, m_specular_samples, next_dir, sampler);
-						prod_color *= next_dir.bsdf * (next_dir.direction * hit.primitive_normal);
+						prod_color *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
 						prod_pdf *= next_dir.pdf * alpha;
 						ray = Ray(hit.point, next_dir.direction);
 					}

@@ -362,7 +362,7 @@ namespace Geometry
 			return result.normalized();
 		}
 
-		Math::Vector3f sampleNormal(double u, double v, bool facing) const
+		Math::Vector3f sampleNormal(double u, double v, bool facing=true) const
 		{
 			Math::Vector3f result = (m_vertexNormal[0] * (1 - u - v) + m_vertexNormal[1] * u + m_vertexNormal[2] * v).normalized();
 			if (!facing)

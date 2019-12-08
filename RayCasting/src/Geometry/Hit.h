@@ -76,6 +76,16 @@ namespace Geometry
 			return normal.reflect(to_view);
 		}
 
+		Math::Vector3f orientedPrimitiveNormal()const
+		{
+			return primitive_normal * (facing ? 1.0 : -1.0);
+		}
+
+		Math::Vector3f orientedShadingNormal()const
+		{
+			return normal * (facing ? 1.0 : -1.0);
+		}
+
 		bool valid()const
 		{
 			return z != -1;

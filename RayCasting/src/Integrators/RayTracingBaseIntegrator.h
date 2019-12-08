@@ -71,7 +71,7 @@ namespace Integrator
 					{
 						RGBColor color = light_hit.geometry->getMaterial()->Le(light_hit.facing, light_hit.tex_uv);
 						double dist2 = light_hit.z * light_hit.z;
-						double cosl = light_hit.primitive_normal * (-ray.direction());
+						double cosl = std::abs(light_hit.primitive_normal * (-ray.direction()));
 
 						res += prod * cosl * color / (ps[i].pdf * m_direct_samples * dist2);
 					}

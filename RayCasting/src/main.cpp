@@ -38,6 +38,7 @@
 #include <Integrators/MISPathTracingIntegrator.h>
 #include <Integrators/BidirectionalIntegrator.h>
 #include <Integrators/OptimalDirect.h>
+#include <Integrators/OptiMISBDPT.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -1012,6 +1013,12 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 		res[RenderMode::bdpt]->m_alpha = alpha;
 	}
 
+	{
+		res[RenderMode::OptiMISBDPT] = new Integrator::OptiMISBDPT(sample_per_pixel, w, h);
+		res[RenderMode::OptiMISBDPT]->setDepth(maxBounce);
+		res[RenderMode::OptiMISBDPT]->m_alpha = alpha;
+	}
+
 	//{
 	//	res[RenderMode::naiveBDPT] = new Integrator::NaiveBidirectionalIntegrator(sample_per_pixel, w, h);
 	//	res[RenderMode::naiveBDPT]->setDepth(maxBounce);
@@ -1238,6 +1245,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Optimis Direct" << std::endl;
 				render_mode = RenderMode::OptimalDirect;
 				break;
+			case SDLK_w:
+				if (render_mode != RenderMode::OptiMISBDPT)
+					std::cout << "switching to Optimis BDPT" << std::endl;
+				render_mode = RenderMode::OptiMISBDPT;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1450,9 +1462,10 @@ int main(int argc, char ** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
-	Auto::initVeach(scene, visu.width(), visu.height());
+	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//initDiffuse(scene, visu);
@@ -1492,7 +1505,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*16;
 										
 	unsigned int maxBounce = 10;
 
@@ -1509,8 +1522,8 @@ int main(int argc, char ** argv)
 
 	scene.check_capacity();
 
-	RenderOption render_option = RenderOption::Pass;
-	RenderMode render_mode = RenderMode::OptimalDirect;
+	RenderOption render_option = RenderOption::RealTime;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxBounce, alpha, lights_divisions, visu.width(), visu.height());
 

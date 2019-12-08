@@ -172,9 +172,7 @@ namespace Geometry
 		bool full_intersection(Ray const& ray, Hit & res)const
 		{
 			if (empty())
-			{
 				return false;
-			}
 
 			Intersection<Triangle> rti;
 			m_triangle_bvh.intersection(ray, rti);

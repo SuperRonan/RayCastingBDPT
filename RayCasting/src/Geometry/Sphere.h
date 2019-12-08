@@ -67,7 +67,7 @@ namespace Geometry
 			return normal * to_view >= 0;
 		}
 
-		inline Math::Vector3f normal(Math::Vector3f const& point, bool facing)const
+		inline Math::Vector3f normal(Math::Vector3f const& point, bool facing=true)const
 		{
 			return (point - m_center) / (m_radius * (facing ? 1 : -1));
 		}
