@@ -321,6 +321,9 @@
     <ClInclude Include="..\src\Geometry\glass.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\optimalmissolver.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

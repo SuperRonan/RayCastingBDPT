@@ -2,7 +2,7 @@ dependencies_ima
 dependencies_sources
 libs-x64
 Models
-ResultTest
+ResulTest
 results
 *.png
 *.jpg

@@ -4,6 +4,7 @@
 #include <System/ScopedAssignment.h>
 #include <armadillo>
 #include <atomic>
+#include <Integrators/optimalmissolver.h>
 
 namespace Integrator
 {
@@ -370,6 +371,7 @@ namespace Integrator
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
 		double MISWeight(
+			double * pdfs,
 			VertexStack& cameras, VertexStack& lights,
 			const Camera& camera,
 			const int main_s, const int main_t,
