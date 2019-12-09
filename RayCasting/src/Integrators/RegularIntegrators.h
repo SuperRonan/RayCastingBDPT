@@ -121,7 +121,7 @@ namespace Integrator
 
 			if (scene.full_intersection(ray, hit))
 			{
-				return hit.geometry->getMaterial()->ID_COLOR();
+				return hit.geometry->getMaterial()->ID_COLOR() * std::abs(hit.normal * ray.direction());
 			}
 			return 0;
 		}

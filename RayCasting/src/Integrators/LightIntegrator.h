@@ -100,7 +100,7 @@ namespace Integrator
 					if (depth <= m_max_depth)
 					{
 						DirectionSample next_dir_sample;
-						hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, next_dir_sample, sampler);
+						hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, next_dir_sample, sampler, true);
 
 						beta = beta * next_dir_sample.bsdf * std::abs(next_dir_sample.direction * hit.primitive_normal) / next_dir_sample.pdf;
 						next_dir = next_dir_sample.direction;

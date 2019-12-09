@@ -43,7 +43,7 @@ namespace Integrator
 						material.sampleBSDF(hit, m_diffuse_samples, m_specular_samples, next_dir, sampler);
 
 						ray = Ray(hit.point, next_dir.direction);
-						T *= next_dir.bsdf * (next_dir.direction * hit.primitive_normal) / next_dir.pdf;
+						T *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal) / next_dir.pdf;
 
 						if (T.isBlack())
 						{

@@ -192,7 +192,7 @@ namespace Integrator
 					//sample next direction
 
 					DirectionSample next_dir;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler);
+					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler, MODE==TransportMode::Radiance);
 
 					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
 					prev->pdfReverse<MODE>() = next_dir.pdf * cos_prev / dist2;
@@ -715,79 +715,7 @@ __render__end__loop__:
 
 		void debug(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
-			//size_t x, y;
-
-			//bool print_zero = false;
-
-			//while (true)
-			//{
-			//	std::cout << "x= ";
-			//	std::cin >> x;
-			//	std::cout << "y= ";
-			//	std::cin >> y;
-
-			//	std::vector<RGBColor> direct_samples(m_maximum_pass);
-			//	std::vector<LightVertexStack> lt_samples(m_maximum_pass);
-			//	size_t width = visu.width(), height = visu.height();
-
-			//	///OMP_PARALLEL_FOR
-			//	for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_pass_per_pixel; ++passPerPixelCounter)
-			//	{
-			//		for (size_t sub_x = 0; sub_x < m_sub_pixel_samples; ++sub_x)
-			//		{
-			//			double xp = subPixel(sub_x);
-			//			double u = (x + xp) / double(width);
-			//			for (size_t sub_y = 0; sub_y < m_sub_pixel_samples; ++sub_y)
-			//			{
-			//				double yp = subPixel(sub_y);
-			//				double v = (y + yp) / double(height);
-			//				size_t pass = passPerPixelCounter * m_sub_pixel_samples * m_sub_pixel_samples + sub_x * m_sub_pixel_samples + sub_y;
-			//				size_t seed = pixelSeed(x, y, width, height, pass);
-			//				Math::Sampler sampler(seed);
-
-			//				RGBColor & direct_sample = direct_samples[pass];
-			//				LightVertexStack & lt_sample = lt_samples[pass];
-			//				computeSample(scene, u, v, sampler, direct_sample, lt_sample);
-			//				int chunchunmaru = 0;
-
-			//			}
-			//		}
-			//	}
-
-			//	RGBColor sum = 0;
-			//	std::cout << "--------------------------------------------------------------------------" << std::endl;
-			//	for (size_t i = 0; i < direct_samples.size(); ++i)
-			//	{
-			//		RGBColor const& direct_sample = direct_samples[i];
-			//		LightVertexStack const& lt_sample = lt_samples[i];
-			//		bool printed = false;
-			//		if (!(print_zero && direct_sample.isBlack()))
-			//		{
-			//			std::cout << "direct sample " << i << ":\t" << direct_sample << std::endl;
-			//			printed = true;
-			//		}
-
-			//		int j = 0;
-			//		for (LightVertex const& lv : lt_sample)
-			//		{
-			//			if (!(print_zero && lv.light.isBlack()))
-			//			{
-			//				std::cout << "light  sample " << i << ", " << j << " @ " << lv.uv << ":\t" << lv.light << std::endl;
-			//				printed = true;
-			//			}
-			//			++j;
-			//		}
-
-			//		if (printed)
-			//		{
-			//			std::cout << "--------------------------------------------------------------------------" << std::endl;
-			//		}
-			//	}
-
-			//	//visu.plot(x, y, mean);
-			//	visu.update();
-
-			//}
+			
 		}
 
 

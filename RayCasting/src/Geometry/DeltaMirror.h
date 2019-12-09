@@ -57,12 +57,17 @@ namespace Geometry
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler)const override
+		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
 		{
 			out.direction = hit.primitive_reflected();
 			double cosd = hit.normal * out.direction;
 			out.pdf = 1;
 			out.bsdf = m_specular;
+
+			if (RADIANCE)
+				out.bsdf *= 1.0 / std::abs(hit.to_view * hit.normal);
+			else
+				out.bsdf *= 1.0 / std::abs(out.direction * hit.normal);
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override

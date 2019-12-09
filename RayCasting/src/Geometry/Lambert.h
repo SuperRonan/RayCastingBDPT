@@ -41,13 +41,14 @@ namespace Geometry
 		}
 
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler)const override
+		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool _=true)const override
 		{
 			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
+			Math::Vector3f normal = hit.orientedPrimitiveNormal();
 			//There is not really a point of sampling a 
-			Math::RandomDirection direction_sampler(&sampler, hit.primitive_normal);
+			Math::RandomDirection direction_sampler(&sampler, normal);
 			out.direction = direction_sampler.generate();
-			out.pdf = (out.direction * hit.primitive_normal) / Math::pi;
+			out.pdf = (out.direction * normal) / Math::pi;
 			if (out.pdf == 0)
 			{
 				//this sould never happen, but it eventually does.
@@ -65,7 +66,7 @@ namespace Geometry
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) > 0)
+			if (((wi * hit.primitive_normal) * (wo * hit.primitive_normal)) > 0)
 				return m_diffuse * getTexturePixel(hit.tex_uv);
 			return 0;
 		}
@@ -75,12 +76,12 @@ namespace Geometry
 		{
 			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
 			if (dif.isBlack())	return;
-			Math::RandomDirection direction_sampler(&sampler, hit.primitive_normal);
+			Math::RandomDirection direction_sampler(&sampler, hit.orientedPrimitiveNormal());
 			for (unsigned int i = 0; i < diffuse_samples; ++i)
 			{
 				DirectionSample out;
 				out.direction = direction_sampler.generate();
-				out.pdf = (out.direction * hit.primitive_normal) / Math::pi;
+				out.pdf = (out.direction * hit.orientedPrimitiveNormal()) / Math::pi;
 				if (out.pdf == 0)	continue; //let's say the sample is not generated
 				if (out.pdf < 0)
 				{

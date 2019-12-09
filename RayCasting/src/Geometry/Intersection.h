@@ -105,7 +105,7 @@ namespace Geometry
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.point - m_primitive->center(), hit.to_view);
-		hit.normal = m_primitive->normal(hit.point, hit.facing);
+		hit.normal = m_primitive->normal(hit.point);
 		hit.primitive_normal = hit.normal;
 		hit.primitive_uv = m_primitive->uv(hit.normal, hit.facing);
 		hit.tex_uv = m_primitive->texture_uv(hit.primitive_uv);
@@ -171,8 +171,8 @@ namespace Geometry
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.to_view);
-		hit.normal = m_primitive->sampleNormal(m_uv[0], m_uv[1], hit.facing);
-		hit.primitive_normal = m_primitive->normal(hit.facing);
+		hit.normal = m_primitive->sampleNormal(m_uv[0], m_uv[1]);
+		hit.primitive_normal = m_primitive->normal();
 		hit.primitive_uv = m_uv;
 		hit.tex_uv = m_primitive->interpolateTextureCoordinate(m_uv[0], m_uv[1]);
 		//hit.reflected = hit.normal * (2 * (hit.normal * hit.to_view)) - hit.to_view;
@@ -218,7 +218,7 @@ namespace Geometry
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.to_view);
-		hit.normal = m_primitive->normal(hit.facing);
+		hit.normal = m_primitive->normal();
 		hit.primitive_normal = m_primitive->normal(hit.facing);
 		hit.primitive_uv = m_uv;
 		hit.tex_uv = m_uv;

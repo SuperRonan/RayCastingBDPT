@@ -315,6 +315,15 @@
     <ClInclude Include="..\src\Integrators\OptimalDirect.h">
       <Filter>src\Integrators</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\OptiMISBDPT.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\glass.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\optimalmissolver.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

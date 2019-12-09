@@ -38,6 +38,7 @@
 #include <Integrators/MISPathTracingIntegrator.h>
 #include <Integrators/BidirectionalIntegrator.h>
 #include <Integrators/OptimalDirect.h>
+#include <Integrators/OptiMISBDPT.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -1012,6 +1013,12 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 		res[RenderMode::bdpt]->m_alpha = alpha;
 	}
 
+	{
+		res[RenderMode::OptiMISBDPT] = new Integrator::OptiMISBDPT(sample_per_pixel, w, h);
+		res[RenderMode::OptiMISBDPT]->setDepth(maxBounce);
+		res[RenderMode::OptiMISBDPT]->m_alpha = alpha;
+	}
+
 	//{
 	//	res[RenderMode::naiveBDPT] = new Integrator::NaiveBidirectionalIntegrator(sample_per_pixel, w, h);
 	//	res[RenderMode::naiveBDPT]->setDepth(maxBounce);
@@ -1238,6 +1245,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Optimis Direct" << std::endl;
 				render_mode = RenderMode::OptimalDirect;
 				break;
+			case SDLK_w:
+				if (render_mode != RenderMode::OptiMISBDPT)
+					std::cout << "switching to Optimis BDPT" << std::endl;
+				render_mode = RenderMode::OptiMISBDPT;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1423,7 +1435,7 @@ int main(int argc, char ** argv)
 	omp_set_num_threads(nthread);
 
 #ifdef _DEBUG
-	int scale = 10;
+	int scale = 1;
 #else
 	int scale = 1;
 #endif
@@ -1433,8 +1445,8 @@ int main(int argc, char ** argv)
 	//Visualizer::Visualizer visu(1000, 1000, scale);
 	//Visualizer::Visualizer visu(2000, 1000, scale);
 	//Visualizer::Visualizer visu(1900, 1000, scale);
-	Visualizer::Visualizer visu(1000, 500, scale);
-	//Visualizer::Visualizer visu(500, 500, scale);
+	//Visualizer::Visualizer visu(1000, 500, scale);
+	Visualizer::Visualizer visu(500, 500, scale);
 	//Visualizer::Visualizer visu(300, 300, scale) ;
 	//Visualizer::Visualizer visu(250, 250, scale) ;
 	//Visualizer::Visualizer visu(200, 200, scale) ;
@@ -1450,6 +1462,7 @@ int main(int argc, char ** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
 	//Auto::initVeach(scene, visu.width(), visu.height());
@@ -1461,7 +1474,7 @@ int main(int argc, char ** argv)
 	//initDiffuseSpecular(scene, visu) ;//custom
 	//initSpecular(scene, visu) ;
 	//initGuitar(scene, visu);
-	initDog(scene, visu);
+	//initDog(scene, visu);
 	//initGarage(scene, visu);
 	//initRobot(scene, visu);
 	//initTemple(scene, visu);
@@ -1493,6 +1506,7 @@ int main(int argc, char ** argv)
 
 	// 3 - Computes the scene
 	unsigned int sample_per_pixel = 16*16*16;
+
 										
 	unsigned int maxBounce = 10;
 
