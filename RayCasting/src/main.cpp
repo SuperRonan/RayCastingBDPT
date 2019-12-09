@@ -88,9 +88,9 @@ void createGround(Geometry::Scene & scene)
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(0., 0., 0.), RGBColor(1., 1., 1.), 10000.0f);	//perfect mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0f, 1.0f, 1.0f), RGBColor(0.f, 0.f, 0.f), 100.0f); //not a mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0,.4,.4)*0.5, RGBColor(), 1000.0f, RGBColor(0.5, 0.5, 0.5)*0.5); // Non existing material...
-	Geometry::Material* material = new Geometry::Specular(0.9, 1000);
-	//GeometryCollection::Material* material = new GeometryCollection::DeltaMirror(0.5);
-	//GeometryCollection::Material* material = new GeometryCollection::Lambertian(0.7);
+	//Geometry::Material* material = new Geometry::Specular(0.9, 1000);
+	//Geometry::Material* material = new GeometryCollection::DeltaMirror(0.5);
+	Geometry::Material* material = new Geometry::Lambertian(1);
 
 	Geometry::Square * square = new Geometry::Square(material);
 	Math::Vector3f scaleV = (sb.max() - sb.min());
@@ -546,9 +546,13 @@ void initDog(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 {
 	Geometry::Loader3ds loader(m_modelDirectory + "\\Dog\\dog.3ds", m_modelDirectory + "\\dog");
 
+	Geometry::Material* glass = new Geometry::Glass({ 1, 0.8, 0.9 }, 4.0);
+
 	for (size_t cpt = 0; cpt < loader.getMeshes().size(); ++cpt)
 	{
-		scene.add(new Geometry::GeometryCollection(*loader.getMeshes()[cpt]));
+		Geometry::GeometryCollection * obj = new Geometry::GeometryCollection(*loader.getMeshes()[cpt]);
+		obj->set_material(glass);
+		scene.add(obj);
 	}
 
 	// 2.2 Adds point lights in the scene 
@@ -559,8 +563,14 @@ void initDog(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 	position[1] = -position[1];
 	Geometry::PointLight light2(position, RGBColor(1.0, 1.0, 1.0) *.5);
 
-
-	Geometry::Material * emisive = new Geometry::Phong(0, 0, 0, 0, { 2, 1, 1 });
+	Geometry::Material* lam = new Geometry::Lambertian(0.9);
+	for (int i = -1; i < 2; i += 2)
+		for(int j=-1; j<2; j+=2)
+	{
+			Geometry::Sphere s = Geometry::Sphere({5 * (i-j), 5*(i+j), 2}, 2, lam);
+			scene.add(s);
+	}
+	Geometry::Material * emisive = new Geometry::Material(RGBColor( 2, 2, 1.8) * 3, "");
 	Geometry::Square * surface = new Geometry::Square(emisive);
 	surface->scale(5.0);
 	surface->translate(Math::makeVector(0, 0, 10));
@@ -1442,11 +1452,11 @@ int main(int argc, char ** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2000, 2000, scale);// pour les ecrans 4K
-	//Visualizer::Visualizer visu(1000, 1000, scale);
+	Visualizer::Visualizer visu(1000, 1000, scale);
 	//Visualizer::Visualizer visu(2000, 1000, scale);
 	//Visualizer::Visualizer visu(1900, 1000, scale);
 	//Visualizer::Visualizer visu(1000, 500, scale);
-	Visualizer::Visualizer visu(500, 500, scale);
+	//Visualizer::Visualizer visu(500, 500, scale);
 	//Visualizer::Visualizer visu(300, 300, scale) ;
 	//Visualizer::Visualizer visu(250, 250, scale) ;
 	//Visualizer::Visualizer visu(200, 200, scale) ;
@@ -1462,7 +1472,7 @@ int main(int argc, char ** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
-	Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
 	//Auto::initVeach(scene, visu.width(), visu.height());
@@ -1474,7 +1484,7 @@ int main(int argc, char ** argv)
 	//initDiffuseSpecular(scene, visu) ;//custom
 	//initSpecular(scene, visu) ;
 	//initGuitar(scene, visu);
-	//initDog(scene, visu);
+	initDog(scene, visu);
 	//initGarage(scene, visu);
 	//initRobot(scene, visu);
 	//initTemple(scene, visu);

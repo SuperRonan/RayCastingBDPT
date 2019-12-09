@@ -234,5 +234,14 @@ namespace Geometry
 			::std::transform(m_materials.begin(), m_materials.end(), ::std::back_inserter(result), [](::std::pair<::std::string, Material*> const& m) -> Material * { return m.second; });
 			return result;
 		}
+
+		::std::vector<Material**> getEditMaterials()
+		{
+			::std::vector<Material**> result;
+			::std::transform(m_materials.begin(), m_materials.end(), ::std::back_inserter(result), [](::std::pair<::std::string, Material*>  m) -> Material ** { return std::addressof(m.second); });
+			return result;
+		}
 	};
+
+	
 }
