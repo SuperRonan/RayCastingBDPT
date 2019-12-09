@@ -87,7 +87,7 @@ void createGround(Geometry::Scene & scene)
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(0., 0., 0.), RGBColor(1., 1., 1.), 10000.0f);	//perfect mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0f, 1.0f, 1.0f), RGBColor(0.f, 0.f, 0.f), 100.0f); //not a mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0,.4,.4)*0.5, RGBColor(), 1000.0f, RGBColor(0.5, 0.5, 0.5)*0.5); // Non existing material...
-	Geometry::Material* material = new Geometry::Specular(0.5, 1000);
+	Geometry::Material* material = new Geometry::Specular(0.9, 1000);
 	//GeometryCollection::Material* material = new GeometryCollection::DeltaMirror(0.5);
 	//GeometryCollection::Material* material = new GeometryCollection::Lambertian(0.7);
 
@@ -117,7 +117,7 @@ void createGround(Geometry::Scene & scene)
 void createSurfaceLight(Geometry::Scene & scene, double value)
 {
 	Geometry::BoundingBox sb = scene.getBoundingBox();
-	Geometry::Material * material = new Geometry::Phong(RGBColor(), RGBColor(), 100.0f, RGBColor(value, value, value));
+	Geometry::Material * material = new Geometry::Material(RGBColor(value, value, value) * 20);
 	
 	Geometry::Square * square = new Geometry::Square(material);
 	Math::Vector3f scaleV = (sb.max() - sb.min());
@@ -738,7 +738,7 @@ void initTibetHouse(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 		//std::cout << (*it)->getAmbient() << std::endl;
 		if ((*it)->getTextureFile() == m_modelDirectory + "\\TibetHouse" + "\\3D69C2DE.png")
 		{
-			((*it))->setEmissive(RGBColor(1.0, 1.0, 1.0)*10*3);
+			((*it))->setEmissive(RGBColor(1.0, 1.0, 1.0)*10*5);
 			
 			//((GeometryCollection::Phong*)(*it))->setDiffuse(RGBColor(0, 0, 0));
 		}
@@ -1433,8 +1433,8 @@ int main(int argc, char ** argv)
 	//Visualizer::Visualizer visu(1000, 1000, scale);
 	//Visualizer::Visualizer visu(2000, 1000, scale);
 	//Visualizer::Visualizer visu(1900, 1000, scale);
-	//Visualizer::Visualizer visu(1000, 500, scale);
-	Visualizer::Visualizer visu(500, 500, scale);
+	Visualizer::Visualizer visu(1000, 500, scale);
+	//Visualizer::Visualizer visu(500, 500, scale);
 	//Visualizer::Visualizer visu(300, 300, scale) ;
 	//Visualizer::Visualizer visu(250, 250, scale) ;
 	//Visualizer::Visualizer visu(200, 200, scale) ;
@@ -1449,7 +1449,7 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
 	//Auto::initVeach(scene, visu.width(), visu.height());
@@ -1461,7 +1461,7 @@ int main(int argc, char ** argv)
 	//initDiffuseSpecular(scene, visu) ;//custom
 	//initSpecular(scene, visu) ;
 	//initGuitar(scene, visu);
-	//initDog(scene, visu);
+	initDog(scene, visu);
 	//initGarage(scene, visu);
 	//initRobot(scene, visu);
 	//initTemple(scene, visu);
@@ -1492,7 +1492,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*16*16;
 										
 	unsigned int maxBounce = 10;
 
