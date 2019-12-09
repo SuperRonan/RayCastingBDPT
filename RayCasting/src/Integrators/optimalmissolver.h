@@ -32,7 +32,6 @@ public:
 protected:
     const int numTechs;
     int width, height;
-	Film* film;
 
 	std::vector<AtomicFloat> techMatrices;
 
@@ -72,11 +71,10 @@ public:
 	const bool useLT = true;
 
 
-    OptimalSolverImage(int numTechs, Film* img)
+    OptimalSolverImage(int numTechs, int width, int height)
         : numTechs(numTechs),
-          width(img->width()),
-          height(img->height()),
-          film(img)
+          width(width),
+          height(height)
 	{
 		int msize = numTechs * (numTechs + 1) / 2;
 		int res = width * height;
@@ -100,22 +98,21 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////
 	void AddEstimate(
 		const Math::Vector2f& p,
-		const RGBColor& balanceEstimate,
-		const Float* balanceWeights,
-		const Float* Pdfs,
+		const RGBColor& f,
+		const Float* pdfs,
+		double sumqi,
 		int techIndex
 	)
 	{
 		
-		Math::Vector<int, 2> pPixel(p[0], p[1]);
+		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
 			AtomicFloat* techMatrix = getPixelTechMatrix(pPixel[0], pPixel[1]);
 			for (int i = 0; i < numTechs; ++i) {
-				assert(!(std::isnan(balanceWeights[i]) ||
-					std::isinf(balanceWeights[i])));
+
 				for (int j = 0; j <= i; ++j) {
-					double tmp = (balanceWeights[i] * balanceWeights[j]);
+					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
 					techMatrix[To1D(i, j)] = techMatrix[To1D(i, j)] + tmp;
 				}
 			}
@@ -125,13 +122,13 @@ public:
 
 		// Update only the contribution vector of the pixel
 		// If we want to add filters, this is certainly where it should be done
-		if (!balanceEstimate.isBlack()) {
+		if (!f.isBlack()) {
 			AtomicFloat* pixelContribVectors =
 				getPixelContribVectors(pPixel[0], pPixel[1]);
 
 			for (int k = 0; k < 3; ++k) {
 				for (int i = 0; i < numTechs; ++i) {
-					double tmp = balanceEstimate[k] * balanceWeights[i];
+					double tmp = f[k] * pdfs[i] / (sumqi * sumqi);
 					pixelContribVectors[k * numTechs + i] = pixelContribVectors[k * numTechs + i] + tmp;
 				}
 			}
@@ -144,44 +141,25 @@ public:
 			__debugbreak();
 		}
 	}
-	/*
-	void AddEstimate(
+
+	void AddZeroEstimate(
 		const Math::Vector2f& p,
-		const RGBColor& balanceEstimate,
-		const Float* balanceWeights,
-		const Float* Pdfs,
 		int techIndex
 	)
 	{
-		Math::Vector<int, 2> pPixel(p[0], p[1]);
+		double ni = (techIndex == numTechs - 1 ? width * height : 1);
+		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
 			AtomicFloat* techMatrix = getPixelTechMatrix(pPixel[0], pPixel[1]);
-			for (int i = 0; i < numTechs; ++i) {
-				assert(!(std::isnan(balanceWeights[i]) ||
-					std::isinf(balanceWeights[i])));
-				for (int j = 0; j <= i; ++j) {
-					double tmp = (balanceWeights[i] * balanceWeights[j]);
-					techMatrix[To1D(i, j)] = techMatrix[To1D(i, j)] + tmp;
-				}
-			}
+
+			double tmp = 1 / (ni * ni);
+			techMatrix[To1D(techIndex, techIndex)] = techMatrix[To1D(techIndex, techIndex)] + tmp;
+			
 		}
-		if (useLT)
+		if (techIndex == numTechs - 1)
 			LTSamples[PixelTo1D(pPixel[0], pPixel[1])]++;
 
-		// Update only the contribution vector of the pixel
-		// If we want to add filters, this is certainly where it should be done
-		if (!balanceEstimate.isBlack()) {
-			AtomicFloat* pixelContribVectors =
-				getPixelContribVectors(pPixel[0], pPixel[1]);
-
-			for (int k = 0; k < 3; ++k) {
-				for (int i = 0; i < numTechs; ++i) {
-					double tmp = balanceEstimate[k] * balanceWeights[i];
-					pixelContribVectors[k * numTechs + i] = pixelContribVectors[k * numTechs + i] + tmp;
-				}
-			}
-		}
 
 		// Progressive estimator: update the estimate
 		// Again, if we want to add filters, something will have to be done here
@@ -190,7 +168,7 @@ public:
 			__debugbreak();
 		}
 	}
-	*/
+
 
     ////////////////////////////////////////////////////////////////////////////////////\\
 	// Should be called at the end, to get the final optimal result						 \\
@@ -199,20 +177,23 @@ public:
     // // Returns the avg of the estimates already computed for the progressive
     // estimator //
     ////////////////////////////////////////////////////////////////////////////////////
-	void DevelopFilm(int numIterations, bool balanceMis = false)
+	void DevelopFilm(Film* film, int numIterations)
 	{
 		if (useDirect) {
 			// pre allocate the vector and the matrix
 
-			std::vector<MatrixT> mats(omp_get_num_threads(), MatrixT(numTechs, numTechs));
+			std::vector<MatrixT> mats(omp_get_num_threads()+16, MatrixT(numTechs, numTechs));
 			MatrixT LTfiller(numTechs, numTechs);
-			std::vector<VectorT> vecs(omp_get_num_threads(), VectorT(numTechs));
+			std::vector<VectorT> vecs(omp_get_num_threads()+16, VectorT(numTechs));
 			
 			//std::vector<MatrixT> pinvs(omp_get_num_threads(), MatrixT(numTe;
 
 
 			LTfiller.fill(0);
 			LTfiller(numTechs - 1, numTechs - 1) = 1;
+
+			double nlt2 = Float(width * height); nlt2 *= nlt2;
+
 
 #pragma omp parallel for schedule(dynamic)
 			for (int x = 0; x < width; ++x)
@@ -234,10 +215,7 @@ public:
 
 					if (useLT)
 					{
-						mat += LTfiller * Float(width * height -
-							LTSamples[PixelTo1D(x, y)]); /*
-	/
-		   Float(width * height);*/
+						mat += LTfiller * Float(width * height - LTSamples[PixelTo1D(x, y)]) / nlt2;
 					}
 
 					const auto pinv = arma::pinv(mat);
@@ -251,13 +229,6 @@ public:
 						}
 						
 						vec = pinv * vec;
-						
-						if (useLT)
-						{
-							vec[vec.size() - 1] *= Float(width * height) / numIterations;
-							//vec[vec.size() - 1] = 0;
-						}
-
 
 						estimate[k] = sum(vec);
 						//estimate[k] = vec[vec.size() - 1];

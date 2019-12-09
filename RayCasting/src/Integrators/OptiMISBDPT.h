@@ -267,7 +267,7 @@ namespace Integrator
 
 
 
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<OptimalSolverImage> & solvers, double * pdfs)const
 		{
 			VertexStack cameraSubPath, LightSubPath;
 
@@ -284,10 +284,17 @@ namespace Integrator
 				double Ps = 1;
 				for (int s = 0; s <= LightSubPath.size(); ++s)
 				{
+					Math::Vector2f p = { u, v };
+					const int depth = s + t - 2;
+					bool zero = false;
+					double sumqi = 0;
+
 					if (s + t > m_max_depth + 2)
 					{
 						break;
 					}
+
+					//the contribution (not estimated)
 					RGBColor L = 0;
 
 					// special cases of connections strategies
@@ -299,9 +306,13 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
+							L = L / Pt;
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
-							double weight = 1;// MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
-							pixel_res += L * weight;
+							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
+						}
+						else
+						{
+							zero = true;
 						}
 					}
 					else
@@ -343,34 +354,47 @@ namespace Integrator
 							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir);
 						}
 
-						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						//L *= MISWeight(cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
-
-						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (G == 0)
 						{
-							if (t == 1)
+							zero = true;
+						}
+						else
+						{
+							L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
+							L = L / (Ps * Pt);
+							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
+						}
+						if (t == 1)
+						{
+							p = scene.m_camera.raster(-dir);
+							if (p[0] < 0 || p[0] >= 1 || p[1] < 0 || p[1] >= 1)
 							{
-								LightVertex lv;
-								lv.light = L / scene.m_camera.resolution;
-								lv.uv = scene.m_camera.raster(-dir);
-								lt_vertices.push(lv);
-							}
-							else
-							{
-								pixel_res += L;
+								continue;
 							}
 						}
 					}
-				}
-			}
+
+					OptimalSolverImage& solver = solvers[depth];
+					if (zero)
+					{
+						solver.AddZeroEstimate(p, s);
+					}
+					else
+					{
+						solver.AddEstimate(p, L, pdfs, sumqi, s);
+					}
+					int _ = 0;
+				} // for s
+			} // for t
 		}
 
 
 		////////////////////////////////////////////////////////////////
-		//Computes te MIS weights for the bidirectional path tracer
+		//Computes pdf of all technique of the bdpt
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
+		// returns the sum of all the qi (= ni * pi)
 		////////////////////////////////////////////////////////////////
-		double MISWeight(
+		double computepdfs(
 			double * pdfs,
 			VertexStack& cameras, VertexStack& lights,
 			const Camera& camera,
@@ -411,10 +435,10 @@ namespace Integrator
 				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<true>(camera, *ysm, xt, false) };
 			}
 
-			const double main_q = Ps * Pt * (main_t == 1 ? resolution : 1);
+			
+			pdfs[main_s] = Ps * Pt;
 
-			//compute the balance heuristic
-			double sum_qi = main_q;
+			double sum_qi = Ps * Pt * (main_t == 1 ? resolution : 1);
 
 
 			//expand the camera sub path
@@ -429,6 +453,11 @@ namespace Integrator
 					if (!(camera_end.delta || (light_end && light_end->delta)))
 					{
 						sum_qi += Ph;
+						pdfs[s - 1] = Ph;
+					}
+					else
+					{
+						pdfs[s - 1] = 0;
 					}
 				}
 			}
@@ -436,6 +465,7 @@ namespace Integrator
 			//expand the light subpath
 			{
 				double Ph = Ps * Pt;
+				int s = main_s+1;
 				for (int t = main_t; t >= 2; --t)
 				{
 					const Vertex& light_end = cameras[t - 1];
@@ -445,12 +475,17 @@ namespace Integrator
 					if (!(light_end.delta || camera_end.delta))
 					{
 						sum_qi += (Ph * (t == 2 ? resolution : 1));
+						pdfs[s] = Ph;
 					}
+					else
+					{
+						pdfs[s] = 0;
+					}
+					++s;
 				}
 			}
 
-			double weight = main_q / sum_qi;
-			return weight;
+			return sum_qi;
 		}
 
 	public:
@@ -496,6 +531,18 @@ namespace Integrator
 
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
+
+
+			std::vector<OptimalSolverImage> solvers;
+			solvers.reserve(m_max_depth+1);
+			for (int d = 0; d <= m_max_depth; ++d)
+			{
+				solvers.emplace_back(d + 2, visu.width(), visu.height());
+			}
+			std::cout << omp_get_num_threads()<<" theads" << std::endl;
+			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_depth+3, 0.0));
+
+
 			visu.clean();
 			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 			const size_t npixels = m_frame_buffer.size();
@@ -511,6 +558,7 @@ namespace Integrator
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
 						int tid = omp_get_thread_num();
+						double* pdfs_buffer = pdfs_buffers[tid].data();
 
 						for (size_t x = 0; x < visu.width(); x++)
 						{
@@ -523,26 +571,15 @@ namespace Integrator
 							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							RGBColor pixel = 0;
-							LightVertexStack lvs;
+							computeSample(scene, u, v, sampler, solvers, pdfs_buffer);
 
-							computeSample(scene, u, v, sampler, pixel, lvs);
-
-							m_frame_buffer[x][y] += pixel;
-							for (LightVertex const& lv : lvs)
-							{
-								int lx = lv.uv[0] * visu.width();
-								int ly = lv.uv[1] * visu.height();
-								m_frame_buffer[lx][ly] += lv.light;
-							}
+							
 						}//pixel x
 					}//pixel y
 
 					//the pass has been computed
 				total += sample_pass;
 				++pass;
-
-				showFrame(visu, pass);
 
 				scene.update_lights_offset(1);
 				kbr = visu.update();
@@ -561,6 +598,14 @@ namespace Integrator
 				}
 			}//pass per pixel
 
+			std::cout << "Solving..." << std::endl;
+			for (int d = 0; d < m_max_depth + 1; ++d)
+			{
+				solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
+			}
+			std::cout << "Solved!" << std::endl;
+			showFrame(visu, 1);
+
 		__render__end__loop__:
 			// stop timer
 			QueryPerformanceCounter(&t2);
@@ -578,6 +623,8 @@ namespace Integrator
 					Image::ImWrite::write(m_frame_buffer, 1.0 / (double)m_sample_per_pixel);
 				}
 			}
+
+			
 		}
 
 
@@ -631,7 +678,7 @@ namespace Integrator
 							RGBColor pixel = 0;
 							LightVertexStack lvs;
 
-							computeSample(scene, u, v, sampler, pixel, lvs);
+							//computeSample(scene, u, v, sampler, pixel, lvs);
 
 							m_frame_buffer[x][y] += pixel;
 							for (LightVertex const& lv : lvs)
