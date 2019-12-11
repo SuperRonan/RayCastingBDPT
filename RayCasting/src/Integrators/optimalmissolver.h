@@ -104,7 +104,6 @@ public:
 		int techIndex
 	)
 	{
-		
 		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
@@ -218,7 +217,7 @@ public:
 						mat += LTfiller * Float(width * height - LTSamples[PixelTo1D(x, y)]) / nlt2;
 					}
 
-					const auto pinv = arma::pinv(mat);
+					mat = arma::pinv(mat);
 
 					const AtomicFloat* pixelContribVectors = getPixelContribVectors(x, y);
 					RGBColor estimate = 0;
@@ -228,7 +227,7 @@ public:
 							vec[i] = pixelContribVectors[k * numTechs + i];
 						}
 						
-						vec = pinv * vec;
+						vec = mat * vec;
 
 						estimate[k] = sum(vec);
 						//estimate[k] = vec[vec.size() - 1];
@@ -251,6 +250,131 @@ public:
     // while		 // and the alpha vector is updated
     // //
     /////////////////////////////////////////////////////////////////////////////////
+	void Loop()
+	{
+		if (!useDirect) {
+			// TODO
+		}
+	}
+};
+
+
+class BalanceSolverImage {
+
+public:
+
+	using RGBColor = Geometry::RGBColor;
+
+	using Float = double;
+	using Film = Image::Image<RGBColor>;
+
+	using MatrixT = arma::mat;
+	using VectorT = arma::vec;
+	using Float = double;
+	using AtomicUInt = std::atomic<unsigned int>;
+	using AtomicFloat = std::atomic<Float>;
+
+
+
+protected:
+	const int numTechs;
+	int width, height;
+
+	
+	std::vector<RGBColor> m_result;
+	
+
+	int PixelTo1D(int x, int y) {
+		return (x) + (y)* width;
+	}
+
+	size_t To1D(int row, int col) const {
+		// return row * numTechs + col;
+		if (col > row) std::swap(row, col);
+		return (row * (row + 1)) / 2 + col;
+	}
+
+public:
+
+	const bool useDirect = true;
+	const bool useLT = true;
+
+
+	BalanceSolverImage(int numTechs, int width, int height)
+		: numTechs(numTechs),
+		width(width),
+		height(height)
+	{
+		int msize = numTechs * (numTechs + 1) / 2;
+		int res = width * height;
+
+		m_result.reserve(res);
+		std::fill(m_result.begin(), m_result.end(), 0);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////\\
+	// Should be called every time a sample is drawn										    \\
+	// Update the matrix and the vector with the drawn sample and the extra info provided	    //
+	// Also usualy computes a part of the estimate <F>o when using the
+	// progressive estimator   //
+	////////////////////////////////////////////////////////////////////////////////////////////
+	void AddEstimate(
+		const Math::Vector2f& p,
+		const RGBColor& f,
+		const Float* pdfs,
+		double sumqi,
+		int techIndex
+	)
+	{
+		//double ni = (useLT && techIndex == numTechs - 1) ? width * height : 1;
+		//double qi = pdfs[techIndex] * ni;
+		int x = p[0] * width, y = p[1]* height;
+		m_result[PixelTo1D(x, y)] += f / sumqi;
+	}
+
+	void AddZeroEstimate(
+		const Math::Vector2f& p,
+		int techIndex
+	)
+	{
+		
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////\\
+	// Should be called at the end, to get the final optimal result						 \\
+	// Computes the last line after the loop in the estimators algorithms				 //
+	// Solves the system and returns sun alpha for the direct estimator
+	// // Returns the avg of the estimates already computed for the progressive
+	// estimator //
+	////////////////////////////////////////////////////////////////////////////////////
+	void DevelopFilm(Film* film, int numIterations)
+	{
+		if (useDirect) {
+
+
+#pragma omp parallel for schedule(dynamic)
+			for (int x = 0; x < width; ++x)
+			{
+				for (int y = 0; y < height; ++y)
+				{
+					(*film)[x][y] += m_result[PixelTo1D(x, y)] / numIterations;
+				}
+			}
+		}
+		else {
+			// TODO
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////\\
+	// Used only for the progressive estimator										   \\
+	// This should be called once all the samples have been drawn					   //
+	// This is when the optimal estimator <F>o is comnputed
+	// // This is also here that the linear system is solved every once in a
+	// while		 // and the alpha vector is updated
+	// //
+	/////////////////////////////////////////////////////////////////////////////////
 	void Loop()
 	{
 		if (!useDirect) {

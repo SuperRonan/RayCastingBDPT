@@ -1518,9 +1518,9 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16/2;
 
 										
-	unsigned int maxBounce = 10;
+	unsigned int maxBounce = 5;
 
-	unsigned int lights_divisions = 16;
+	unsigned int lights_divisions = 16/4;
 
 
 	double alpha = 0.9;

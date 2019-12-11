@@ -22,6 +22,7 @@ namespace Integrator
 		{
 			enum Type { Camera, Light, Surface } type;
 
+			// in this integrator, beta is the raw throughput (not the estimated)
 			RGBColor beta;
 
 			//maybe use something lighter than a full hit?
@@ -188,8 +189,8 @@ namespace Integrator
 
 					res.grow();
 					Vertex& vertex = res.top();
-					vertex = Vertex(Vertex::Type::Surface, beta, hit, hit.geometry->getMaterial()->delta());
 					const double cos_vertex = std::abs(hit.primitive_normal * ray.direction());
+					vertex = Vertex(Vertex::Type::Surface, beta * cos_vertex / dist2, hit, hit.geometry->getMaterial()->delta());
 					vertex.setPdfForward<MODE>(pdf_solid_angle * cos_vertex / dist2);
 
 					//sample next direction
@@ -208,7 +209,7 @@ namespace Integrator
 					beta = beta * next_dir.bsdf * cos_prev;
 					if (beta.isBlack())
 						break;
-					beta = beta / next_dir.pdf;
+					//beta = beta / next_dir.pdf;
 					pdf_solid_angle = next_dir.pdf;
 				}
 				else
@@ -228,7 +229,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth + 1);
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth + 1);
 
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
 			return nv + 1;
@@ -250,7 +251,7 @@ namespace Integrator
 			light_vertex.hit.point = sls.vector;
 
 			light_vertex.setPdfForward<TransportMode::Radiance>(sls.pdf);
-			light_vertex.beta = 1.0 / sls.pdf;
+			light_vertex.beta = 1.0;// / sls.pdf;
 
 			//generate a direction
 			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
@@ -258,7 +259,7 @@ namespace Integrator
 
 			Ray ray(sls.vector, next_dir.direction);
 
-			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal) / (sls.pdf * next_dir.pdf);
+			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal);// / (sls.pdf * next_dir.pdf);
 
 			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_depth);
 
@@ -266,8 +267,8 @@ namespace Integrator
 		}
 
 
-
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<OptimalSolverImage> & solvers, double * pdfs)const
+		template <class Solver>
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver> & solvers, double * pdfs)const
 		{
 			VertexStack cameraSubPath, LightSubPath;
 
@@ -306,7 +307,6 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
-							L = L / Pt;
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
 						}
@@ -361,7 +361,6 @@ namespace Integrator
 						else
 						{
 							L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-							L = L / (Ps * Pt);
 							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
 						}
 						if (t == 1)
@@ -374,7 +373,7 @@ namespace Integrator
 						}
 					}
 
-					OptimalSolverImage& solver = solvers[depth];
+					Solver& solver = solvers[depth];
 					if (zero)
 					{
 						solver.AddZeroEstimate(p, s);
@@ -533,7 +532,8 @@ namespace Integrator
 			m_frame_buffer.fill();
 
 
-			std::vector<OptimalSolverImage> solvers;
+			//std::vector<OptimalSolverImage> solvers;
+			std::vector<BalanceSolverImage> solvers;
 			solvers.reserve(m_max_depth+1);
 			for (int d = 0; d <= m_max_depth; ++d)
 			{
@@ -594,13 +594,14 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / double(m_sample_per_pixel));
+					Image::ImWrite::write(m_frame_buffer);
 				}
 			}//pass per pixel
 
 			std::cout << "Solving..." << std::endl;
 			for (int d = 0; d < m_max_depth + 1; ++d)
 			{
+				std::cout << d << " / " << m_max_depth << std::endl;
 				solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;
@@ -620,7 +621,7 @@ namespace Integrator
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / (double)m_sample_per_pixel);
+					Image::ImWrite::write(m_frame_buffer);
 				}
 			}
 

@@ -253,7 +253,7 @@ namespace Auto
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
 		scene.add(up_light);
 
-
+		if (false)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
 			scene.add(sphere);
