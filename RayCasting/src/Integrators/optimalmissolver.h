@@ -112,6 +112,8 @@ public:
 
 				for (int j = 0; j <= i; ++j) {
 					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
+					if (std::isnan(tmp))
+						__debugbreak();
 					techMatrix[To1D(i, j)] = techMatrix[To1D(i, j)] + tmp;
 				}
 			}
@@ -205,20 +207,39 @@ public:
 					const AtomicFloat* pixelTechMatrix =
 						getPixelTechMatrix(x, y);
 					for (int i = 0; i < numTechs; ++i) {
-						for (int j = 0; j <= i; ++j) {
+						for (int j = 0; j < i; ++j) {
 							mat(i, j) = pixelTechMatrix[To1D(i, j)];
 							mat(j, i) = pixelTechMatrix[To1D(i, j)];
+							if(std::isnan(mat(i, j)))
+								__debugbreak();
+							if (std::isnan(mat(j, i)))
+								__debugbreak();
+							if (std::isinf(mat(i, j)))
+								__debugbreak();
+							if (std::isinf(mat(j, i)))
+								__debugbreak();
 						}
 						mat(i, i) = pixelTechMatrix[To1D(i, i)];
+						if (std::isnan(mat(i, i)))
+							__debugbreak();
+						if (std::isinf(mat(i, i)))
+							__debugbreak();
 					}
 
 					if (useLT)
 					{
 						mat += LTfiller * Float(width * height - LTSamples[PixelTo1D(x, y)]) / nlt2;
 					}
-
-					mat = arma::pinv(mat);
-
+					try
+					{
+						mat = arma::pinv(mat);
+					}
+					catch (std::exception const& e)
+					{
+						std::cout << e.what() << std::endl;
+						mat = MatrixT(numTechs, numTechs);
+						continue;
+					}
 					const AtomicFloat* pixelContribVectors = getPixelContribVectors(x, y);
 					RGBColor estimate = 0;
 					for (int k = 0; k < 3; ++k) {
@@ -232,7 +253,7 @@ public:
 						estimate[k] = sum(vec);
 						//estimate[k] = vec[vec.size() - 1];
 					}
-					(*film)[x][y] = estimate;
+					(*film)[x][y] += estimate;
 
 				}
 			}
@@ -308,7 +329,7 @@ public:
 		int msize = numTechs * (numTechs + 1) / 2;
 		int res = width * height;
 
-		m_result.reserve(res);
+		m_result.resize(res);
 		std::fill(m_result.begin(), m_result.end(), 0);
 	}
 
@@ -326,10 +347,11 @@ public:
 		int techIndex
 	)
 	{
-		//double ni = (useLT && techIndex == numTechs - 1) ? width * height : 1;
-		//double qi = pdfs[techIndex] * ni;
+		double ni = (useLT && techIndex == numTechs - 1) ? width * height : 1;
+		double qi = pdfs[techIndex] * ni;
 		int x = p[0] * width, y = p[1]* height;
 		m_result[PixelTo1D(x, y)] += f / sumqi;
+		//m_result[PixelTo1D(x, y)] += f / (qi * numTechs);
 	}
 
 	void AddZeroEstimate(

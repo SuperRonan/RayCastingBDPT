@@ -1515,7 +1515,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16/2;
+	unsigned int sample_per_pixel = 16*16;
 
 										
 	unsigned int maxBounce = 5;

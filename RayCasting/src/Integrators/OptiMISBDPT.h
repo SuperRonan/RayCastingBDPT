@@ -206,7 +206,7 @@ namespace Integrator
 					prev = &vertex;
 
 					cos_prev = std::abs(next_dir.direction * hit.primitive_normal);
-					beta = beta * next_dir.bsdf * cos_prev;
+					beta = prev->beta * next_dir.bsdf * cos_prev;
 					if (beta.isBlack())
 						break;
 					//beta = beta / next_dir.pdf;
@@ -532,8 +532,8 @@ namespace Integrator
 			m_frame_buffer.fill();
 
 
-			//std::vector<OptimalSolverImage> solvers;
-			std::vector<BalanceSolverImage> solvers;
+			std::vector<OptimalSolverImage> solvers;
+			//std::vector<BalanceSolverImage> solvers;
 			solvers.reserve(m_max_depth+1);
 			for (int d = 0; d <= m_max_depth; ++d)
 			{
