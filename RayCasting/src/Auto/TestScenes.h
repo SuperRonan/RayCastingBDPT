@@ -241,7 +241,7 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.5);
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.3);
 
 		double scale = 5;
 		Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
@@ -259,9 +259,15 @@ namespace Auto
 			scene.add(sphere);
 		}
 
+		if (false)
+		{
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.25 * scale / 5.0, glass);
+			scene.add(sphere);
+		}
+
 		// Sets the camera
 		{
-			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
 		}
 	}
@@ -470,7 +476,7 @@ namespace Auto
 			base -= d * 1.5;
 			for (int i = 0; i < sphere_sizes.size(); ++i)
 			{
-				Geometry::Material* mat = new Geometry::Material(sphere_colors[i] * colors_multipliers[i] * 1 * scale / (sphere_sizes[i]));
+				Geometry::Material* mat = new Geometry::Material(sphere_colors[i] * colors_multipliers[i] * 5 * scale / (sphere_sizes[i]));
 				if (true)//spheres
 				{
 					Geometry::Sphere sphere = Geometry::Sphere(base + d * i, sphere_sizes[i], mat);

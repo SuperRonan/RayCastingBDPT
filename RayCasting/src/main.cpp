@@ -1445,7 +1445,7 @@ int main(int argc, char ** argv)
 	omp_set_num_threads(nthread);
 
 #ifdef _DEBUG
-	int scale = 10;
+	int scale = 1;
 #else
 	int scale = 1;
 #endif
@@ -1518,9 +1518,9 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16*16;
 
 										
-	unsigned int maxBounce = 5;
+	unsigned int maxBounce = 7;
 
-	unsigned int lights_divisions = 16/4;
+	unsigned int lights_divisions = 16*16;
 
 
 	double alpha = 0.9;

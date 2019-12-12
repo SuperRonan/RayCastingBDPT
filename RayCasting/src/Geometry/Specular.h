@@ -66,7 +66,7 @@ namespace Geometry
 
 		__forceinline RGBColor _BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const
 		{
-			double coswi = (hit.primitive_normal * wi);
+			double coswi = (hit.orientedPrimitiveNormal() * wi);
 			if (coswi <= 0)	return 0;
 			double cosr = hit.primitive_normal.reflect(wo) * wi;
 			if (cosr <= 0)	return 0;
@@ -89,7 +89,7 @@ namespace Geometry
 				cosr = -cosr;
 				out.direction = -out.direction;
 			}
-			double cosd = hit.primitive_normal * out.direction;
+			double cosd = hit.orientedPrimitiveNormal() * out.direction;
 			double bsdf = pow(cosr, m_shininess);
 			
 			out.pdf = (m_shininess + 1) * bsdf / Math::twoPi;
@@ -122,7 +122,7 @@ namespace Geometry
 					out.direction = direction_sampler.generate();
 					//TODO transparacy
 					double cosr = reflected * out.direction;
-					double cosd = hit.normal * out.direction;
+					double cosd = hit.orientedPrimitiveNormal() * out.direction;
 					if (cosr <= 0)
 					{
 						cosr = -cosr;

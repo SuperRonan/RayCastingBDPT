@@ -549,7 +549,7 @@ namespace Integrator
 			const size_t sample_pass = npixels;
 			size_t total = 0;
 			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			for (size_t pass = 77; pass < m_sample_per_pixel; ++pass)
 			{
 				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
 
@@ -579,7 +579,6 @@ namespace Integrator
 
 					//the pass has been computed
 				total += sample_pass;
-				++pass;
 
 				scene.update_lights_offset(1);
 				kbr = visu.update();
