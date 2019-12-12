@@ -253,7 +253,7 @@ namespace Auto
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
 		scene.add(up_light);
 
-		if (false)
+		if (true)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
 			scene.add(sphere);
@@ -268,6 +268,7 @@ namespace Auto
 		// Sets the camera
 		{
 			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			//Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
 		}
 	}

@@ -191,7 +191,21 @@ namespace Geometry
 			return screen_direction(dir);
 		}
 
+		__forceinline double pdfWeArea()const
+		{
+			return resolution / (m_planeWidth * m_planeHeight);
+		}
+		
+		__forceinline double We(Math::Vector3f const& dir)const
+		{
+			return pdfWeSolidAngle(dir);
+		}
 
+		template <bool WORKS>
+		__forceinline double We(Math::Vector3f const& dir)const
+		{
+			return pdfWeSolidAngle<WORKS>(dir);
+		}
 
 #ifdef USE_CAMERA_PLANE
 
@@ -214,10 +228,7 @@ namespace Geometry
 			return { u + 0.5, 1 - v - 0.5 };
 		}
 
-		__forceinline double We(Math::Vector3f const& dir)const
-		{
-			return pdfWeSolidAngle(dir);
-		}
+		
 
 
 		//returns the pdf of sampling a direction
@@ -233,11 +244,17 @@ namespace Geometry
 			return 0;
 		}
 
-
-		__forceinline double pdfWeArea()const
+		template <bool WORKS>
+		double pdfWeSolidAngle(Math::Vector3f const& dir)const
 		{
-			return resolution / (m_planeWidth * m_planeHeight);
+			if (WORKS || validRaster(raster(dir)))
+			{
+				double cost = dir * m_front;
+				return pdfWeArea() / (cost * cost * cost);
+			}
+			return 0;
 		}
+		
 #else
 
 		Ray getRay(double coordX, double coordY) const
@@ -261,13 +278,6 @@ namespace Geometry
 		}
 
 
-
-		__forceinline double We(Math::Vector3f const& dir)const
-		{
-			return pdfWeSolidAngle(dir);
-		}
-
-
 		//returns the pdf of sampling a direction
 		//assumes dir is normalized
 		//return a solid angle pdf
@@ -282,11 +292,18 @@ namespace Geometry
 			return 0;
 		}
 
-
-		__forceinline double pdfWeArea()const
+		template <bool WORKS>
+		double pdfWeSolidAngle(Math::Vector3f const& dir)const
 		{
-			return resolution / (m_planeWidth * m_planeHeight);
+			if (WORKS || validRaster(raster(dir)))
+			{
+				double cos_inclination = dir * m_down;
+				double sin_inclination = std::sqrt(1 - cos_inclination * cos_inclination);
+				return pdfWeArea() / sin_inclination;
+			}
+			return 0;
 		}
+
 #endif
 
 	} ;

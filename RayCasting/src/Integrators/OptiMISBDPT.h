@@ -229,7 +229,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth + 1);
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_depth + 1);
 
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
 			return nv + 1;
@@ -366,11 +366,22 @@ namespace Integrator
 						if (t == 1)
 						{
 							p = scene.m_camera.raster(-dir);
-							if (p[0] < 0 || p[0] >= 1 || p[1] < 0 || p[1] >= 1)
+							if (!scene.m_camera.validRaster(p))
 							{
+								zero = true;
 								continue;
 							}
 						}
+
+						if (!zero)
+						{
+							//test the visibility
+							if (!visibility(scene, light_top.hit.point, camera_top.hit.point))
+							{
+								zero = true;
+							}
+						}
+
 					}
 
 					Solver& solver = solvers[depth];
@@ -549,7 +560,7 @@ namespace Integrator
 			const size_t sample_pass = npixels;
 			size_t total = 0;
 			size_t pass = 0;
-			for (size_t pass = 77; pass < m_sample_per_pixel; ++pass)
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
 				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
 

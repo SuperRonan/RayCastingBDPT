@@ -1441,7 +1441,7 @@ int main(int argc, char ** argv)
 
 
 
-	int nthread = 4*2*2;
+	int nthread = 4*2*2-4;
 	omp_set_num_threads(nthread);
 
 #ifdef _DEBUG
@@ -1515,12 +1515,12 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
+	unsigned int sample_per_pixel = 16;
 
 										
 	unsigned int maxBounce = 7;
 
-	unsigned int lights_divisions = 16*16;
+	unsigned int lights_divisions = 16;
 
 
 	double alpha = 0.9;
