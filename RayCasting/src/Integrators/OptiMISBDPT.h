@@ -548,7 +548,7 @@ namespace Integrator
 			solvers.reserve(m_max_depth+1);
 			for (int d = 0; d <= m_max_depth; ++d)
 			{
-				solvers.emplace_back(d + 2, visu.width(), visu.height());
+				solvers.emplace_back(d + 2, visu.width(), visu.height(), m_sample_per_pixel);
 			}
 			std::cout << omp_get_num_threads()<<" theads" << std::endl;
 			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_depth+3, 0.0));

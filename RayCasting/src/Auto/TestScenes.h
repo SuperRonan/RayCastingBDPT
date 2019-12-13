@@ -255,7 +255,7 @@ namespace Auto
 
 		if (true)
 		{
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, orange);
 			scene.add(sphere);
 		}
 

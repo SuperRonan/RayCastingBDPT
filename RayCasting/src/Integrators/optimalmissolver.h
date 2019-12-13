@@ -31,6 +31,7 @@ public:
 
 protected:
     const int numTechs;
+	const int spp;
     int width, height;
 
 	std::vector<AtomicFloat> techMatrices;
@@ -71,10 +72,11 @@ public:
 	const bool useLT = true;
 
 
-    OptimalSolverImage(int numTechs, int width, int height)
+    OptimalSolverImage(int numTechs, int width, int height, int spp)
         : numTechs(numTechs),
           width(width),
-          height(height)
+          height(height),
+		  spp(spp)
 	{
 		int msize = numTechs * (numTechs + 1) / 2;
 		int res = width * height;
@@ -108,13 +110,15 @@ public:
 		{
 			// Update the matrix of p
 			AtomicFloat* techMatrix = getPixelTechMatrix(pPixel[0], pPixel[1]);
-			for (int i = 0; i < numTechs; ++i) {
-
-				for (int j = 0; j <= i; ++j) {
-					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
+			for (int i = 0; i < numTechs; ++i) 
+			{
+				for (int j = 0; j <= i; ++j) 
+				{
+					const int mat_index = To1D(i, j);
+					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi * spp * spp);
 					if (std::isnan(tmp))
 						__debugbreak();
-					techMatrix[To1D(i, j)] = techMatrix[To1D(i, j)] + tmp;
+					techMatrix[mat_index] = techMatrix[mat_index] + tmp;
 				}
 			}
 		}
@@ -129,7 +133,7 @@ public:
 
 			for (int k = 0; k < 3; ++k) {
 				for (int i = 0; i < numTechs; ++i) {
-					double tmp = f[k] * pdfs[i] / (sumqi * sumqi);
+					double tmp = f[k] * pdfs[i] / (sumqi * sumqi * spp * spp);
 					pixelContribVectors[k * numTechs + i] = pixelContribVectors[k * numTechs + i] + tmp;
 				}
 			}
@@ -148,13 +152,13 @@ public:
 		int techIndex
 	)
 	{
-		double ni = (techIndex == numTechs - 1 ? width * height : 1);
+		double ni = (techIndex == numTechs - 1 ? width * height : 1) * spp;
 		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
 			AtomicFloat* techMatrix = getPixelTechMatrix(pPixel[0], pPixel[1]);
 
-			double tmp = 1 / (ni * ni);
+			double tmp = 1.0 / (ni * ni);
 			techMatrix[To1D(techIndex, techIndex)] = techMatrix[To1D(techIndex, techIndex)] + tmp;
 			
 		}
@@ -249,6 +253,11 @@ public:
 						}
 						
 						vec = mat * vec;
+
+						if (useLT)
+						{
+							//vec[numTechs - 1] *= 1 * spp;
+						}
 
 						estimate[k] = sum(vec);
 						//estimate[k] = vec[vec.size() - 1];
