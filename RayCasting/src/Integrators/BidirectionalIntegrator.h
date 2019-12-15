@@ -374,7 +374,7 @@ namespace Integrator
 			const double Pt, const double Ps, 
 			double resolution, double pdf_sampling_point= -1)const
 		{
-			//return 1.0 / double(main_t + main_s);
+			return 1.0 / double(main_t + main_s);
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);

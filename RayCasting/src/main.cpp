@@ -1441,7 +1441,7 @@ int main(int argc, char ** argv)
 
 
 
-	int nthread = 4*2*2-4;
+	int nthread = 4*2*2;
 	omp_set_num_threads(nthread);
 
 #ifdef _DEBUG

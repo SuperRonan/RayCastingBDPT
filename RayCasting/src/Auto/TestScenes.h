@@ -231,11 +231,12 @@ namespace Auto
 
 	void initCausticCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder)
 	{
+		double light_size = 5;
 		Geometry::Material* white = new Geometry::Lambertian(0.7);
 		Geometry::Material* black = new Geometry::Lambertian(0);
 		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
 		Geometry::Material* green = new Geometry::Lambertian({ 0.122, 0.406, 0.1 });
-
+		Geometry::Material* light = new Geometry::Lambertian(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
 		Geometry::Material* blue = new Geometry::Lambertian({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian({ 0.8, 0.4, 0.1 });
 
@@ -243,17 +244,17 @@ namespace Auto
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.3);
 
-		double scale = 5;
-		Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
+		double scale = 50;
+		Geometry::Cornel::init_cornell(scene, light, white, white, white, red, green, scale);
 
-		double light_size = 1;
-		Geometry::Material* light = new Geometry::Lambertian(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		
+		
 		Geometry::Square* up_light = new Geometry::Square(light);
 		up_light->scale(scale * 0.2 * light_size);
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
-		scene.add(up_light);
+		//scene.add(up_light);
 
-		if (true)
+		if (false)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, orange);
 			scene.add(sphere);
