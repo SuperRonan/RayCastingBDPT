@@ -10,7 +10,7 @@
 //#define TRICK_DIRECT
 
 //don't use the russian roulette before a given depth (usualy ~2-3)
-#define SHORT_RUSSIAN
+#define LATE_RUSSIAN
 
 //when computing the lighting, add the contribution of all the lights, if undef: pick one light at random
 #define SAMPLE_ALL_LIGHTS

@@ -13,7 +13,7 @@ namespace Integrator
 	protected:
 
 
-		RGBColor addIndirectIllumination(Scene const& scene, Hit const& hit, bool next_em, int depth, Math::Sampler& sampler)const
+		RGBColor addIndirectIllumination(Scene const& scene, Hit const& hit, bool next_em, int len, Math::Sampler& sampler)const
 		{
 			RGBColor res = 0;
 			DirectionStack ds;
@@ -32,7 +32,7 @@ namespace Integrator
 				{
 					//TODO check for the separation of lights
 
-					RGBColor Li = tracePath(scene, Ray(hit.point, direction), sampler, next_em, hit.primitve, depth + 1);
+					RGBColor Li = tracePath(scene, Ray(hit.point, direction), sampler, next_em, hit.primitve, len + 1);
 
 					res += prod * Li;
 				}
@@ -42,9 +42,9 @@ namespace Integrator
 
 
 
-		RGBColor tracePath(Scene const& scene, Ray const& ray, Math::Sampler& sampler, bool use_emissive = true, const void* current = nullptr, unsigned int depth = 0)const 
+		RGBColor tracePath(Scene const& scene, Ray const& ray, Math::Sampler& sampler, bool use_emissive, const void* current, unsigned int len)const 
 		{
-			if (depth > m_max_depth)
+			if (len > m_max_len)
 			{
 				return 0;
 			}
@@ -67,8 +67,8 @@ namespace Integrator
 				}
 
 
-#ifdef SHORT_RUSSIAN
-				double alpha = depth < 2 ? 1 : m_alpha;
+#ifdef LATE_RUSSIAN
+				double alpha = len < 4 ? 1 : m_alpha;
 #else
 				double alpha = m_alpha;
 #endif
@@ -79,7 +79,7 @@ namespace Integrator
 
 
 
-					RGBColor indirect = addIndirectIllumination(scene, hit, use_next_em, depth, sampler) / alpha;
+					RGBColor indirect = addIndirectIllumination(scene, hit, use_next_em, len, sampler) / alpha;
 
 					res += indirect;
 
@@ -101,7 +101,7 @@ namespace Integrator
 
 		RGBColor sendRay(Scene const& scene, Ray const& ray, Math::Sampler& sampler)const final override
 		{
-			return tracePath(scene, ray, sampler);
+			return tracePath(scene, ray, sampler, true, nullptr, 1);
 		}
 	};
 
@@ -121,14 +121,11 @@ namespace Integrator
 			Ray ray = pray;
 			bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
-			RGBColor prod_color = scene.m_camera.We(ray.direction());
-			double prod_pdf = scene.m_camera.pdfWeSolidAngle(pray.direction());
-			if (prod_pdf == 0)
-			{
-				return 0;
-			}
+			RGBColor prod_color = scene.m_camera.We<true>(ray.direction());
+			double prod_pdf = scene.m_camera.pdfWeSolidAngle<true>(pray.direction());
+
 			RGBColor res = 0;
-			for (int depth = 0; depth < m_max_depth + 1; ++depth)
+			for (int len = 2; len <= m_max_len; ++len)
 			{
 				Hit hit;
 				if (scene.full_intersection(ray, hit))
@@ -140,14 +137,14 @@ namespace Integrator
 					}
 
 					use_emissive = !hit.geometry->getMaterial()->use_direct();
-					if (!use_emissive)
+					if (!use_emissive && len < m_max_len)
 					{
 						res += prod_color * addDirectIllumination(scene, hit, sampler) / prod_pdf;
 					}
 
 
-#ifdef SHORT_RUSSIAN
-					double alpha = depth < 3 ? 1 : m_alpha;
+#ifdef LATE_RUSSIAN
+					double alpha = len < 4 ? 1 : m_alpha;
 #else
 					double alpha = m_alpha;
 #endif
@@ -195,10 +192,10 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
-			RGBColor prod_color = scene.m_camera.We(ray.direction());
-			double prod_pdf = scene.m_camera.pdfWeSolidAngle(ray.direction());
+			RGBColor prod_color = scene.m_camera.We<true>(ray.direction());
+			double prod_pdf = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
 			RGBColor res = 0;
-			for (int depth = 0; depth <= m_max_depth + 1; ++depth)
+			for (int len = 2; len <= m_max_len; ++len)
 			{
 				Hit hit;
 				if (scene.full_intersection(ray, hit))
@@ -208,8 +205,8 @@ namespace Integrator
 					res += prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf;
 					
 
-#ifdef SHORT_RUSSIAN
-					double alpha = depth < 3  ? 1 : m_alpha;
+#ifdef LATE_RUSSIAN
+					double alpha = len < 4  ? 1 : m_alpha;
 #else
 					double alpha = m_alpha;
 #endif

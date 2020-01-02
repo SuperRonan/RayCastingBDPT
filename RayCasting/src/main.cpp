@@ -973,65 +973,65 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 enum RenderMode { rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8, 
 	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14, OptimalDirect = 15 };
 
-std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxBounce, double alpha, unsigned int lights_divisions, size_t w, size_t h)
+std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
 {
 	std::vector<Integrator::Integrator*> res(256);
 
 	{
 		res[RenderMode::rayTracing] = new Integrator::RayTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::rayTracing]->setDepth(maxBounce);
+		res[RenderMode::rayTracing]->setLen(maxLen);
 	}
 
 	{
 		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect(sample_per_pixel, w, h);
-		res[RenderMode::OptimalDirect]->setDepth(maxBounce);
+		res[RenderMode::OptimalDirect]->setLen(maxLen);
 	}
 
 	{
 		res[RenderMode::pathTracing] = new Integrator::RecursivePathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::pathTracing]->setDepth(maxBounce);
+		res[RenderMode::pathTracing]->setLen(maxLen);
 		res[RenderMode::pathTracing]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::naivePathTracing] = new Integrator::NaivePathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::naivePathTracing]->setDepth(maxBounce);
+		res[RenderMode::naivePathTracing]->setLen(maxLen);
 		res[RenderMode::naivePathTracing]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::iterativePathTracing] = new Integrator::IterativePathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::iterativePathTracing]->setDepth(maxBounce);
+		res[RenderMode::iterativePathTracing]->setLen(maxLen);
 		res[RenderMode::iterativePathTracing]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::MISPathTracing] = new Integrator::MISPathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::MISPathTracing]->setDepth(maxBounce);
+		res[RenderMode::MISPathTracing]->setLen(maxLen);
 		res[RenderMode::MISPathTracing]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::lightTracing] = new Integrator::LightIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::lightTracing]->setDepth(maxBounce);
+		res[RenderMode::lightTracing]->setLen(maxLen);
 		res[RenderMode::lightTracing]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::bdpt] = new Integrator::BidirectionalIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::bdpt]->setDepth(maxBounce);
+		res[RenderMode::bdpt]->setLen(maxLen);
 		res[RenderMode::bdpt]->m_alpha = alpha;
 	}
 
 	{
 		res[RenderMode::OptiMISBDPT] = new Integrator::OptiMISBDPT(sample_per_pixel, w, h);
-		res[RenderMode::OptiMISBDPT]->setDepth(maxBounce);
+		res[RenderMode::OptiMISBDPT]->setLen(maxLen);
 		res[RenderMode::OptiMISBDPT]->m_alpha = alpha;
 	}
 
 	//{
 	//	res[RenderMode::naiveBDPT] = new Integrator::NaiveBidirectionalIntegrator(sample_per_pixel, w, h);
-	//	res[RenderMode::naiveBDPT]->setDepth(maxBounce);
+	//	res[RenderMode::naiveBDPT]->setLen(maxLen);
 	//	res[RenderMode::naiveBDPT]->m_alpha = alpha;
 	//}
 
@@ -1515,15 +1515,15 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
-
+	unsigned int sample_per_pixel = 16*4;
 										
-	unsigned int maxBounce = 7;
+	// max lenght is included
+	unsigned int maxLen = 7;
 
 	unsigned int lights_divisions = 16;
 
 
-	double alpha = 0.9;
+	double alpha = 1;
 
 	//scene.setBackgroundColor({ 0.065, 0.065, 0.088 });
 	//Auto::setBackground(scene);
@@ -1533,10 +1533,10 @@ int main(int argc, char ** argv)
 
 	scene.check_capacity();
 
-	RenderOption render_option = RenderOption::Pass;
-	RenderMode render_mode = RenderMode::OptiMISBDPT;
+	RenderOption render_option = RenderOption::RealTime;
+	RenderMode render_mode = RenderMode::bdpt;
 
-	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxBounce, alpha, lights_divisions, visu.width(), visu.height());
+	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
 	Integrator::Integrator* integrator = integrators[render_mode];
 

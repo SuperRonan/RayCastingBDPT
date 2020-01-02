@@ -86,18 +86,18 @@ namespace Integrator
 
 			beta = beta * (cosl / next_dir_pdf);
 
-			unsigned int depth = 0;
+			unsigned int len = 2;
 			while(!beta.isBlack())
 			{
-				++depth;
 				Ray ray(hit.point, next_dir);
 				if (scene.full_intersection(ray, hit))
 				{
+					++len;
 					connectVertexToCamera<false>(scene, beta, hit, lvs);
 					
 					//sample next dir
 
-					if (depth <= m_max_depth)
+					if (len < m_max_len)
 					{
 						DirectionSample next_dir_sample;
 						hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, next_dir_sample, sampler, true);

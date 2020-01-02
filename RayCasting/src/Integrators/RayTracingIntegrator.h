@@ -19,15 +19,15 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final
 		{
 			Ray ray = pray;
-			unsigned int depth = 0;
+			unsigned int len = 1;
 			RGBColor res=0;
 			RGBColor T=1;
-			while (depth <= m_max_depth)
+			while (len <= m_max_len)
 			{
-				++depth;
 				Hit hit;
 				if (scene.full_intersection(ray, hit))
 				{
+					++len;
 					Material const& material = *hit.geometry->getMaterial();
 					
 					res += T * material.Le(hit.facing, hit.tex_uv);

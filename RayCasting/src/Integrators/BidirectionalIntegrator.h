@@ -11,7 +11,7 @@ namespace Integrator
 
 		using CameraType = Camera;
 
-		unsigned int max_camera_depth, max_light_depth;
+		unsigned int max_camera_len, max_light_len;
 
 		enum TransportMode { Importance, Radiance };
 
@@ -225,7 +225,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction()), scene.m_camera.pdfWeSolidAngle(ray.direction()), max_camera_depth + 1);
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()) / scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_len-1);
 
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
 			return nv + 1;
@@ -257,7 +257,7 @@ namespace Integrator
 
 			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal) / (sls.pdf * next_dir.pdf);
 
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_depth);
+			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_len-1);
 
 			return 1 + nv;
 		}
@@ -281,7 +281,7 @@ namespace Integrator
 				double Ps = 1;
 				for (int s = 0; s <= LightSubPath.size(); ++s)
 				{
-					if (s + t > m_max_depth+2)
+					if (s + t > m_max_len)
 					{
 						break;
 					}
@@ -374,7 +374,7 @@ namespace Integrator
 			const double Pt, const double Ps, 
 			double resolution, double pdf_sampling_point= -1)const
 		{
-			return 1.0 / double(main_t + main_s);
+			//return 1.0 / double(main_t + main_s);
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -453,18 +453,18 @@ namespace Integrator
 
 		BidirectionalIntegrator(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			BidirectionalBase(sample_per_pixel, width, height),
-			max_camera_depth(1),
-			max_light_depth(1)
+			max_camera_len(1),
+			max_light_len(1)
 		{
 			
 		}
 
 
-		virtual void setDepth(unsigned int d)override
+		virtual void setLen(unsigned int len)override
 		{
-			Integrator::setDepth(d);
-			max_camera_depth = d;
-			max_light_depth = d;
+			Integrator::setLen(len);
+			max_camera_len = len;
+			max_light_len = len-1;
 		}
 
 

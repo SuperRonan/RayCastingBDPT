@@ -14,7 +14,7 @@ namespace Integrator
 
 		using CameraType = Camera;
 
-		unsigned int max_camera_depth, max_light_depth;
+		unsigned int max_camera_len, max_light_len;
 
 		enum TransportMode { Importance, Radiance };
 
@@ -229,7 +229,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_depth + 1);
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_len + 1);
 
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
 			return nv + 1;
@@ -261,7 +261,7 @@ namespace Integrator
 
 			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal);// / (sls.pdf * next_dir.pdf);
 
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_depth);
+			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_len);
 
 			return 1 + nv;
 		}
@@ -290,7 +290,7 @@ namespace Integrator
 					bool zero = false;
 					double sumqi = 0;
 
-					if (s + t > m_max_depth + 2)
+					if (s + t > m_max_len)
 					{
 						break;
 					}
@@ -502,18 +502,18 @@ namespace Integrator
 
 		OptiMISBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			BidirectionalBase(sample_per_pixel, width, height),
-			max_camera_depth(1),
-			max_light_depth(1)
+			max_camera_len(1),
+			max_light_len(1)
 		{
 
 		}
 
 
-		virtual void setDepth(unsigned int d)override
+		virtual void setLen(unsigned int d)override
 		{
-			Integrator::setDepth(d);
-			max_camera_depth = d;
-			max_light_depth = d;
+			Integrator::setLen(d);
+			max_camera_len = d;
+			max_light_len = d-1;
 		}
 
 
@@ -545,13 +545,13 @@ namespace Integrator
 
 			std::vector<OptimalSolverImage> solvers;
 			//std::vector<BalanceSolverImage> solvers;
-			solvers.reserve(m_max_depth+1);
-			for (int d = 0; d <= m_max_depth; ++d)
+			solvers.reserve(m_max_len-1);
+			for (int len = 2; len <= m_max_len; ++len)
 			{
-				solvers.emplace_back(d + 2, visu.width(), visu.height(), m_sample_per_pixel);
+				solvers.emplace_back(len, visu.width(), visu.height(), m_sample_per_pixel);
 			}
 			std::cout << omp_get_num_threads()<<" theads" << std::endl;
-			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_depth+3, 0.0));
+			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_len, 0.0));
 
 
 			visu.clean();
@@ -609,9 +609,10 @@ namespace Integrator
 			}//pass per pixel
 
 			std::cout << "Solving..." << std::endl;
-			for (int d = 0; d < m_max_depth + 1; ++d)
+			for (int len = 2; len <= m_max_len; ++len)
 			{
-				std::cout << d << " / " << m_max_depth << std::endl;
+				int d = len - 2;
+				std::cout << d << " / " << m_max_len-2 << std::endl;
 				solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;

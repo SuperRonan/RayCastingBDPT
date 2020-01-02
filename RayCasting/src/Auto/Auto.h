@@ -397,7 +397,7 @@ namespace Auto
 
 			for (TestIntegrator& inte : integrators)
 			{
-				inte.integrator->setDepth(options.max_bounce);
+				inte.integrator->setLen(options.max_bounce);
 				inte.integrator->m_alpha = options.alpha;
 			}
 

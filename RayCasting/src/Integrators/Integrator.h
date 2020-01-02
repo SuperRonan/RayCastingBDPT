@@ -20,7 +20,7 @@ namespace Integrator
 		unsigned int m_sample_per_pixel;
 
 	protected:
-		unsigned int m_max_depth;
+		unsigned int m_max_len;
 
 		
 		
@@ -47,9 +47,9 @@ namespace Integrator
 
 	public:
 
-		virtual void setDepth(unsigned int d)
+		virtual void setLen(unsigned int len)
 		{
-			m_max_depth = d;
+			m_max_len = len;
 		}
 
 		virtual void render(Scene const&, Visualizer::Visualizer &) = 0;
