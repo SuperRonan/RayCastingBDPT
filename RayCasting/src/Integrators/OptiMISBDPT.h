@@ -229,7 +229,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_len + 1);
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_len - 1);
 
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
 			return nv + 1;
@@ -261,7 +261,7 @@ namespace Integrator
 
 			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal);// / (sls.pdf * next_dir.pdf);
 
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_len);
+			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_len-1);
 
 			return 1 + nv;
 		}
@@ -277,7 +277,8 @@ namespace Integrator
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			traceLightSubPath(scene, sampler, LightSubPath);
 			double Pt = 1;
-			for (int t = 1; t <= cameraSubPath.size(); ++t)
+			int t_min = (useLT ? 1 : 2);
+			for (int t = t_min; t <= cameraSubPath.size(); ++t)
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
 				Pt *= camera_top.pdfForward<TransportMode::Importance>();
@@ -476,7 +477,8 @@ namespace Integrator
 			{
 				double Ph = Ps * Pt;
 				int s = main_s+1;
-				for (int t = main_t; t >= 2; --t)
+				int t_min = (useLT ? 3 : 2);
+				for (int t = main_t; t >= t_min; --t)
 				{
 					const Vertex& light_end = cameras[t - 1];
 					const Vertex& camera_end = cameras[t - 2];
@@ -499,6 +501,8 @@ namespace Integrator
 		}
 
 	public:
+
+		const bool useLT = false;
 
 		OptiMISBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			BidirectionalBase(sample_per_pixel, width, height),
@@ -543,12 +547,14 @@ namespace Integrator
 			m_frame_buffer.fill();
 
 
-			std::vector<OptimalSolverImage> solvers;
-			//std::vector<BalanceSolverImage> solvers;
+			//std::vector<OptimalSolverImage> solvers;
+			std::vector<BalanceSolverImage> solvers;
+			
 			solvers.reserve(m_max_len-1);
 			for (int len = 2; len <= m_max_len; ++len)
 			{
-				solvers.emplace_back(len, visu.width(), visu.height(), m_sample_per_pixel);
+				int num_tech = useLT ? len : len - 1;
+				solvers.emplace_back(num_tech, visu.width(), visu.height(), m_sample_per_pixel, useLT);
 			}
 			std::cout << omp_get_num_threads()<<" theads" << std::endl;
 			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_len, 0.0));

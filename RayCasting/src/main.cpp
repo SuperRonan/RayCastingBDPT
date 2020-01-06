@@ -1515,10 +1515,10 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*4;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 7;
+	unsigned int maxLen = 3;
 
 	unsigned int lights_divisions = 16;
 
@@ -1533,8 +1533,8 @@ int main(int argc, char ** argv)
 
 	scene.check_capacity();
 
-	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::bdpt;
+	RenderOption render_option = RenderOption::Pass;
+	RenderMode render_mode = RenderMode::OptiMISBDPT;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

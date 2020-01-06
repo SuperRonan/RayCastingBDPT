@@ -232,7 +232,7 @@ namespace Auto
 	void initCausticCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder)
 	{
 		double scale = 5;
-		double light_size = 1;
+		double light_size = 4;
 		Geometry::Material* white = new Geometry::Lambertian(0.7);
 		Geometry::Material* black = new Geometry::Lambertian(0);
 		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
@@ -246,16 +246,16 @@ namespace Auto
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, 1.3);
 
 		
-		Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
+		Geometry::Cornel::init_cornell(scene, light, white, white, white, red, green, scale);
 		
 		
 		Geometry::Square* up_light = new Geometry::Square(light);
 		up_light->scale(scale * 0.2 * light_size);
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
-		scene.add(up_light);
+		//scene.add(up_light);
 
 
-		if (true)
+		if (false)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
 			scene.add(sphere);

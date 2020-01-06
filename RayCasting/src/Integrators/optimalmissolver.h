@@ -69,14 +69,15 @@ protected:
 public:
 
 	const bool useDirect = true;
-	const bool useLT = true;
+	const bool useLT;
 
 
-    OptimalSolverImage(int numTechs, int width, int height, int spp)
+    OptimalSolverImage(int numTechs, int width, int height, int spp, bool useLT)
         : numTechs(numTechs),
           width(width),
           height(height),
-		  spp(spp)
+		  spp(spp),
+		  useLT(useLT)
 	{
 		int msize = numTechs * (numTechs + 1) / 2;
 		int res = width * height;
@@ -115,7 +116,7 @@ public:
 				for (int j = 0; j <= i; ++j) 
 				{
 					const int mat_index = To1D(i, j);
-					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi * spp * spp);
+					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
 					if (std::isnan(tmp))
 						__debugbreak();
 					techMatrix[mat_index] = techMatrix[mat_index] + tmp;
@@ -133,7 +134,7 @@ public:
 
 			for (int k = 0; k < 3; ++k) {
 				for (int i = 0; i < numTechs; ++i) {
-					double tmp = f[k] * pdfs[i] / (sumqi * sumqi * spp * spp);
+					double tmp = f[k] * pdfs[i] / (sumqi * sumqi);
 					pixelContribVectors[k * numTechs + i] = pixelContribVectors[k * numTechs + i] + tmp;
 				}
 			}
@@ -162,7 +163,7 @@ public:
 			techMatrix[To1D(techIndex, techIndex)] = techMatrix[To1D(techIndex, techIndex)] + tmp;
 			
 		}
-		if (techIndex == numTechs - 1)
+		if (useLT && techIndex == numTechs - 1)
 			LTSamples[PixelTo1D(pPixel[0], pPixel[1])]++;
 
 
@@ -208,26 +209,32 @@ public:
 				VectorT& vec = vecs[tid];
 				for (int y = 0; y < height; ++y)
 				{
-					const AtomicFloat* pixelTechMatrix =
-						getPixelTechMatrix(x, y);
-					for (int i = 0; i < numTechs; ++i) {
-						for (int j = 0; j < i; ++j) {
+					const AtomicFloat* pixelTechMatrix = getPixelTechMatrix(x, y);
+					for (int i = 0; i < numTechs; ++i) 
+					{
+						for (int j = 0; j < i; ++j)
+						{
 							mat(i, j) = pixelTechMatrix[To1D(i, j)];
 							mat(j, i) = pixelTechMatrix[To1D(i, j)];
-							if(std::isnan(mat(i, j)))
-								__debugbreak();
-							if (std::isnan(mat(j, i)))
-								__debugbreak();
-							if (std::isinf(mat(i, j)))
-								__debugbreak();
-							if (std::isinf(mat(j, i)))
-								__debugbreak();
+							
+							{
+								if (std::isnan(mat(i, j)))
+									__debugbreak();
+								if (std::isnan(mat(j, i)))
+									__debugbreak();
+								if (std::isinf(mat(i, j)))
+									__debugbreak();
+								if (std::isinf(mat(j, i)))
+									__debugbreak();
+							}
 						}
 						mat(i, i) = pixelTechMatrix[To1D(i, i)];
-						if (std::isnan(mat(i, i)))
-							__debugbreak();
-						if (std::isinf(mat(i, i)))
-							__debugbreak();
+						{
+							if (std::isnan(mat(i, i)))
+								__debugbreak();
+							if (std::isinf(mat(i, i)))
+								__debugbreak();
+						}
 					}
 
 					if (useLT)
@@ -327,13 +334,14 @@ protected:
 public:
 
 	const bool useDirect = true;
-	const bool useLT = true;
+	const bool useLT;
 
 
-	BalanceSolverImage(int numTechs, int width, int height)
+	BalanceSolverImage(int numTechs, int width, int height, int spp, bool useLT)
 		: numTechs(numTechs),
 		width(width),
-		height(height)
+		height(height),
+		useLT(useLT)
 	{
 		int msize = numTechs * (numTechs + 1) / 2;
 		int res = width * height;
