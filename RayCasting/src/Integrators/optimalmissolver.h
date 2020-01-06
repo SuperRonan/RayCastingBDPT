@@ -60,7 +60,7 @@ protected:
 		return techMatrices.data() + offset;
 	}
 
-	size_t To1D(int row, int col) const {
+	size_t matTo1D(int row, int col) const {
 		// return row * numTechs + col;
 		if (col > row) std::swap(row, col);
 		return (row * (row + 1)) / 2 + col;
@@ -115,7 +115,7 @@ public:
 			{
 				for (int j = 0; j <= i; ++j) 
 				{
-					const int mat_index = To1D(i, j);
+					const int mat_index = matTo1D(i, j);
 					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
 					if (std::isnan(tmp))
 						__debugbreak();
@@ -153,14 +153,14 @@ public:
 		int techIndex
 	)
 	{
-		double ni = (techIndex == numTechs - 1 ? width * height : 1) * spp;
+		double ni = (techIndex == numTechs - 1 ? width * height : 1);
 		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
 			AtomicFloat* techMatrix = getPixelTechMatrix(pPixel[0], pPixel[1]);
 
 			double tmp = 1.0 / (ni * ni);
-			techMatrix[To1D(techIndex, techIndex)] = techMatrix[To1D(techIndex, techIndex)] + tmp;
+			techMatrix[matTo1D(techIndex, techIndex)] = techMatrix[matTo1D(techIndex, techIndex)] + tmp;
 			
 		}
 		if (useLT && techIndex == numTechs - 1)
@@ -198,7 +198,7 @@ public:
 			LTfiller.fill(0);
 			LTfiller(numTechs - 1, numTechs - 1) = 1;
 
-			double nlt2 = Float(width * height); nlt2 *= nlt2;
+			double nlt2 = Float(width * height) * Float(width * height);
 
 
 #pragma omp parallel for schedule(dynamic)
@@ -214,8 +214,8 @@ public:
 					{
 						for (int j = 0; j < i; ++j)
 						{
-							mat(i, j) = pixelTechMatrix[To1D(i, j)];
-							mat(j, i) = pixelTechMatrix[To1D(i, j)];
+							mat(i, j) = pixelTechMatrix[matTo1D(i, j)];
+							mat(j, i) = pixelTechMatrix[matTo1D(i, j)];
 							
 							{
 								if (std::isnan(mat(i, j)))
@@ -228,7 +228,7 @@ public:
 									__debugbreak();
 							}
 						}
-						mat(i, i) = pixelTechMatrix[To1D(i, i)];
+						mat(i, i) = pixelTechMatrix[matTo1D(i, i)];
 						{
 							if (std::isnan(mat(i, i)))
 								__debugbreak();
@@ -325,7 +325,7 @@ protected:
 		return (x) + (y)* width;
 	}
 
-	size_t To1D(int row, int col) const {
+	size_t matTo1D(int row, int col) const {
 		// return row * numTechs + col;
 		if (col > row) std::swap(row, col);
 		return (row * (row + 1)) / 2 + col;

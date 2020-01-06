@@ -276,7 +276,7 @@ namespace Integrator
 
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			traceLightSubPath(scene, sampler, LightSubPath);
-			double Pt = 1;
+			double Pt = useLT ? 1 : cameraSubPath[0].pdfForward<TransportMode::Importance>();
 			int t_min = (useLT ? 1 : 2);
 			for (int t = t_min; t <= cameraSubPath.size(); ++t)
 			{
@@ -336,6 +336,12 @@ namespace Integrator
 						{
 							//light tracing
 							camera_connection = scene.m_camera.We(-dir);
+							p = scene.m_camera.raster(-dir);
+							if (!scene.m_camera.validRaster(p))
+							{
+								zero = true;
+								continue;
+							}
 						}
 						else
 						{
@@ -364,15 +370,7 @@ namespace Integrator
 							L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
 							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
 						}
-						if (t == 1)
-						{
-							p = scene.m_camera.raster(-dir);
-							if (!scene.m_camera.validRaster(p))
-							{
-								zero = true;
-								continue;
-							}
-						}
+						
 
 						if (!zero)
 						{
@@ -477,7 +475,7 @@ namespace Integrator
 			{
 				double Ph = Ps * Pt;
 				int s = main_s+1;
-				int t_min = (useLT ? 3 : 2);
+				int t_min = (useLT ? 2 : 3);
 				for (int t = main_t; t >= t_min; --t)
 				{
 					const Vertex& light_end = cameras[t - 1];
@@ -502,7 +500,7 @@ namespace Integrator
 
 	public:
 
-		const bool useLT = false;
+		const bool useLT = true;
 
 		OptiMISBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			BidirectionalBase(sample_per_pixel, width, height),
@@ -547,8 +545,8 @@ namespace Integrator
 			m_frame_buffer.fill();
 
 
-			//std::vector<OptimalSolverImage> solvers;
-			std::vector<BalanceSolverImage> solvers;
+			std::vector<OptimalSolverImage> solvers;
+			//std::vector<BalanceSolverImage> solvers;
 			
 			solvers.reserve(m_max_len-1);
 			for (int len = 2; len <= m_max_len; ++len)
