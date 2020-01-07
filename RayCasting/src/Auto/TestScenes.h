@@ -246,16 +246,16 @@ namespace Auto
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, 1.3);
 
 		
-		Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
+		Geometry::Cornel::init_cornell(scene, light, white, white, white, red, green, scale);
 		
 		
 		Geometry::Square* up_light = new Geometry::Square(light);
 		up_light->scale(scale * 0.2 * light_size);
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
-		scene.add(up_light);
+		//scene.add(up_light);
 
 
-		if (true)
+		if (false)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, orange);
 			scene.add(sphere);

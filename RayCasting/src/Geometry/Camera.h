@@ -274,7 +274,7 @@ namespace Geometry
 
 			Math::Vector2f inc_azi = inclinationAzimuthOfNormalized(camera_direction);
 
-			return Math::Vector2f(0.5 - (inc_azi[1]) / m_planeWidth, 0.5+ (inc_azi[0] - Math::piDiv2) / m_planeHeight);
+			return Math::Vector2f(0.5 - (inc_azi[1]) / m_planeWidth, 0.5+ (inc_azi[0] - Math::piDiv2) / m_planeHeight) * (direction * m_front < 0 ? -1.0 : 1.0);
 		}
 
 

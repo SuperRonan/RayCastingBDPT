@@ -340,8 +340,10 @@ namespace Integrator
 							if (!scene.m_camera.validRaster(p))
 							{
 								zero = true;
+								p = { -1, -1 };
 								continue;
 							}
+
 						}
 						else
 						{
