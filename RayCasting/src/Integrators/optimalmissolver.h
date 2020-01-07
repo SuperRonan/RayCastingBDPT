@@ -93,6 +93,16 @@ public:
 		contribVectors = std::vector<AtomicFloat>(res * numTechs * 3);
 	}
 
+	bool techIsLT(int techIndex)const
+	{
+		return useLT && (techIndex == (numTechs - 1));
+	}
+
+	int numberOfSamples(int techIndex)const
+	{
+		return techIsLT(techIndex) ? width * height : 1;
+	}
+
     ///////////////////////////////////////////////////////////////////////////////////////////\\
 	// Should be called every time a sample is drawn										    \\
 	// Update the matrix and the vector with the drawn sample and the extra info provided	    //
@@ -123,7 +133,7 @@ public:
 				}
 			}
 		}
-		if (useLT)
+		if (useLT && techIndex == (numTechs-1))
 			LTSamples[PixelTo1D(pPixel[0], pPixel[1])]++;
 
 		// Update only the contribution vector of the pixel
@@ -153,7 +163,7 @@ public:
 		int techIndex
 	)
 	{
-		double ni = (techIndex == numTechs - 1 ? width * height : 1);
+		double ni = numberOfSamples(techIndex);
 		Math::Vector<int, 2> pPixel(p[0]*width, p[1]*height);
 		{
 			// Update the matrix of p
@@ -163,7 +173,7 @@ public:
 			techMatrix[matTo1D(techIndex, techIndex)] = techMatrix[matTo1D(techIndex, techIndex)] + tmp;
 			
 		}
-		if (useLT && techIndex == numTechs - 1)
+		if (techIsLT(techIndex))
 			LTSamples[PixelTo1D(pPixel[0], pPixel[1])]++;
 
 

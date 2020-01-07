@@ -85,6 +85,10 @@ namespace Integrator
 
 
 			beta = beta * (cosl / next_dir_pdf);
+			if (m_max_len == 2)
+			{
+				return;
+			}
 
 			unsigned int len = 2;
 			while(!beta.isBlack())
