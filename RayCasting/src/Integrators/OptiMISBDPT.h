@@ -278,111 +278,130 @@ namespace Integrator
 			traceLightSubPath(scene, sampler, LightSubPath);
 			double Pt = useLT ? 1 : cameraSubPath[0].pdfForward<TransportMode::Importance>();
 			int t_min = (useLT ? 1 : 2);
-			for (int t = t_min; t <= cameraSubPath.size(); ++t)
+			for (int t = t_min; t <= max_camera_len; ++t)
 			{
-				Vertex& camera_top = cameraSubPath[t - 1];
-				Pt *= camera_top.pdfForward<TransportMode::Importance>();
-
-				double Ps = 1;
-				for (int s = 0; s <= LightSubPath.size(); ++s)
+				Vertex* camera_top;
+				
+				if (t <= cameraSubPath.size())
 				{
-					Math::Vector2f p = { u, v };
-					const int depth = s + t - 2;
-					bool zero = false;
-					double sumqi = 0;
-
+					camera_top = cameraSubPath.begin() + (t - 1);
+					Pt *= camera_top->pdfForward<TransportMode::Importance>();
+				}
+				double Ps = 1;
+				for (int s = 0; s <= max_light_len; ++s)
+				{
 					if (s + t > m_max_len)
 					{
 						break;
 					}
-
+					Math::Vector2f p = { u, v };
+					const int depth = s + t - 2;
+					bool zero = false;
+					double sumqi = 0;
 					//the contribution (not estimated)
 					RGBColor L = 0;
-
-					// special cases of connections strategies
-					if (s + t == 1)
-						continue;
-					if (s == 0)
+					//handle unsampled samples
+					if (s > LightSubPath.size() || t > cameraSubPath.size())
 					{
-						// naive path tracing
-						if (camera_top.hit.geometry->getMaterial()->is_emissive())
-						{
-							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
-							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
-							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
-						}
-						else
-						{
-							zero = true;
-						}
-					}
-					else
-					{
-						Vertex light_top = LightSubPath[s - 1];
-						Ps *= light_top.pdfForward<Radiance>();
-						if (camera_top.delta || light_top.delta)
-							continue;
-
-						Math::Vector3f dir = camera_top.hit.point - light_top.hit.point;
-						const double dist2 = dir.norm2();
-						const double dist = sqrt(dist2);
-						dir /= dist;
-
-						double G = std::abs(dir * light_top.hit.primitive_normal) / dist2;
-
-						RGBColor camera_connection, light_connection;
-
+						zero = true;
 						if (t == 1)
 						{
-							//light tracing
-							camera_connection = scene.m_camera.We(-dir);
-							p = scene.m_camera.raster(-dir);
-							if (!scene.m_camera.validRaster(p))
-							{
-								zero = true;
-								p = { -1, -1 };
-								continue;
-							}
-
-						}
-						else
-						{
-							//general case
-							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir);
-							G *= std::abs(camera_top.hit.primitive_normal * dir);
-						}
-
-						if (s == 1)
-						{
-							//direct lighting estimation
-							light_connection = light_top.hit.geometry->getMaterial()->Le((light_top.hit.primitive_normal * dir) > 0, light_top.hit.tex_uv);
-						}
-						else
-						{
-							//general case
-							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir);
-						}
-
-						if (G == 0)
-						{
-							zero = true;
-						}
-						else
-						{
-							L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-							sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
+							continue;
 						}
 						
+					}
+					if(!zero)
+					{
 
-						if (!zero)
+						if (s + t > m_max_len)
 						{
-							//test the visibility
-							if (!visibility(scene, light_top.hit.point, camera_top.hit.point))
+							break;
+						}
+
+						// special cases of connections strategies
+						if (s + t == 1)
+							continue;
+						if (s == 0)
+						{
+							// naive path tracing
+							if (camera_top->hit.geometry->getMaterial()->is_emissive())
+							{
+								L = camera_top->beta * camera_top->hit.geometry->getMaterial()->Le(camera_top->hit.facing, camera_top->hit.tex_uv);
+								double pdf = scene.pdfSamplingLight(camera_top->hit.geometry);
+								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
+							}
+							else
 							{
 								zero = true;
 							}
 						}
+						else
+						{
+							Vertex * light_top = LightSubPath.begin() + s - 1;
+							Ps *= light_top->pdfForward<Radiance>();
+							if (camera_top->delta || light_top->delta)
+								continue;
 
+							Math::Vector3f dir = camera_top->hit.point - light_top->hit.point;
+							const double dist2 = dir.norm2();
+							const double dist = sqrt(dist2);
+							dir /= dist;
+
+							double G = std::abs(dir * light_top->hit.primitive_normal) / dist2;
+
+							RGBColor camera_connection, light_connection;
+
+							if (t == 1)
+							{
+								//light tracing
+								camera_connection = scene.m_camera.We(-dir);
+								p = scene.m_camera.raster(-dir);
+								if (!scene.m_camera.validRaster(p))
+								{
+									zero = true;
+									p = { -1, -1 };
+									continue;
+								}
+
+							}
+							else
+							{
+								//general case
+								camera_connection = camera_top->hit.geometry->getMaterial()->BSDF(camera_top->hit, -dir);
+								G *= std::abs(camera_top->hit.primitive_normal * dir);
+							}
+
+							if (s == 1)
+							{
+								//direct lighting estimation
+								light_connection = light_top->hit.geometry->getMaterial()->Le((light_top->hit.primitive_normal * dir) > 0, light_top->hit.tex_uv);
+							}
+							else
+							{
+								//general case
+								light_connection = light_top->hit.geometry->getMaterial()->BSDF(light_top->hit, dir);
+							}
+
+							if (G == 0)
+							{
+								zero = true;
+							}
+							else
+							{
+								L = camera_top->beta * camera_connection * G * light_connection * light_top->beta;
+								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
+							}
+
+
+							if (!zero)
+							{
+								//test the visibility
+								if (!visibility(scene, light_top->hit.point, camera_top->hit.point))
+								{
+									zero = true;
+								}
+							}
+						}
 					}
 
 					Solver& solver = solvers[depth];

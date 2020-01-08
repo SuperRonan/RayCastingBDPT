@@ -255,9 +255,9 @@ namespace Auto
 		scene.add(up_light);
 
 
-		if (true)
+		if (false)
 		{
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, spec);
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
 			scene.add(sphere);
 		}
 
@@ -266,6 +266,23 @@ namespace Auto
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.25 * scale / 5.0, glass);
 			scene.add(sphere);
 		}
+
+		//tall block
+		if(false)
+		{
+			Geometry::GeometryCollection* cube;
+			Geometry::Material* cube_mat = spec;
+
+			cube = new Geometry::Cube(cube_mat);
+			cube->scaleX(0.3 * scale);
+			cube->scaleY(0.3 * scale);
+			cube->scaleZ(0.6 * scale);
+			cube->rotate(Math::Quaternion<double>({ 0, 0, 1 }, 0.3));
+			cube->translate({ scale * 0.2, scale * 0.15, -scale * 0.21 });
+			scene.add(cube);
+		}
+
+		
 
 		// Sets the camera
 		{

@@ -307,7 +307,7 @@ OMP_PARALLEL_FOR
 	}
 };
 
-class OptimalSolverImage {
+class OptimalSolverImagePBRT {
 
 public:
 
@@ -367,7 +367,7 @@ public:
 	const bool useLT;
 
 
-	OptimalSolverImage(int numTechs, int width, int height, int spp, bool useLT)
+	OptimalSolverImagePBRT(int numTechs, int width, int height, int spp, bool useLT)
 		: numTechs(numTechs),
 		width(width),
 		height(height),
