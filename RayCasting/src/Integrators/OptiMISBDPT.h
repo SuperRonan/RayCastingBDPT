@@ -340,7 +340,9 @@ namespace Integrator
 							Vertex * light_top = LightSubPath.begin() + s - 1;
 							Ps *= light_top->pdfForward<Radiance>();
 							if (camera_top->delta || light_top->delta)
-								continue;
+							{
+								zero = true;
+							}
 
 							Math::Vector3f dir = camera_top->hit.point - light_top->hit.point;
 							const double dist2 = dir.norm2();
