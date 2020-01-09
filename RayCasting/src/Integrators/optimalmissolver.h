@@ -421,7 +421,7 @@ public:
 				for (int j = 0; j <= i; ++j)
 				{
 					const int mat_index = matTo1D(i, j);
-					double tmp = pdfs[i] * pdfs[j] / (sumqi * sumqi);
+					double tmp = (pdfs[i] * numberOfSamples(i) * pdfs[j] * numberOfSamples(j)) / (sumqi * sumqi);
 					if (std::isnan(tmp))
 						__debugbreak();
 					techMatrix[mat_index] = techMatrix[mat_index] + tmp;
@@ -439,7 +439,7 @@ public:
 
 			for (int k = 0; k < 3; ++k) {
 				for (int i = 0; i < numTechs; ++i) {
-					double tmp = f[k] * pdfs[i] / (sumqi * sumqi);
+					double tmp = (f[k] * pdfs[i] * numberOfSamples(i)) / (sumqi * sumqi);
 					pixelContribVectors[k * numTechs + i] = pixelContribVectors[k * numTechs + i] + tmp;
 				}
 			}
@@ -497,12 +497,10 @@ public:
 			MatrixT LTfiller(numTechs, numTechs);
 			std::vector<VectorT> vecs(omp_get_num_threads() + 16, VectorT(numTechs));
 
-			//std::vector<MatrixT> pinvs(omp_get_num_threads(), MatrixT(numTe;
-
 			double nlt2 = Float(width * height) * Float(width * height);
 
 			LTfiller.fill(0);
-			LTfiller(numTechs - 1, numTechs - 1) = 1.0 / nlt2;
+			LTfiller(numTechs - 1, numTechs - 1) = 1.0;
 
 
 			OMP_PARALLEL_FOR
@@ -570,7 +568,7 @@ public:
 
 							if (useLT)
 							{
-								//vec[numTechs - 1] *= 1 * spp;
+								vec[numTechs - 1] *= (width*height);
 							}
 
 							estimate[k] = sum(vec);

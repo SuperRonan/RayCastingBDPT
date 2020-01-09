@@ -308,7 +308,6 @@ namespace Integrator
 						{
 							continue;
 						}
-						
 					}
 					if(!zero)
 					{
@@ -364,7 +363,6 @@ namespace Integrator
 									p = { -1, -1 };
 									continue;
 								}
-
 							}
 							else
 							{
@@ -569,6 +567,7 @@ namespace Integrator
 
 
 			std::vector<OptimalSolverImage> solvers;
+			//std::vector<OptimalSolverImagePBRT> solvers;
 			//std::vector<BalanceSolverImage> solvers;
 			
 			solvers.reserve(m_max_len-1);
@@ -577,7 +576,7 @@ namespace Integrator
 				int num_tech = useLT ? len : len - 1;
 				solvers.emplace_back(num_tech, visu.width(), visu.height(), m_sample_per_pixel, useLT);
 			}
-			std::cout << omp_get_num_threads()<<" theads" << std::endl;
+			std::cout << omp_get_num_threads() << " threads" << std::endl;
 			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_len, 0.0));
 
 

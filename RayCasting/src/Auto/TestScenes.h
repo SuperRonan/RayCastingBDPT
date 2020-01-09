@@ -255,7 +255,7 @@ namespace Auto
 		scene.add(up_light);
 
 
-		if (false)
+		if (true)
 		{
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
 			scene.add(sphere);
