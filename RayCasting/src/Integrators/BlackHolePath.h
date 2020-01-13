@@ -47,13 +47,14 @@ namespace Integrator
 			{
 				return false;
 			}
-
-			uv = { u, v };
+			uv[1] = (std::sqrt(uv2) - min_ad_radius) / (max_ad_radius - min_ad_radius);
+			uv[0] = my_atan(v, u) / Math::twoPi;
 			return true;
 		}
 
 		RGBColor diskColor(Math::Vector2f& uv)const
 		{
+			//return { uv[0], uv[1], 0 };
 			int i = uv[0] * u_div;
 			int j = uv[1] * v_div;
 			if ((i % 2) ^ (j % 2))
