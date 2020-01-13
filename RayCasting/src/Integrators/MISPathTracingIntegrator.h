@@ -111,7 +111,7 @@ namespace Integrator
 				}
 				else
 				{
-					res += scene.getBackgroundColor(ray.direction());
+					res += T * scene.getBackgroundColor(ray.direction());
 					break;
 				}
 			}

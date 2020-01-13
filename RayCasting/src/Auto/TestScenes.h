@@ -8,6 +8,7 @@
 #include <Geometry/Cylinder.h>
 #include <Image/ImWrite.h>
 #include <Geometry/glass.h>
+#include <Image/ImRead.h>
 
 namespace Auto
 {
@@ -47,6 +48,55 @@ namespace Auto
 
 		Image::ImWrite::write(img, "skybox.exr");
 		scene.setBackgroundPixels(img);
+	}
+
+	void filterGalaxy(Image::Image<RGBColor>& image, int iterations)
+	{
+		const auto hasEnoughNeighboor = [&](int x, int y)
+		{
+			int sum = 0;
+			if (image.inBounds<int>({ x - 1, y }) && !image[x - 1][y].isBlack())
+				++sum;
+			if (image.inBounds<int>({ x + 1, y }) && !image[x + 1][y].isBlack())
+				++sum;
+			if (image.inBounds<int>({ x, y - 1 }) && !image[x][y - 1].isBlack())
+				++sum;
+			if (image.inBounds<int>({ x, y + 1 }) && !image[x][y + 1].isBlack())
+				++sum;
+			return sum > 1;
+		};
+		for (int iter = 0; iter < iterations; ++iter)
+		{
+			OMP_PARALLEL_FOR
+				for (int i = 0; i < image.width(); ++i)
+				{
+					for (int j = 0; j < image.height(); ++j)
+					{
+						if (!image[i][j].isBlack() && !hasEnoughNeighboor(i, j))
+						{
+							image[i][j] = 0;
+						}
+					}
+				}
+		}
+	}
+
+	void setGalaxyBackground(Geometry::Scene& scene)
+	{
+		Image::Image<RGBColor> img;
+		Image::ImRead::readEXR("../../galaxy.exr", img);
+		OMP_PARALLEL_FOR
+			for (int i = 0; i < img.width(); ++i)
+			{
+				for (int j = 0; j < img.height(); ++j)
+				{
+					
+				}
+			}
+		//filterGalaxy(img, 2);
+		//Image::ImWrite::write(img, "skybox.exr");
+		scene.setBackgroundPixels(img);
+		scene.setBackgroundColor(1);
 	}
 
 
@@ -91,7 +141,7 @@ namespace Auto
 			{
 				Geometry::Sphere sphere = Geometry::Sphere({ -1, 0, 3.5 }, 0.4, white_emisive);
 
-				scene.add(sphere);
+				//scene.add(sphere);
 			}
 
 			{
@@ -124,8 +174,9 @@ namespace Auto
 				scene.setCamera(camera);
 			}
 
-			scene.setBackgroundColor({ 0.065, 0.065, 0.088 });
-			setBackground(scene);
+			//scene.setBackgroundColor({ 0.065, 0.065, 0.088 });
+			//setBackground(scene);
+			setGalaxyBackground(scene);
 		}
 		else
 		{

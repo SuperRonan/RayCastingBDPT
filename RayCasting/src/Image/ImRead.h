@@ -29,42 +29,51 @@ namespace Image
 
 		static bool readEXR(std::string const& path, Image<Geometry::RGBColor> & res)
 		{
-			Imf::InputFile file(path.c_str());
-			Imath_2_3::Box2i dw = file.header().dataWindow();
-			int width = dw.max.x - dw.min.x;
-			int height = dw.max.y - dw.min.y;
-			res.resize(width, height);
-			float* channels[3];
-			for (int c = 0; c < 3; ++c)
+			try
 			{
-				channels[c] = new float[res.size()];
-			}
-			std::string cnames[] = { "R", "G", "B" };
-
-			Imf::FrameBuffer frame_buffer;
-
-			for (int c = 0; c < 3; ++c)
-			{
-				frame_buffer.insert(cnames[c], Imf::Slice(
-					Imf::FLOAT, (char*) (channels[c]), sizeof(float), sizeof(float) * width, 1, 1, 0.0)
-				);
-
-			}
-
-			file.setFrameBuffer(frame_buffer);
-			file.readPixels(dw.min.y, dw.max.y);
-
-			for (size_t i = 0; i < res.width(); ++i)
-			{
-				for (size_t j = 0; j < res.height(); ++j)
+				Imf::InputFile file(path.c_str());
+				Imath_2_3::Box2i dw = file.header().dataWindow();
+				int width = dw.max.x - dw.min.x;
+				int height = dw.max.y - dw.min.y;
+				res.resize(width, height);
+				float* channels[3];
+				for (int c = 0; c < 3; ++c)
 				{
-					for (int c = 0; c < 3; ++c)
+					channels[c] = new float[res.size()];
+				}
+				std::string cnames[] = { "R", "G", "B" };
+
+				Imf::FrameBuffer frame_buffer;
+
+				for (int c = 0; c < 3; ++c)
+				{
+					frame_buffer.insert(cnames[c], Imf::Slice(
+						Imf::FLOAT, (char*)(channels[c]), sizeof(float), sizeof(float) * width, 1, 1, 0.0)
+					);
+
+				}
+
+				file.setFrameBuffer(frame_buffer);
+				file.readPixels(dw.min.y, dw.max.y-1);
+
+				for (size_t i = 0; i < res.width(); ++i)
+				{
+					for (size_t j = 0; j < res.height(); ++j)
 					{
-						res[i][j][c] = channels[c][j * width + i];
+						for (int c = 0; c < 3; ++c)
+						{
+							res[i][j][c] = channels[c][j * width + i];
+						}
 					}
 				}
+				return true;
 			}
-			return true;
+			catch (std::exception const& e)
+			{
+				std::cerr << "Error: unable to open " << path << std::endl;
+				std::cerr << e.what() << std::endl;
+				return false;
+			}
 		}
 
 
@@ -75,7 +84,7 @@ namespace Image
 			std::string ext = extension(path);
 			if (ext == ".exr")
 			{
-
+				return readEXR(path, res);
 			}
 			else if (ext == ".ppm")
 			{
