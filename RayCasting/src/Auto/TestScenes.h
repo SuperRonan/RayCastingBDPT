@@ -102,7 +102,14 @@ namespace Auto
 
 
 
-
+	void initBlackHole(Geometry::Scene& scene, size_t width, size_t height)
+	{
+		{
+			Geometry::Camera camera(Math::Vector3f(2.f, 0.0f, 0.1), Math::makeVector(0.0f, 0.0f, 0.0f), 0.3f, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+		setGalaxyBackground(scene);
+	}
 
 
 

@@ -38,6 +38,7 @@ namespace Geometry
 			m_radius(radius),
 			m_radius2(radius*radius)
 		{
+			// I guess this is wrong, take a look at the solid angle sampler
 			m_surface = Math::pi * m_radius2;
 			m_tg = Math::Vector3f(1, 0, 0);
 			m_tg = (m_tg - normal) * (normal * m_tg);

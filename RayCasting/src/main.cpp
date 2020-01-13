@@ -39,6 +39,7 @@
 #include <Integrators/BidirectionalIntegrator.h>
 #include <Integrators/OptimalDirect.h>
 #include <Integrators/OptiMISBDPT.h>
+#include <Integrators/BlackHolePath.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -971,7 +972,7 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 
 enum RenderMode { rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8, 
-	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14, OptimalDirect = 15 };
+	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14, OptimalDirect = 15, BlackHole=16 };
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
 {
@@ -997,6 +998,12 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 		res[RenderMode::naivePathTracing] = new Integrator::NaivePathTracingIntegrator(sample_per_pixel, w, h);
 		res[RenderMode::naivePathTracing]->setLen(maxLen);
 		res[RenderMode::naivePathTracing]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::BlackHole] = new Integrator::BlackHolePath(sample_per_pixel, w, h);
+		res[RenderMode::BlackHole]->setLen(maxLen);
+		res[RenderMode::BlackHole]->m_alpha = alpha;
 	}
 
 	{
@@ -1476,7 +1483,8 @@ int main(int argc, char ** argv)
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 2);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initTest(scene, visu.width(), visu.height());
+	//Auto::initTest(scene, visu.width(), visu.height());
+	Auto::initBlackHole(scene, visu.width(), visu.height());
 	
 	//initDiffuse(scene, visu);
 	//initDiffuse_dif(scene, visu);
@@ -1535,7 +1543,7 @@ int main(int argc, char ** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderMode render_mode = RenderMode::BlackHole;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

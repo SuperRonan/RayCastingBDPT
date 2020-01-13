@@ -264,6 +264,7 @@
     <ClInclude Include="..\src\Image\MultiSample.h" />
     <ClInclude Include="..\src\Integrators\BidirectionalBase.h" />
     <ClInclude Include="..\src\Integrators\BidirectionalIntegrator.h" />
+    <ClInclude Include="..\src\Integrators\BlackHolePath.h" />
     <ClInclude Include="..\src\Integrators\DirectIntegrator.h" />
     <ClInclude Include="..\src\Integrators\Integrator.h" />
     <ClInclude Include="..\src\Integrators\LightIntegrator.h" />
