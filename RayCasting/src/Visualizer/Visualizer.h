@@ -303,13 +303,17 @@ namespace Visualizer
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		KeyboardRequest update()
 		{
+			show();
+			return update_keyboard();
+		}
+
+		void show()
+		{
 			if (visible())
 			{
 				SDL_UpdateWindowSurface(m_window);
 			}
-			return update_keyboard();
 		}
-
 
 		template <class out_t>
 		void print_info(out_t & out)const

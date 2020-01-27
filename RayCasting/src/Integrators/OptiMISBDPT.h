@@ -630,6 +630,16 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
+					std::cout << "Solving..." << std::endl;
+					for (int len = 2; len <= m_max_len; ++len)
+					{
+						int d = len - 2;
+						std::cout << d << " / " << m_max_len - 2 << std::endl;
+						solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
+					}
+					showFrame(visu, 1);
+					std::cout << "Solved!" << std::endl;
+					visu.show();
 					Image::ImWrite::write(m_frame_buffer);
 				}
 			}//pass per pixel
@@ -766,10 +776,10 @@ namespace Integrator
 			const size_t npixels = m_frame_buffer.size();
 			size_t total = 0;
 			OMP_PARALLEL_FOR
-				for (long y = 0; y < m_frame_buffer.height(); y++)
+				for (long y = 0; y < visu.height(); y++)
 				{
 					int tid = omp_get_thread_num();
-					double v = ((double)y + 0.5) / m_frame_buffer.height();
+					double v = ((double)y + 0.5) / visu.height();
 					for (size_t x = 0; x < visu.width(); x++)
 					{
 						double u = ((double)x + 0.5) / visu.width();
