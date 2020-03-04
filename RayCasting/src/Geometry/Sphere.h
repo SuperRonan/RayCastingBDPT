@@ -161,24 +161,89 @@ namespace Geometry
 			res.grow(n);
 		}
 
-		//the hit must not be in the sphere
+		
 		virtual void sampleLight(SurfaceLightSample& res, Hit const& hit, Math::Sampler& sampler, unsigned int i = 0)const final override
 		{
-			const Math::Vector3f d = (hit.point - m_center);
-			const double dist = d.norm();
-			double cost = m_radius / dist;
+			const Math::Vector3f cp = (m_center - hit.point);
+			const double dist2 = cp.norm2();
+			const double dist = std::sqrt(dist2);
+			if (dist2 <= m_radius_2)
+			{
+				return Sphere::sampleLight(res, sampler, i);
+			}
+			const double sint = m_radius / dist;
+			const double cost = std::sqrt(1 - sint * sint);
 			const double theta = acos(cost);
-			double pdf = 1.0 / (Math::twoPi * (1 - cost) * m_radius_2);
-			Math::SolidAngleSampler sasampler(d / dist, theta);
 
-			Sphere::_sampleLight(res, sasampler, sampler, pdf, i);
+			const double pdf_solid_angle = 1.0 / (Math::twoPi * (1 - cost));
+			const Math::SolidAngleSampler sasampler(cp / dist, theta);
+
+			const unsigned int offset = (m_offset + i) % m_divisions;
+			const unsigned int m_sub_inclination = offset % m_azimuth_div;
+			const unsigned int m_sub_azimuth = offset / m_azimuth_div;
+			const double xi1 = (sampler.generateContinuous<double>(m_sub_inclination, m_sub_inclination + 1)) / double(m_inclination_div);
+			const double xi2 = (sampler.generateContinuous<double>(m_sub_azimuth, m_sub_azimuth + 1)) / double(m_azimuth_div);
+			const Math::Vector3f sampled_dir = sasampler.generate(xi1, xi2);
+			const double sampled_cos_theta = sampled_dir * cp.normalized();
+			const double sampled_theta = std::acos(sampled_cos_theta);
+			assert(sampled_theta <= theta);
+			//Now get the point on the sphere
+			double t;
+			{
+				const double a = 1.0;
+				const double b = -2.0 * (cp * sampled_dir);
+				const double c = (dist2 - m_radius_2);
+				const double delta = b * b - 4.0 * a * c;
+				assert(delta >= std::numeric_limits<double>::epsilon());
+				if (std::abs(delta) < std::numeric_limits<double>::epsilon())
+				{
+					t = -b / (2.0 * a);
+				}
+				else
+				{
+					const double left = -b / (2.0 * a);
+					const double right = std::sqrt(delta) / (2.0 * a);
+					t = left - right;
+				}
+				assert(t >= 0);
+			}
+			const Math::Vector3f sampled_point = hit.point + sampled_dir * t;
+			const Math::Vector3f sampled_normal = (sampled_point - m_center) / m_radius;
+			const double area_pdf = pdf_solid_angle * std::abs(sampled_dir * sampled_normal) / (t*t);
+
+			res = { area_pdf, this, uv(sampled_normal, true), sampled_normal, sampled_point};
 		}
 
 		virtual double pdfSamplingPoint(Hit const& hit, Math::Vector3f const& point)const override
 		{
-			double d = (hit.point - point).norm();
-			double cost = m_radius / d;
-			return 1.0 / (Math::twoPi * (1 - cost) * m_radius_2);
+			const Math::Vector3f cp = (m_center - hit.point);
+			const double dist_to_center2 = cp.norm2();
+			const double dist_to_center = std::sqrt(dist_to_center2);
+			if (dist_to_center2 <= m_radius_2)
+			{
+				return 1.0 / surface();
+			}
+			const Math::Vector3f normal = (point - m_center) / m_radius;
+			Math::Vector3f to_shaded_point = hit.point - point;
+			const double dist2 = to_shaded_point.norm2();
+			const double dist = std::sqrt(dist2);
+			to_shaded_point /= dist;
+			
+			const double cos_theta_on_light = normal * to_shaded_point;
+			if (cos_theta_on_light < 0) // Not visible
+			{
+				return 0;
+			}
+
+			// Compute the solid angle
+			const double sint = m_radius / dist_to_center;
+			const double cost = std::sqrt(1 - sint * sint);
+			const double theta = acos(cost);
+			const double phi = Math::piDiv2 - theta;
+			const double cosphi = std::cos(phi);
+			const double pdf_solid_angle = 1.0 / (Math::twoPi * (1 - cost));
+
+			return pdf_solid_angle * cos_theta_on_light / dist2;
 		}
 		
 	};

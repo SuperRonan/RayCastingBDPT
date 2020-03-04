@@ -36,7 +36,8 @@ namespace Integrator
 
 			//sample the surface
 			SurfaceLightSample light_sample;
-			sampleOneLight(scene, sampler, light_sample);
+			//sampleOneLight(scene, sampler, light_sample);
+			sampleOneLight(scene, hit, sampler, light_sample);
 			Math::Vector3f to_light = (light_sample.vector - hit.point);
 			const double dist2 = to_light.norm2();
 			const double dist = sqrt(dist2);
@@ -64,11 +65,12 @@ namespace Integrator
 			RGBColor T = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction());
 			RGBColor res = 0;
 			int len = 1;
-			Hit hit;
+			Hit hit, prev_hit;
 			bool prev_delta = true;
 			double dir_pdf;
 			while (len < m_max_len)
 			{
+				prev_hit = hit;
 				if (scene.full_intersection(ray, hit))
 				{
 					++len;
@@ -80,7 +82,7 @@ namespace Integrator
 					{
 						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
 
-						double surface_pdf = scene.pdfSamplingLight(hit.geometry) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						double surface_pdf = scene.pdfSamplingLight(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
 
 						res += T * contribution / (dir_pdf + surface_pdf) * dir_pdf;
 						//res += T * contribution;

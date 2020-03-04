@@ -385,7 +385,7 @@ namespace Auto
 
 		if (mode == 0)
 		{
-			Geometry::Sphere light_sphere(Math::Vector3f(0, scale * 0.3, scale * 0.3), light_size / 5, light);
+			Geometry::Sphere light_sphere(Math::Vector3f(0, scale * 0., scale * 0.), light_size / 2, light);
 			scene.add(light_sphere);
 		}
 		else if (mode == 1)
@@ -430,7 +430,7 @@ namespace Auto
 		{
 			Geometry::Material* spec = new Geometry::Specular(0.8, 10);
 			Geometry::Sphere ball({ 0, 0, -0.3 * scale }, light_size, spec);
-			scene.add(ball);
+			//scene.add(ball);
 		}
 
 		// Sets the camera

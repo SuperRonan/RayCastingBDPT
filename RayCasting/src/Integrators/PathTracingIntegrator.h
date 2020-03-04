@@ -139,7 +139,7 @@ namespace Integrator
 					use_emissive = !hit.geometry->getMaterial()->use_direct();
 					if (!use_emissive && len < m_max_len)
 					{
-						res += prod_color * addDirectIllumination(scene, hit, sampler) / prod_pdf;
+						res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
 					}
 
 

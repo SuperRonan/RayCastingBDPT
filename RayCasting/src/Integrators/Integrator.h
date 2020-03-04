@@ -78,7 +78,7 @@ namespace Integrator
 		}
 
 		//clever version
-		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler& sampler, SurfaceLightSample& res)const
+		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler& sampler, SurfaceLightSample& res, int index=0)const
 		{
 			//select one light
 			const GeometryBase* light;
@@ -98,8 +98,8 @@ namespace Integrator
 			*/
 
 			//select a point on this light
-			//light->sampleLight(res, hit, sampler);
-			light->sampleLight(res, sampler);
+			light->sampleLight(res, hit, sampler, index);
+			//light->sampleLight(res, sampler);
 			res.pdf *= pdf;
 
 			return true;

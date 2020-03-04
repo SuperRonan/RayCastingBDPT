@@ -34,7 +34,7 @@ namespace Integrator
 
 					if (material.use_direct())
 					{
-						res += T * RayTracingBaseIntegrator::addDirectIllumination(scene, hit, sampler);
+						res += T * RayTracingBaseIntegrator::addOneDirectIllumination(scene, hit, sampler);
 						break;
 					}
 					else
