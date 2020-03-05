@@ -150,7 +150,7 @@ namespace Geometry
 			const double dist = d.norm();
 			double cost = m_radius / dist;
 			const double theta = acos(cost);
-			Math::SolidAngleSampler sasampler(d / dist, theta);
+			Math::SolidAngleSampler sasampler(d / dist, theta, cost);
 			double pdf = 1.0 / (Math::twoPi * (1 - cost) * m_radius_2);
 			for (unsigned int i = 0; i < n; ++i)
 			{
@@ -176,7 +176,7 @@ namespace Geometry
 			const double theta = acos(cost);
 
 			const double pdf_solid_angle = 1.0 / (Math::twoPi * (1 - cost));
-			const Math::SolidAngleSampler sasampler(cp / dist, theta);
+			const Math::SolidAngleSampler sasampler(cp / dist, theta, cost);
 
 			const unsigned int offset = (m_offset + i) % m_divisions;
 			const unsigned int m_sub_inclination = offset % m_azimuth_div;

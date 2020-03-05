@@ -39,36 +39,6 @@ namespace Integrator
 			return scene.noIntersection(Ray(scene.m_camera.m_position, dir));
 		}
 
-
-		bool sampleLight(Scene const& scene, SurfaceLightSample& res, Math::Sampler& sampler)const
-		{
-			GeometryBase const* geo;
-			double pdf_geo;
-			if (scene.sampleOneLight(sampler, pdf_geo, geo))
-			{
-				/*
-				//DEBUG only
-				//For showing the sampling of sphere lights
-				Hit hit;
-				if (scene.m_camera.m_position[0] > 0)
-					hit.point = scene.m_camera.m_position;
-				else
-					hit.point = 0;
-				geo->sampleLight(res, hit, sampler, 0);
-				return true;
-				//*/
-
-
-				geo->sampleLight(res, sampler);
-				res.pdf *= pdf_geo;
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
-
 		static void samplePointDisk(Math::Vector3f const& center, double radius, double radius2, Math::Vector3f const& normal, Math::Sampler& sampler, Math::Vector3f& res, double& pdf)
 		{
 			Math::Vector3f tg = Math::Vector3f(1, 0, 0);

@@ -58,9 +58,25 @@ namespace Integrator
 
 		void traceLight(Scene const& scene, LightVertexStack& lvs, Math::Sampler& sampler)const final override
 		{
+			// The fist sample can be drawn with the information of the camera
+			{
+				SurfaceLightSample light_point;
+				Hit camera_hit;
+				camera_hit.point = scene.m_camera.m_position;
+				sampleOneLight(scene, camera_hit, sampler, light_point);
+				//sampleOneLight(scene, sampler, light_point);
+				Hit hit;
+				hit.point = light_point.vector;
+				hit.normal = hit.primitive_normal = light_point.normal;
+				hit.tex_uv = light_point.uv;
+				hit.geometry = light_point.geo;
+
+				connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
+			}
+
 			//first, sample a point a light
 			SurfaceLightSample light_point;
-			sampleLight(scene, light_point, sampler);
+			sampleOneLight(scene, sampler, light_point);
 
 
 			RGBColor beta = light_point.geo->getMaterial()->Le(true, light_point.uv) / light_point.pdf;
@@ -71,7 +87,7 @@ namespace Integrator
 			hit.tex_uv = light_point.uv;
 			hit.geometry = light_point.geo;
 
-			connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
+			//connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
 
 			Math::RandomDirection Le_sampler(&sampler, light_point.normal, 1);
 			Math::Vector3f next_dir = Le_sampler.generate();
