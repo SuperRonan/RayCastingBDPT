@@ -26,7 +26,7 @@ public:
 	
 	~ScopedAssignment() 
 	{
-		if (target)* target = backup;
+		release();
 	}
 
 	ScopedAssignment(const ScopedAssignment&) = delete;
@@ -40,6 +40,11 @@ public:
 		backup = other.backup;
 		other.target = nullptr;
 		return *this;
+	}
+
+	void release()
+	{
+		if (target)	*target = backup;
 	}
 
 };

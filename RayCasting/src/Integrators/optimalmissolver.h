@@ -674,6 +674,8 @@ public:
 		int x = p[0] * width, y = p[1]* height;
 		m_result[PixelTo1D(x, y)] += f / sumqi;
 		//m_result[PixelTo1D(x, y)] += f / (qi * numTechs);
+		//if (techIndex == 1)
+		//	m_result[PixelTo1D(x, y)] += f / qi;
 	}
 
 	void AddZeroEstimate(

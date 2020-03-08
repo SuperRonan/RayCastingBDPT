@@ -278,6 +278,7 @@ namespace Integrator
 			traceLightSubPath(scene, sampler, LightSubPath);
 			double Pt = useLT ? 1 : cameraSubPath[0].pdfForward<TransportMode::Importance>();
 			int t_min = (useLT ? 1 : 2);
+			double s1_pdf;
 			for (int t = t_min; t <= max_camera_len; ++t)
 			{
 				Vertex* camera_top;
@@ -327,7 +328,8 @@ namespace Integrator
 							{
 								L = camera_top->beta * camera_top->hit.geometry->getMaterial()->Le(camera_top->hit.facing, camera_top->hit.tex_uv);
 								double pdf = scene.pdfSamplingLight(camera_top->hit.geometry);
-								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution, pdf);
+								s1_pdf = scene.pdfSamplingLight(camera_top->hit.geometry, cameraSubPath[t - 2].hit, camera_top->hit.point);
+								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, s1_pdf, pdf);
 							}
 							else
 							{
@@ -336,6 +338,30 @@ namespace Integrator
 						}
 						else
 						{
+							ScopedAssignment<Vertex> resampled_vertex_sa;
+							if (s == 1) {
+								double prev_pdf = LightSubPath[0].pdfForward<TransportMode::Radiance>();
+								SurfaceLightSample sls;
+								sampleOneLight(scene, camera_top->hit, sampler, sls);
+								Vertex light_resampled;
+								light_resampled.delta = false;
+								light_resampled.type = Vertex::Type::Light;
+								light_resampled.hit.geometry = sls.geo;
+								light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
+								light_resampled.hit.tex_uv = sls.uv;
+								light_resampled.hit.point = sls.vector;
+
+								s1_pdf = sls.pdf;
+								light_resampled.setPdfForward<TransportMode::Radiance>(prev_pdf);
+								light_resampled.beta = 1.0;
+								resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
+							}
+							else if(s == 2)
+							{
+								// BTW this assumes that the connecting loops are in the order t then s
+								s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point); 
+							}
+
 							Vertex * light_top = LightSubPath.begin() + s - 1;
 							Ps *= light_top->pdfForward<Radiance>();
 							if (camera_top->delta || light_top->delta)
@@ -389,7 +415,7 @@ namespace Integrator
 							else
 							{
 								L = camera_top->beta * camera_connection * G * light_connection * light_top->beta;
-								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, scene.m_camera.resolution);
+								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, s1_pdf);
 							}
 
 
@@ -430,7 +456,7 @@ namespace Integrator
 			const Camera& camera,
 			const int main_s, const int main_t,
 			const double Pt, const double Ps,
-			double resolution, double pdf_sampling_point = -1)const
+			double s1_pdf, double pdf_sampling_point = -1)const
 		{
 			//return 1.0 / double(main_t + main_s);
 			Vertex* xt = cameras.begin() + (main_t - 1);
@@ -444,6 +470,8 @@ namespace Integrator
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
 			xt_pdf_rev_sa = { &xt->pdfReverse<TransportMode::Importance>(),[&]() {
+				if (main_t == 1)
+					return 0.0;
 				if (ys)
 					return ys->pdf<true>(camera, *xt, ysm, false);
 				else
@@ -465,25 +493,29 @@ namespace Integrator
 				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<true>(camera, *ysm, xt, false) };
 			}
 
-			
-			pdfs[main_s] = Ps * Pt;
+			const double main_p = Ps * Pt;
+			const double actual_main_p = (main_s == 1 ? Pt * s1_pdf : main_p);
+			pdfs[main_s] = actual_main_p;
 
-			double sum_qi = Ps * Pt * (main_t == 1 ? resolution : 1);
+			double sum_qi = actual_main_p * (main_t == 1 ? camera.resolution : 1);
 
 
 			//expand the camera sub path
 			{
-				double Ph = Ps * Pt;
+				double Ph = main_p;
 				for (int s = main_s; s >= 1; --s)
 				{
 					const Vertex& camera_end = lights[s - 1];
 					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
 					Ph *= camera_end.pdfReverse<TransportMode::Radiance>() / camera_end.pdfForward<TransportMode::Radiance>();
 
+					const double actual_Ph = s == 2 ? 
+						Ph * s1_pdf / light_end->pdfForward<TransportMode::Radiance>() : Ph;
+
 					if (!(camera_end.delta || (light_end && light_end->delta)))
 					{
-						sum_qi += Ph;
-						pdfs[s - 1] = Ph;
+						sum_qi += actual_Ph;
+						pdfs[s - 1] = actual_Ph;
 					}
 					else
 					{
@@ -494,7 +526,7 @@ namespace Integrator
 
 			//expand the light subpath
 			{
-				double Ph = Ps * Pt;
+				double Ph = main_p;
 				int s = main_s+1;
 				int t_min = (useLT ? 2 : 3);
 				for (int t = main_t; t >= t_min; --t)
@@ -503,10 +535,14 @@ namespace Integrator
 					const Vertex& camera_end = cameras[t - 2];
 					Ph *= light_end.pdfReverse<TransportMode::Importance>() / light_end.pdfForward<TransportMode::Importance>();
 
+					double actual_Ph = Ph;
+					if (main_s == 0 && t == main_t)
+						actual_Ph = Pt * s1_pdf / light_end.pdfForward<TransportMode::Importance>();
+
 					if (!(light_end.delta || camera_end.delta))
 					{
-						sum_qi += (Ph * (t == 2 ? resolution : 1));
-						pdfs[s] = Ph;
+						sum_qi += (actual_Ph * (t == 2 ? camera.resolution : 1));
+						pdfs[s] = actual_Ph;
 					}
 					else
 					{

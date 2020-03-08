@@ -1481,8 +1481,8 @@ int main(int argc, char ** argv)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
-	Auto::initVeach(scene, visu.width(), visu.height());
+	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//Auto::initBlackHole(scene, visu.width(), visu.height());
@@ -1527,7 +1527,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 6;
+	unsigned int maxLen = 3;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
