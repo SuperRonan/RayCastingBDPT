@@ -327,6 +327,9 @@
     <ClInclude Include="..\src\Integrators\BlackHolePath.h">
       <Filter>src\Integrators</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\PhotonMapper.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

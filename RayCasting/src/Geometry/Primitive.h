@@ -16,5 +16,7 @@ namespace Geometry
 		virtual Math::Vector3f center()const = 0;
 
 		virtual BoundingBox box()const = 0;
+
+		virtual const GeometryBase* geometry()const = 0;
 	};
 }

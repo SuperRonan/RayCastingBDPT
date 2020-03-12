@@ -868,6 +868,65 @@ namespace Math
 			return (*this) * (dir * (*this)) * 2 - dir;
 		}
 
+		Float max()const
+		{
+			Float res = m_vector[0];
+			for (int i = 1; i < dimensions; ++i)
+			{
+				res = std::max(res, m_vector[i]);
+			}
+			return res;
+		}
+
+		Float min()const
+		{
+			Float res = m_vector[0];
+			for (int i = 1; i < dimensions; ++i)
+			{
+				res = std::min(res, m_vector[i]);
+			}
+			return res;
+		}
+
+		Float prod()const
+		{
+			Float res = m_vector[0];
+			for (int i = 1; i < dimensions; ++i)
+			{
+				res *= m_vector[i];
+			}
+			return res;
+		}
+
+		Float sum()const
+		{
+			Float res = m_vector[0];
+			for (int i = 1; i < dimensions; ++i)
+			{
+				res += m_vector[i];
+			}
+			return res;
+		}
+
+		Vector ceil()const
+		{
+			Vector res;
+			for (int i = 0; i < dimensions; ++i)
+			{
+				res[i] = std::ceil(m_vector[i]);
+			}
+			return res;
+		}
+
+		Vector floor()const
+		{
+			Vector res;
+			for (int i = 0; i < dimensions; ++i)
+			{
+				res[i] = std::floor(m_vector[i]);
+			}
+			return res;
+		}
 
 	} ;
 

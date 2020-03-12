@@ -80,6 +80,11 @@ namespace Geometry
 			return m_center;
 		}
 
+		const GeometryBase* geometry()const final override
+		{
+			return this;
+		}
+
 		const Math::Vector3f& normal()const
 		{
 			return m_normal;

@@ -251,7 +251,7 @@ namespace Geometry
 		
 
 
-		const GeometryBase * geometry()const
+		const GeometryBase * geometry()const final override
 		{
 			return m_geometry;
 		}

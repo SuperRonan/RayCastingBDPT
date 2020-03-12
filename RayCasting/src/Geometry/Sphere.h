@@ -45,6 +45,11 @@ namespace Geometry
 			return BoundingBox(center() - unit * radius(), center() + unit * radius());
 		}
 
+		const GeometryBase* geometry()const final override
+		{
+			return this;
+		}
+
 		void setRadius(double rad)noexcept
 		{
 			m_radius = rad;

@@ -274,6 +274,7 @@
     <ClInclude Include="..\src\Integrators\optimalmissolver.h" />
     <ClInclude Include="..\src\Integrators\OptiMISBDPT.h" />
     <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h" />
+    <ClInclude Include="..\src\Integrators\PhotonMapper.h" />
     <ClInclude Include="..\src\Integrators\RayTracingBaseIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RegularIntegrators.h" />
