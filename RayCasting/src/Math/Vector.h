@@ -843,8 +843,8 @@ namespace Math
 			return result;
 		}
 
-		template<class T, class Q>
-		Math::Vector<T, dimensions> simdDiv(Math::Vector<Q, dimensions> const & v) const
+		template<class T>
+		Math::Vector<Float, dimensions> simdDiv(Math::Vector<T, dimensions> const & v) const
 		{
 			Math::Vector<Float, dimensions> result;
 			for (int cpt = 0; cpt < dimensions; ++cpt)

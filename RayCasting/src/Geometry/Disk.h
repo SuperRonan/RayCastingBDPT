@@ -85,6 +85,31 @@ namespace Geometry
 			return this;
 		}
 
+		Math::Vector2f uv(Math::Vector3f const& point)const final override
+		{
+			throw - 12;
+		}
+		
+		Math::Vector2f tuv(Math::Vector2f const& uv)const final override
+		{
+			return uv;
+		}
+
+		Math::Vector3f point(Math::Vector3f const& uv)const final override
+		{
+			throw - 12;
+		}
+
+		Math::Vector3f normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return normal();
+		}
+		
+		Math::Vector3f shading_normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return normal();
+		}
+
 		const Math::Vector3f& normal()const
 		{
 			return m_normal;

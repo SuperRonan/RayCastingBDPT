@@ -316,23 +316,31 @@ namespace Geometry
 			return m_textureCoordinates[0] != nullptr;
 		}
 
-		/// <summary>
-		/// Samples the texture given the u,v coordinates of an intersection.
-		/// </summary>
-		/// <param name="u">The u.</param>
-		/// <param name="v">The v.</param>
-		/// <returns>The color of the texture at the given u,v coordinates or (1.0,1.0,1.0) if no texture is associated with the material.</returns>
-		/*
-		RGBColor sampleTexture(double u, double v) const
+		Math::Vector2f uv(Math::Vector3f const& point)const final override
 		{
-			if(m_material->hasTexture() && m_textureCoordinates[0]!=NULL)
-			{
-				RGBColor texel = m_material->getTexture().pixel(interpolateTextureCoordinate(u, v));
-				return texel;
-			}
-			return RGBColor(1.0f, 1.0f, 1.0f);
+			Math::Vector3f relative = point - m_vertex0;
+			return {relative * (m_uAxis.normalized()), relative * (m_vAxis.normalized())};
 		}
-		*/
+
+		Math::Vector2f tuv(Math::Vector2f const& uv)const final override
+		{
+			return interpolateTextureCoordinate(uv[0], uv[1]);
+		}
+
+		Math::Vector3f point(Math::Vector3f const& uv)const final override
+		{
+			return samplePoint(uv[0], uv[1]);
+		}
+
+		Math::Vector3f normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return normal();
+		}
+
+		Math::Vector3f shading_normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return sampleNormal(uv[0], uv[1]);
+		}
 
 		/// <summary>
 		/// Samples the triangle given the u,v coordinates of an intersection
@@ -701,23 +709,6 @@ namespace Geometry
 			const Math::Vector3f & tmp = barycentric;
 			return ((*m_vertex[0]) * tmp[0] + (*m_vertex[1]) * tmp[1] + (*m_vertex[2]) * tmp[2]);
 		}
-
-		/// <summary>
-		/// Samples the texture from the provided barycentric coordinates
-		/// </summary>
-		/// <param name="barycentic"> The barycentric coordinates of the point</param>
-		/// <returns> The color of the texture at the given barycentric coordinates</returns>
-		/*
-		RGBColor sampleTexture(const Math::Vector3f & barycentic) const
-		{
-			if (m_material->hasTexture())
-			{
-				Math::Vector2f textureCoord = textureCoordinate(0)*barycentic[0] + textureCoordinate(1)*barycentic[1] + textureCoordinate(2)*barycentic[2];
-				return m_material->getTexture().pixel(textureCoord);
-			}
-			return RGBColor(1.0, 1.0, 1.0);
-		}
-		*/
 
 		/// <summary>
 		///  Computes a random point on the triangle

@@ -5,9 +5,9 @@
 
 namespace Math
 {
-	typedef Vector<double,2> Vector2f ;
-	typedef Vector<double,3> Vector3f ;
-	typedef Vector<double,4> Vector4f ;
+	using Vector2f = Vector<double,2>;
+	using Vector3f = Vector<double,3>;
+	using Vector4f = Vector<double,4>;
 }
 
 #endif

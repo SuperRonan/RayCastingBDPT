@@ -90,6 +90,34 @@ namespace Geometry
 			return uv;
 		}
 
+
+		Math::Vector2f uv(Math::Vector3f const& point)const final override
+		{
+			return uv((point - m_center).normalized());
+		}
+
+		Math::Vector2f tuv(Math::Vector2f const& uv)const final override
+		{
+			return uv;
+		}
+
+		Math::Vector3f point(Math::Vector3f const& uv)const final override
+		{
+			return Math::Vector3f::make_sphere(uv[0] * Math::pi, uv[1] * Math::twoPi);
+		}
+
+		Math::Vector3f normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return (point - m_center).normalized();
+		}
+
+		Math::Vector3f shading_normal(Math::Vector3f const& point, Math::Vector2f const& uv)const final override
+		{
+			return normal(point, uv);
+		}
+
+
+
 		virtual bool build_lights()override
 		{
 			m_surface = 4 * Math::pi * m_radius_2;
