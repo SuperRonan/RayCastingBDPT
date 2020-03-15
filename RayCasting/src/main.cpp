@@ -40,6 +40,7 @@
 #include <Integrators/OptimalDirect.h>
 #include <Integrators/OptiMISBDPT.h>
 #include <Integrators/BlackHolePath.h>
+#include <Integrators/PhotonMapper.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -971,8 +972,10 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 
 
-enum RenderMode { rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8, 
-	bdpt = 9, MISPathTracing=10, naivePathTracing=11, AmbientOcclusion=12, naiveBDPT=13, OptiMISBDPT=14, OptimalDirect = 15, BlackHole=16 };
+enum RenderMode {
+	rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8,
+	bdpt = 9, MISPathTracing = 10, naivePathTracing = 11, AmbientOcclusion = 12, naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, BlackHole = 16, PhotonMapper = 17
+};
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
 {
@@ -1034,6 +1037,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 		res[RenderMode::OptiMISBDPT] = new Integrator::OptiMISBDPT(sample_per_pixel, w, h);
 		res[RenderMode::OptiMISBDPT]->setLen(maxLen);
 		res[RenderMode::OptiMISBDPT]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::PhotonMapper] = new Integrator::PhotonMapper(sample_per_pixel, w, h, 0.005);
+		res[RenderMode::PhotonMapper]->setLen(maxLen);
 	}
 
 	//{
@@ -1267,6 +1275,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Optimis BDPT" << std::endl;
 				render_mode = RenderMode::OptiMISBDPT;
 				break;
+			case SDLK_c:
+				if (render_mode != RenderMode::PhotonMapper)
+					std::cout << "switching to Photon Mapping" << std::endl;
+				render_mode = RenderMode::PhotonMapper;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1479,9 +1492,10 @@ int main(int argc, char ** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
-	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+	Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
@@ -1511,13 +1525,6 @@ int main(int argc, char ** argv)
 	scene.preCompute(8, 1, 1);
 	std::cout << "Done! ";
 	toc();
-
-	/*
-	std::cout << "Pre computing the shadows" << std::endl;
-	scene.pre_compute_shadows(0.1, 0.1, 10, 10);
-	std::cout << "Done!" << std::endl;
-	std::cout << scene.num_shadow << std::endl;
-	//*/
 	
 	// Shows stats
 	scene.printStats();
@@ -1527,7 +1534,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 6;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
@@ -1544,12 +1551,14 @@ int main(int argc, char ** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderMode render_mode = RenderMode::PhotonMapper;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
 	Integrator::Integrator* integrator = integrators[render_mode];
 
+
+	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->buildMap(scene, 1000000);
 
 	std::cout << help_message << std::endl;
 

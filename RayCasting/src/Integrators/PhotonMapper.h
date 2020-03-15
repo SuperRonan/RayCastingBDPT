@@ -4,6 +4,7 @@
 #include <Integrators/DirectIntegrator.h>
 #include <Math/Vectorf.h>
 #include <mutex>
+#include <tbb/mutex.h>
 
 namespace Integrator
 {
@@ -27,7 +28,7 @@ namespace Integrator
 			const Primitive* m_primitive;
 			Math::Vector<Float, 3> m_point;
 			uint8_t m_depth;
-			Math::Vector<Float, 2> m_dir;
+			Math::Vector<Float, 3> m_dir;
 			Float m_beta[3];
 
 			Photon(Hit const& hit, uint8_t depth, RGBColor const& beta):
@@ -90,19 +91,33 @@ namespace Integrator
 		{
 			return ijk[2] + m_size[2] * (ijk[1] + ijk[0] * m_size[1]);
 		}
+
+		Vector3i cell_index(Vector3f const& xyz)const
+		{
+			return m_size.simdMin(Vector3i(0, 0, 0).simdMax((Vector3i((xyz - m_bb[0]).simdDiv(m_pixel_size)))));
+		}
 		
 		int index(Vector3f const& xyz)const
 		{
-			return index_int(Vector3i(xyz.simdDiv(m_pixel_size)));
+			return index_int(Vector3i((xyz - m_bb[0]).simdDiv(m_pixel_size)));
 		}
+
+		std::mutex mtx;
 
 		void addPhotonToMap(Photonf const& photon)
 		{
 			int id = index(photon.m_point);
-			// TODO lock mutex
+			mtx.lock();
 			PhotonCollection& list = m_map[id];
 			list.push_back(photon);
-			// TODO unlock mutex
+			mtx.unlock();
+		}
+
+		bool insideMap(Vector3i const& cell_index)const
+		{
+			return cell_index[0] >= 0 && cell_index[0] < m_size[0] &&
+				   cell_index[1] >= 0 && cell_index[1] < m_size[1] &&
+				   cell_index[2] >= 0 && cell_index[2] < m_size[2];
 		}
 
 		int m_number_of_photons;
@@ -114,9 +129,11 @@ namespace Integrator
 			m_relative_radius(relative_radius)
 		{}
 
-		int buildMap(Scene const& scene, int pcount)
+		void buildMap(Scene const& scene, int pcount)
 		{
 			m_bb = scene.m_sceneBoundingBox;
+			m_bb[0] -= Vector3f(0.001, 0.001, 0.001);
+			m_bb[1] += Vector3f(0.001, 0.001, 0.001);
 			Vector3f dim = m_bb.diag();
 			double max_dir = dim.simdAbs().max();
 			
@@ -126,6 +143,8 @@ namespace Integrator
 			Vector3f sizef = dim.simdDiv(m_pixel_size);
 			m_size = sizef.ceil();
 			int n_cells = m_size.prod();
+			assert(n_cells > 0);
+			std::cout << "Photon map size: " << m_size << std::endl;
 			m_map.resize(n_cells);
 
 			m_number_of_photons = pcount;
@@ -140,13 +159,13 @@ namespace Integrator
 					Hit hit;
 					RGBColor beta = dirSample.bsdf / (sls.pdf * dirSample.pdf) * std::abs(dirSample.direction * sls.normal);
 					Ray ray(sls.vector, dirSample.direction);
-					for (int len = 2; len <= m_max_len; ++len)
+					for (int len = 2; len <= m_max_len-1; ++len)
 					{
 						if (scene.full_intersection(ray, hit))
 						{
 							if (!hit.geometry->getMaterial()->delta())
 							{
-								Photonf photon = { hit, len - 2, beta };
+								Photonf photon = { hit, (uint8_t)(len - 2), beta / ((double)m_number_of_photons) };
 								addPhotonToMap(photon);
 							}
 
@@ -162,8 +181,7 @@ namespace Integrator
 		virtual RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
-			RGBColor prod_color = scene.m_camera.We<true>(ray.direction());
-			double prod_pdf = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
+			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
 			RGBColor res = 0;
 			for (int len = 2; len <= m_max_len; ++len)
 			{
@@ -172,23 +190,65 @@ namespace Integrator
 				{
 					const Material& material = *hit.geometry->getMaterial();
 
-					res += prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf;
+					
+					res += beta * material.Le(hit.facing, hit.tex_uv);
 
 
-					//DirectionSample next_dir;
-					//material.sampleBSDF(hit, m_diffuse_samples, m_specular_samples, next_dir, sampler);
-					//prod_color *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
-					//prod_pdf *= next_dir.pdf * alpha;
-					//ray = Ray(hit.point, next_dir.direction);
-
-					if (prod_color.isBlack() || prod_pdf == 0)
+					if (material.delta())
 					{
+						DirectionSample next_dir;
+						material.sampleBSDF(hit, 1, 1, next_dir, sampler, false);
+						ray = { hit.point, next_dir.direction };
+						beta *= next_dir.bsdf / next_dir.pdf * std::abs(next_dir.direction * hit.primitive_normal);
+					}
+					else
+					{
+						// Add the photons near the hit
+						const Vector3i ijk = cell_index(hit.point);
+						RGBColor photons_contrib = 0;
+						for (int i = -1; i <= 1; ++i)
+						{
+							for (int j = -1; j <= 1; ++j)
+							{
+								for (int k = -1; k <= 1; ++k)
+								{
+									const Vector3i cell = ijk + Vector3i(i, j, k);
+									if (insideMap(cell))
+									{
+										const PhotonCollection& photons = m_map[index_int(cell)];
+										for (Photonf const& photon : photons)
+										{
+											int path_len = photon.m_depth + 2 + len - 1;
+											if (path_len <= m_max_len)
+											{
+												const Vector3f d = hit.point - photon.m_point;
+												const double dist2 = d.norm2();
+												if (dist2 < m_radius2)
+												{
+													const Geometry::Material* mat = photon.m_primitive->geometry()->getMaterial();
+													if (mat == hit.geometry->getMaterial())
+													{
+														double kernel = 1 / (Math::pi * m_radius2);
+														double attenuation = 1;// -std::sqrt(dist2 / m_radius2);
+														photons_contrib += beta * photon.beta() * mat->BSDF(hit, photon.m_dir, -ray.direction()) * attenuation * kernel;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						res += photons_contrib;
 						break;
 					}
+
+
+					
 				}
 				else
 				{
-					res += prod_color * scene.getBackgroundColor(ray.direction()) / prod_pdf;
+					res += beta * scene.getBackgroundColor(ray.direction());
 					break;
 				}
 			}

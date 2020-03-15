@@ -301,10 +301,14 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, 1.3);
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, mode ? 1.3 : 1.3);
+		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1}, 1);
 
-		
-		Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
+
+		if(mode)
+			Geometry::Cornel::init_cornell(scene, white, white, white, glass2, red, green, scale);
+		else
+			Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
 		
 		
 		Geometry::Square* up_light = new Geometry::Square(light);
@@ -315,7 +319,12 @@ namespace Auto
 
 		if (true)
 		{
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.75 * scale / 5.0, glass);
+			double rad = mode ? 0.75 : 0.75;
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, glass);
+			if (mode)
+			{
+				//sphere.setCenter(Math::Vector3f(0, 0, -scale / 2));
+			}
 			scene.add(sphere);
 		}
 
@@ -344,7 +353,7 @@ namespace Auto
 
 		// Sets the camera
 		{
-			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			Geometry::Camera camera = mode ? Geometry::Camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f) : Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
 			//Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
 		}
