@@ -20,7 +20,7 @@ namespace Geometry
 
 	public:
 
-		Sphere(Math::Vector3f pos=0.0, double radius=0, Material * mat= new Lambertian(0.5)) :
+		Sphere(Math::Vector3f pos=0.0, double radius=0, Material * mat= new Lambertian<Geometry::REFLECT>(0.5)) :
 			GeometryBase(mat),
 			m_center(pos),
 			m_radius(radius),

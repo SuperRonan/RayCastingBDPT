@@ -6,14 +6,14 @@
 
 namespace Geometry
 {
-
+	enum LAMBERT_MODE {REFLECT, TRANSMIT};
+	
+	template <LAMBERT_MODE MODE>
 	class Lambertian :public Material
 	{
 	protected:
 
 		RGBColor m_diffuse;
-
-
 
 	public:
 
@@ -45,6 +45,8 @@ namespace Geometry
 		{
 			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
 			Math::Vector3f normal = hit.orientedPrimitiveNormal();
+			if constexpr (MODE == TRANSMIT)
+				normal = -normal;
 			//There is not really a point of sampling a 
 			Math::RandomDirection direction_sampler(&sampler, normal);
 			out.direction = direction_sampler.generate();
@@ -61,13 +63,22 @@ namespace Geometry
 				out.direction = -out.direction;
 				out.pdf = -out.pdf;
 			}
+			
 			out.bsdf = dif;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			if (((wi * hit.primitive_normal) * (wo * hit.primitive_normal)) > 0)
-				return m_diffuse * getTexturePixel(hit.tex_uv);
+			if constexpr (MODE == REFLECT)
+			{
+				if (((wi * hit.primitive_normal) * (wo * hit.primitive_normal)) > 0)
+					return m_diffuse * getTexturePixel(hit.tex_uv);
+			}
+			else
+			{
+				if (((wi * hit.primitive_normal) * (wo * hit.primitive_normal)) < 0)
+					return m_diffuse * getTexturePixel(hit.tex_uv);
+			}
 			return 0;
 		}
 		
@@ -76,18 +87,23 @@ namespace Geometry
 		{
 			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
 			if (dif.isBlack())	return;
-			Math::RandomDirection direction_sampler(&sampler, hit.orientedPrimitiveNormal());
+			Math::Vector3f normal = hit.orientedPrimitiveNormal();
+			if constexpr (MODE == TRANSMIT)
+				normal = -normal;
+			Math::RandomDirection direction_sampler(&sampler, normal);
 			for (unsigned int i = 0; i < diffuse_samples; ++i)
 			{
 				DirectionSample out;
 				out.direction = direction_sampler.generate();
 				out.pdf = (out.direction * hit.orientedPrimitiveNormal()) / Math::pi;
 				if (out.pdf == 0)	continue; //let's say the sample is not generated
+				
 				if (out.pdf < 0)
 				{
 					out.direction = -out.direction;
 					out.pdf = -out.pdf;
 				}
+
 				out.bsdf = dif; 
 				res.push(out);
 			}
@@ -107,10 +123,21 @@ namespace Geometry
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) > 0)
+			if constexpr (MODE == REFLECT)
 			{
-				double res = std::abs(hit.primitive_normal * wi) / Math::pi;
-				return res;
+				if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) > 0)
+				{
+					double res = std::abs(hit.primitive_normal * wi) / Math::pi;
+					return res;
+				}
+			}
+			else
+			{
+				if ((wi * hit.primitive_normal) * (wo * hit.primitive_normal) < 0)
+				{
+					double res = std::abs(hit.primitive_normal * wi) / Math::pi;
+					return res;
+				}
 			}
 			return 0;
 		}

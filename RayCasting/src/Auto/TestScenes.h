@@ -117,9 +117,9 @@ namespace Auto
 	{
 		if (true)
 		{
-			Geometry::Material* white_diffuse = new Geometry::Lambertian(0.8);
-			Geometry::Material* purple_diffuse = new Geometry::Lambertian({ 0.6, 0.1, 0.4 });
-			Geometry::Material* green_diffuse = new Geometry::Lambertian({ 0.2, 0.7, 0.3 });
+			Geometry::Material* white_diffuse = new Geometry::Lambertian<Geometry::REFLECT>(0.8);
+			Geometry::Material* purple_diffuse = new Geometry::Lambertian<Geometry::REFLECT>({ 0.6, 0.1, 0.4 });
+			Geometry::Material* green_diffuse = new Geometry::Lambertian<Geometry::REFLECT>({ 0.2, 0.7, 0.3 });
 			Geometry::Material* white_emisive = new Geometry::Material({ 15, 11, 9 }, "");
 
 			{
@@ -202,13 +202,13 @@ namespace Auto
 
 	void initRealCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder)
 	{
-		Geometry::Material* white = new Geometry::Lambertian(0.7);
-		Geometry::Material* black = new Geometry::Lambertian(0);
-		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
-		Geometry::Material* green = new Geometry::Lambertian({ 0.122, 0.406, 0.1 });
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
 
-		Geometry::Material* blue = new Geometry::Lambertian({ 0.1, 0.2, 0.75 });
-		Geometry::Material* orange = new Geometry::Lambertian({ 0.8, 0.4, 0.1 });
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
@@ -217,7 +217,7 @@ namespace Auto
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
 
 		double light_size = 1;
-		Geometry::Material* light = new Geometry::Lambertian(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
 		Geometry::Square* up_light = new Geometry::Square(light);
 		up_light->scale(scale * 0.2 * light_size);
 		up_light->translate({ 0, 0, scale / 2 - 0.001 });
@@ -291,13 +291,13 @@ namespace Auto
 	{
 		double scale = 5;
 		double light_size = 1;
-		Geometry::Material* white = new Geometry::Lambertian(0.7);
-		Geometry::Material* black = new Geometry::Lambertian(0);
-		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
-		Geometry::Material* green = new Geometry::Lambertian({ 0.122, 0.406, 0.1 });
-		Geometry::Material* light = new Geometry::Lambertian(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
-		Geometry::Material* blue = new Geometry::Lambertian({ 0.1, 0.2, 0.75 });
-		Geometry::Material* orange = new Geometry::Lambertian({ 0.8, 0.4, 0.1 });
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
@@ -373,16 +373,16 @@ namespace Auto
 	///////////////////////////////////////////////////
 	void initSimpleCornell(Geometry::Scene& scene, size_t width, size_t height, int mode = 3)
 	{
-		Geometry::Material* white = new Geometry::Lambertian(0.7);
-		Geometry::Material* black = new Geometry::Lambertian(0);
-		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
-		Geometry::Material* green = new Geometry::Lambertian({ 0.122, 0.406, 0.1 });
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
 
 		Geometry::Material* spec = new Geometry::Specular(0.9, 100);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(0.9);
 
-		Geometry::Material* blue = new Geometry::Lambertian({ 0.1, 0.2, 0.75 });
-		Geometry::Material* orange = new Geometry::Lambertian({ 0.8, 0.4, 0.1 });
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
 		double scale = 5;
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
@@ -463,13 +463,13 @@ namespace Auto
 
 	void initCornellLamp(Geometry::Scene& scene, size_t width, size_t height)
 	{
-		Geometry::Material* white = new Geometry::Lambertian(0.7);
-		Geometry::Material* gray = new Geometry::Lambertian(0.45);
-		Geometry::Material* black = new Geometry::Lambertian(0);
-		Geometry::Material* red = new Geometry::Lambertian({ 0.62, 0.061, 0.061 });
-		Geometry::Material* green = new Geometry::Lambertian({ 0.122, 0.406, 0.1 });
-		Geometry::Material* blue = new Geometry::Lambertian({ 0.1, 0.2, 0.75 });
-		Geometry::Material* orange = new Geometry::Lambertian({ 0.8, 0.4, 0.1 });
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* gray = new Geometry::Lambertian<Geometry::REFLECT>(0.45);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
 		Geometry::Material* spec = new Geometry::Specular(0.8, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(0.8);
@@ -478,7 +478,7 @@ namespace Auto
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
 
 		double light_size = 0.5;
-		Geometry::Material* light = new Geometry::Lambertian(0, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
 
 		//add the lamps
 		{
@@ -537,7 +537,7 @@ namespace Auto
 
 	void initVeach(Geometry::Scene& scene, size_t width, size_t height, double multiplier = 25 * 10)
 	{
-		Geometry::Material* gray = new Geometry::Lambertian(1);
+		Geometry::Material* gray = new Geometry::Lambertian<Geometry::REFLECT>(1);
 
 		double scale = 1.0;
 
@@ -585,7 +585,7 @@ namespace Auto
 			Math::Vector3f base = { -1 * scale, 0, 5 * scale };
 			Math::Vector3f T = { 0, 0, -26 * scale };
 			Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
-			//Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian(1));
+			//Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian<Geometry::REFLECT>(1));
 			cube->rotate(Math::Quaternion<double>({ 0, -1, 0 }, rad(corrections[i])));
 			cube->translate(T);
 

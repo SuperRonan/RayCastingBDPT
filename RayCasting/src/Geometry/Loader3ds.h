@@ -36,7 +36,7 @@ namespace Geometry
 			RGBColor dif;
 			dif.set(material->diffuse);
 #ifdef FORCE_LAMBERT
-			return new Lambertian(dif);
+			return new Lambertian<Geometry::REFLECT>(dif);
 #endif
 			RGBColor spec;
 			spec.set(material->specular);
@@ -49,7 +49,7 @@ namespace Geometry
 				}
 				else
 				{
-					return new Lambertian(dif);
+					return new Lambertian<Geometry::REFLECT>(dif);
 				}
 			}
 			else

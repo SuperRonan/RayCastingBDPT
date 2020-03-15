@@ -124,13 +124,13 @@ namespace Integrator
 
 	public:
 
-		PhotonMapper(unsigned int sample_per_pixel, unsigned int width, unsigned int height, double relative_radius):
-			DirectIntegrator(sample_per_pixel, width, height),
-			m_relative_radius(relative_radius)
+		PhotonMapper(unsigned int sample_per_pixel, unsigned int width, unsigned int height):
+			DirectIntegrator(sample_per_pixel, width, height)
 		{}
 
-		void buildMap(Scene const& scene, int pcount)
+		void buildMap(Scene const& scene, double relative_radius, int pcount)
 		{
+			m_relative_radius = relative_radius;
 			m_bb = scene.m_sceneBoundingBox;
 			m_bb[0] -= Vector3f(0.001, 0.001, 0.001);
 			m_bb[1] += Vector3f(0.001, 0.001, 0.001);
