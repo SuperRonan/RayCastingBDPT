@@ -1494,7 +1494,7 @@ int main(int argc, char ** argv)
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
-	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
+	Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
@@ -1508,7 +1508,7 @@ int main(int argc, char ** argv)
 	//initDiffuseSpecular(scene, visu) ;//custom
 	//initSpecular(scene, visu) ;
 	//initGuitar(scene, visu);
-	initDog(scene, visu);
+	//initDog(scene, visu);
 	//initGarage(scene, visu);
 	//initRobot(scene, visu);
 	//initTemple(scene, visu);
@@ -1535,7 +1535,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 6;
+	unsigned int maxLen = 7;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
@@ -1559,7 +1559,7 @@ int main(int argc, char ** argv)
 	Integrator::Integrator* integrator = integrators[render_mode];
 
 
-	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->buildMap(scene, 0.005, 1000000);
+	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->buildMap(scene, 0.005, 2000000);
 
 	std::cout << help_message << std::endl;
 

@@ -306,7 +306,7 @@ namespace Auto
 
 
 		if(mode)
-			Geometry::Cornel::init_cornell(scene, white, white, white, glass2, red, green, scale);
+			Geometry::Cornel::init_cornell(scene, white, white, mirror, white, red, green, scale);
 		else
 			Geometry::Cornel::init_cornell(scene, white, white, white, white, red, green, scale);
 		
@@ -353,7 +353,8 @@ namespace Auto
 
 		// Sets the camera
 		{
-			Geometry::Camera camera = mode ? Geometry::Camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f) : Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			//Geometry::Camera camera = mode ? Geometry::Camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f) : Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			Geometry::Camera camera = Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
 			//Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
 		}

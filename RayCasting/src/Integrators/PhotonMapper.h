@@ -122,6 +122,15 @@ namespace Integrator
 
 		int m_number_of_photons;
 
+		double m_alpha, m_beta;
+
+		double kernel(double dist2)const
+		{
+			return 1.0 / (Math::pi * m_radius2);
+			double dist = std::sqrt(dist2);
+			return m_alpha - dist * m_beta;
+		}
+
 	public:
 
 		PhotonMapper(unsigned int sample_per_pixel, unsigned int width, unsigned int height):
@@ -146,6 +155,9 @@ namespace Integrator
 			assert(n_cells > 0);
 			std::cout << "Photon map size: " << m_size << std::endl;
 			m_map.resize(n_cells);
+
+			m_alpha = 3.0 / (Math::pi * m_radius2);
+			m_beta = 3.0 / (Math::pi * m_radius2 * m_radius);
 
 			m_number_of_photons = pcount;
 			OMP_PARALLEL_FOR
@@ -228,9 +240,8 @@ namespace Integrator
 													const Geometry::Material* mat = photon.m_primitive->geometry()->getMaterial();
 													if (mat == hit.geometry->getMaterial())
 													{
-														double kernel = 1 / (Math::pi * m_radius2);
-														double attenuation = 1;// -std::sqrt(dist2 / m_radius2);
-														photons_contrib += beta * photon.beta() * mat->BSDF(hit, photon.m_dir, -ray.direction()) * attenuation * kernel;
+														const double k = kernel(dist2);
+														photons_contrib += beta * photon.beta() * mat->BSDF(hit, photon.m_dir, -ray.direction()) * k;
 													}
 												}
 											}
