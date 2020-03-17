@@ -85,7 +85,7 @@ namespace Integrator
 		}
 
 		template <class Function>
-		void loopThroughPhotons(const Function& function, Math::Vector<Float, 3> const& point)const
+		__forceinline void loopThroughPhotons(const Function& function, Math::Vector<Float, 3> const& point)const
 		{
 			const Math::Vector<int, 3> ijk = cell_index(point);
 			for (int i = -1; i <= 1; ++i)

@@ -182,7 +182,7 @@ namespace Integrator
 					{
 						// Add the photons near the hit
 						RGBColor photons_contrib;
-						m_map.loopThroughPhotons<std::function<void(Photonf const&)>>([&](Photonf const& photon) {
+						m_map.loopThroughPhotons([&](Photonf const& photon) {
 							int path_len = photon.m_depth + 2 + len - 1;
 							if (path_len <= m_max_len)
 							{
