@@ -47,23 +47,7 @@
 
 #define ever (;;)
 
-std::ostream& __clk_out = std::cout;
-std::chrono::high_resolution_clock __clk;
-std::stack<std::chrono::time_point<std::chrono::high_resolution_clock>> __tics;
 
-
-void tic()
-{
-	__tics.push(__clk.now());
-}
-
-void toc()
-{
-	std::chrono::time_point<std::chrono::high_resolution_clock> __toc = __clk.now(), __tic = __tics.top();
-	__tics.pop();
-	std::chrono::duration<double>  __duration = std::chrono::duration_cast<std::chrono::duration<double>>(__toc - __tic);
-	__clk_out << __duration.count() << "s" << std::endl;
-}
 
 /// <summary>
 /// The directory of the 3D objetcs

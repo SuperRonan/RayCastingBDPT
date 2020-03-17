@@ -104,6 +104,7 @@ namespace Integrator
 
 		void buildMap(Scene const& scene, double relative_radius, int pcount)
 		{
+			tic();
 			m_relative_radius = relative_radius;
 			BoundingBox m_bb = scene.m_sceneBoundingBox;
 			m_bb[0] -= Vector3f(0.001, 0.001, 0.001);
@@ -150,6 +151,7 @@ namespace Integrator
 						}
 					}
 				}
+			toc();
 		}
 
 		
