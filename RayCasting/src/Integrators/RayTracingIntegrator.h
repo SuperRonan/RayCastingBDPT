@@ -32,7 +32,7 @@ namespace Integrator
 					
 					res += T * material.Le(hit.facing, hit.tex_uv);
 
-					if (material.use_direct())
+					if (!material.spicky())
 					{
 						res += T * RayTracingBaseIntegrator::addOneDirectIllumination(scene, hit, sampler);
 						break;

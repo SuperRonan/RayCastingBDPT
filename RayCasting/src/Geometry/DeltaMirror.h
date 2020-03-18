@@ -27,9 +27,12 @@ namespace Geometry
 
 
 		DeltaMirror(RGBColor const& specular, RGBColor const& emissive = 0, std::string const& texture = "") :
-			Material(emissive, false, true, texture),
+			Material(emissive, texture),
 			m_specular(specular /* Math::pi*/)
-		{}
+		{
+			m_delta = true;
+			m_spicky = true;
+		}
 
 
 

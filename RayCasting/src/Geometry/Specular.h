@@ -15,10 +15,9 @@ namespace Geometry
 		double m_shininess;
 
 
-		bool should_use_direct(double s)
+		static bool is_spicky(double s)
 		{
-			return false;
-			return s <= 1;
+			return s > 5;
 		}
 
 	public:
@@ -30,11 +29,12 @@ namespace Geometry
 
 
 		Specular(RGBColor const& specular, double shininess=1, RGBColor const& emissive = 0, std::string const& texture = "") :
-			Material(emissive, should_use_direct(shininess), false, texture),
+			Material(emissive, texture),
 			m_specular(specular * (shininess+1) / Math::twoPi),
 			m_shininess(shininess)
 		{
-			//m_albedo = specular.grey();
+			m_delta = false;
+			m_spicky = is_spicky(m_shininess);
 		}
 
 

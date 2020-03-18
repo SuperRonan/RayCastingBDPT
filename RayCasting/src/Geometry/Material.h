@@ -41,9 +41,8 @@ namespace Geometry
 
 		Texture * m_texture;
 
-		bool m_use_direct;
-
 		bool m_delta=false;
+		bool m_spicky = false;
 
 		//double m_albedo=0;
 
@@ -76,19 +75,7 @@ namespace Geometry
 			return true;
 		}
 
-		
-		
-		
-		Material(RGBColor const& em, bool direct, bool delta, std::string const& path = "") :
-			m_emissiveColor(em),
-			m_textureFile(path),
-			m_texture(nullptr),
-			m_use_direct(direct),
-			m_delta(delta)
-		{
-			if (!path.empty())
-				load_texture();
-		}
+	
 		
 
 	public:
@@ -105,7 +92,7 @@ namespace Geometry
 			m_emissiveColor(em),
 			m_textureFile(path),
 			m_texture(nullptr),
-			m_use_direct(false),
+			m_spicky(false),
 			m_delta(false)
 		{
 			if (!path.empty())
@@ -257,9 +244,9 @@ namespace Geometry
 		}
 
 
-		bool use_direct()const
+		bool spicky()const
 		{
-			return m_use_direct;
+			return m_spicky;
 		}
 
 		bool delta()const

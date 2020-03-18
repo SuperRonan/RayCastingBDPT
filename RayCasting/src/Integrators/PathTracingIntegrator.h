@@ -56,7 +56,7 @@ namespace Integrator
 
 
 #ifdef SAMPLE_DIRECT
-				const bool use_direct = hit.geometry->getMaterial()->use_direct();
+				const bool use_direct = !hit.geometry->getMaterial()->spicky();
 #else
 				const bool use_direct = false;
 #endif
@@ -136,7 +136,7 @@ namespace Integrator
 						res += prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf;
 					}
 
-					use_emissive = !hit.geometry->getMaterial()->use_direct();
+					use_emissive = hit.geometry->getMaterial()->spicky();
 					if (!use_emissive && len < m_max_len)
 					{
 						res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;

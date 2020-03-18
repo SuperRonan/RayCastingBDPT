@@ -18,9 +18,11 @@ namespace Geometry
 	public:
 
 		Lambertian(RGBColor const& diffuse, RGBColor const& emissive=0, std::string const& texture="") :
-			Material(emissive, true, false, texture),
+			Material(emissive, texture),
 			m_diffuse(diffuse / Math::pi)
 		{
+			m_delta = false;
+			m_spicky = false;
 			//m_albedo = diffuse.grey();
 		}
 

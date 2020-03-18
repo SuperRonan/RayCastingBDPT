@@ -21,7 +21,7 @@ namespace Geometry
 			m_eta(eta)
 		{
 			m_delta = true;
-			m_use_direct = false;
+			m_spicky = true;
 		}
 
 		virtual RGBColor ID_COLOR()const

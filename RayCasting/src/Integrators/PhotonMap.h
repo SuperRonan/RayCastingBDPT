@@ -31,21 +31,47 @@ namespace Integrator
 		std::vector<Collection<PhotonType>> m_map;
 		Geometry::BoundingBox m_bb;
 
+		bool m_built = false;
+
 	public:
 
 		PhotonMap()
 		{}
 
-		void init(Geometry::BoundingBox const& bb, Math::Vector<int, 3> const& resolution)
+		void setParams(Geometry::BoundingBox const& bb, Math::Vector<int, 3> const& resolution)
 		{
 			m_bb = bb;
 			m_size = resolution;
 
 			Math::Vector<Float, 3> diag = bb.diag();
 			m_cell_size = diag.simdDiv(Math::Vector<Float, 3>(resolution));
+		}
 
+		void init()
+		{
 			int N = m_size.prod();
+			m_map.clear();
 			m_map.resize(N);
+			m_map.shrink_to_fit();
+			m_built = false;
+		}
+
+		void init(Geometry::BoundingBox const& bb, Math::Vector<int, 3> const& resolution)
+		{
+			setParams(bb, resolution);
+			init();
+		}
+
+		void freeMemory()
+		{
+			clear();
+			m_map.shrink_to_fit();
+		}
+
+		void clear()
+		{
+			m_map.clear();
+			m_built = false;
 		}
 
 		int index_int(Math::Vector<int, 3> const& ijk)const
@@ -77,6 +103,16 @@ namespace Integrator
 			m_mutex.lock();
 			list.push_back(photon);
 			m_mutex.unlock();
+		}
+
+		void buildDone()
+		{
+			m_built = true;
+		}
+
+		bool built()const
+		{
+			return m_built;
 		}
 
 		size_t size()const

@@ -1516,7 +1516,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*16;
 										
 	// max lenght is included
 	unsigned int maxLen = 7;
@@ -1536,14 +1536,14 @@ int main(int argc, char ** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::PhotonMapper;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
 	Integrator::Integrator* integrator = integrators[render_mode];
 
 
-	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->buildMap(scene, 0.005, 2000000);
+	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.005, 500000);
 
 	std::cout << help_message << std::endl;
 
