@@ -415,7 +415,7 @@ namespace Integrator
 			xt_pdf_rev_sa = { &xt->pdfReverse<TransportMode::Importance>(),[&]() {
 				if (main_t == 1)
 					return 0.0;
-				if (ys)
+				else if (ys)
 					return ys->pdf<true>(camera, *xt, ysm, false);
 				else
 					return pdf_sampling_point;

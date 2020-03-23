@@ -388,7 +388,7 @@ namespace Auto
 		double scale = 5;
 		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
 
-		double light_size = 3;
+		double light_size = 1;
 		Geometry::Material* light = new Geometry::Material(RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
 
 

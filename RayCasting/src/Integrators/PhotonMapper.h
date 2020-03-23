@@ -134,7 +134,7 @@ namespace Integrator
 
 			m_number_of_photons = pcount;
 
-			m_spicky_samples = 4;
+			m_spicky_samples = 1;
 		}
 
 		void buildMap(Scene const& scene, int offset = 0)
@@ -145,7 +145,7 @@ namespace Integrator
 				{
 					Math::Sampler sampler(sample+offset);
 					SurfaceLightSample sls;
-					sampleOneLight(scene, sampler, sls, sample+offset);
+					sampleOneLight(scene, sampler, sls);
 					
 					DirectionSample dirSample = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
 					Hit hit;
