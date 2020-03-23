@@ -957,9 +957,9 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 
 
-enum RenderMode {
-	rayTracing = 0, pathTracing = 1, iterativePathTracing = 2, lightTracing = 3, box = 4, normal = 5, uv = 6, materialID = 7, zBuffer = 8,
-	bdpt = 9, MISPathTracing = 10, naivePathTracing = 11, AmbientOcclusion = 12, naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, BlackHole = 16, PhotonMapper = 17
+enum RenderMode : int{
+	rayTracing = 0, box = 1, normal = 2, uv = 3, materialID = 4, zBuffer = 5, AmbientOcclusion = 6, pathTracing = 7, iterativePathTracing = 8, lightTracing = 9,
+	bdpt = 10, MISPathTracing = 11, naivePathTracing = 12, naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, PhotonMapper = 16
 };
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
@@ -986,12 +986,6 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 		res[RenderMode::naivePathTracing] = new Integrator::NaivePathTracingIntegrator(sample_per_pixel, w, h);
 		res[RenderMode::naivePathTracing]->setLen(maxLen);
 		res[RenderMode::naivePathTracing]->m_alpha = alpha;
-	}
-
-	{
-		res[RenderMode::BlackHole] = new Integrator::BlackHolePath(sample_per_pixel, w, h);
-		res[RenderMode::BlackHole]->setLen(maxLen);
-		res[RenderMode::BlackHole]->m_alpha = alpha;
 	}
 
 	{
@@ -1185,35 +1179,15 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 			case SDLK_f:
 				keys[13] = !keys[13];
 				break;
-			case SDLK_b:
-				if (render_mode != RenderMode::box)
-					std::cout << "switching to box rendering" << std::endl;
-				render_mode = RenderMode::box;
-				break;
 			case SDLK_r:
-				if (render_mode != RenderMode::rayTracing)
-					std::cout << "switching to Ray Tracing" << std::endl;
-				render_mode = RenderMode::rayTracing;
-				break;
-			case SDLK_u:
-				if (render_mode != RenderMode::uv)
-					std::cout << "switching to uv rendering" << std::endl;
-				render_mode = RenderMode::uv;
-				break;
-			case SDLK_n:
-				if (render_mode != RenderMode::normal)
-					std::cout << "switching to normal rendering" << std::endl;
-				render_mode = RenderMode::normal;
-				break;
-			case SDLK_m:
-				if (render_mode != RenderMode::materialID)
-					std::cout << "switching to materialID rendering" << std::endl;
-				render_mode = RenderMode::materialID;
-				break;
-			case SDLK_p:
-				if (render_mode != RenderMode::zBuffer)
-					std::cout << "switching to Z buffer rendering" << std::endl;
-				render_mode = RenderMode::zBuffer;
+				if (render_mode <= RenderMode::AmbientOcclusion)
+				{
+					render_mode = static_cast<RenderMode>((render_mode + 1) % RenderMode::AmbientOcclusion);
+				}
+				else
+				{
+					render_mode = RenderMode::rayTracing;
+				}
 				break;
 			case SDLK_t:
 				if (render_mode != RenderMode::naivePathTracing)
@@ -1240,16 +1214,6 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to BDPT" << std::endl;
 				render_mode = RenderMode::bdpt;
 				break;
-			case SDLK_j:
-				if (render_mode != RenderMode::naiveBDPT)
-					std::cout << "switching to Naive BDPT" << std::endl;
-				render_mode = RenderMode::naiveBDPT;
-				break;
-			case SDLK_v:
-				if (render_mode != RenderMode::AmbientOcclusion)
-					std::cout << "switching to Ambient Occlusion" << std::endl;
-				render_mode = RenderMode::AmbientOcclusion;
-				break;
 			case SDLK_x:
 				if (render_mode != RenderMode::OptimalDirect)
 					std::cout << "switching to Optimis Direct" << std::endl;
@@ -1260,7 +1224,7 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Optimis BDPT" << std::endl;
 				render_mode = RenderMode::OptiMISBDPT;
 				break;
-			case SDLK_c:
+			case SDLK_m:
 				if (render_mode != RenderMode::PhotonMapper)
 					std::cout << "switching to Photon Mapping" << std::endl;
 				render_mode = RenderMode::PhotonMapper;
