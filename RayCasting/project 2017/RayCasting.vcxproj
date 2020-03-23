@@ -276,6 +276,7 @@
     <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\PhotonMap.h" />
     <ClInclude Include="..\src\Integrators\PhotonMapper.h" />
+    <ClInclude Include="..\src\Integrators\ProgressivePhotonMapper.h" />
     <ClInclude Include="..\src\Integrators\RayTracingBaseIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RegularIntegrators.h" />

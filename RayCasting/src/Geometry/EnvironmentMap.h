@@ -117,7 +117,7 @@ namespace Geometry
 				assert(uv[1] >= 0);
 				assert(uv[0] < m_texture.width());
 				assert(uv[1] < m_texture.height());
-				return m_texture[uv[0]][uv[1]];
+				return m_texture(uv[0], uv[1]);
 			}
 			return 1.0;
 		}
@@ -173,7 +173,7 @@ namespace Geometry
 				{
 					for (unsigned int j = 0; j < m_texture.height(); ++j)
 					{
-						const RGBColor& pixel = m_texture[i][j];
+						const RGBColor& pixel = m_texture(i, j);
 						if (!pixel.isBlack())
 						{
 							double importnce = importance(i, j);

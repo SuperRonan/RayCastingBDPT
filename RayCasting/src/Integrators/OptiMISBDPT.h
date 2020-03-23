@@ -764,12 +764,12 @@ namespace Integrator
 
 							//computeSample(scene, u, v, sampler, pixel, lvs);
 
-							m_frame_buffer[x][y] += pixel;
+							m_frame_buffer(x, y) += pixel;
 							for (LightVertex const& lv : lvs)
 							{
 								int lx = lv.uv[0] * m_frame_buffer.width();
 								int ly = lv.uv[1] * m_frame_buffer.height();
-								m_frame_buffer[lx][ly] += lv.light;
+								m_frame_buffer(lx, ly) += lv.light;
 							}
 
 							//visu.plot(x, y, pixel);

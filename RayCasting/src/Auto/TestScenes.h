@@ -41,7 +41,7 @@ namespace Auto
 						b = 10 * (v);
 					}
 
-					RGBColor& pixel = img[i][j];
+					RGBColor& pixel = img(i, j);
 					pixel = RGBColor(r, g, b);
 				}
 			}
@@ -55,13 +55,13 @@ namespace Auto
 		const auto hasEnoughNeighboor = [&](int x, int y)
 		{
 			int sum = 0;
-			if (image.inBounds<int>({ x - 1, y }) && !image[x - 1][y].isBlack())
+			if (image.inBounds<int>({ x - 1, y }) && !image(x - 1, y).isBlack())
 				++sum;
-			if (image.inBounds<int>({ x + 1, y }) && !image[x + 1][y].isBlack())
+			if (image.inBounds<int>({ x + 1, y }) && !image(x + 1, y).isBlack())
 				++sum;
-			if (image.inBounds<int>({ x, y - 1 }) && !image[x][y - 1].isBlack())
+			if (image.inBounds<int>({ x, y - 1 }) && !image(x, y - 1).isBlack())
 				++sum;
-			if (image.inBounds<int>({ x, y + 1 }) && !image[x][y + 1].isBlack())
+			if (image.inBounds<int>({ x, y + 1 }) && !image(x, y + 1).isBlack())
 				++sum;
 			return sum > 1;
 		};
@@ -72,9 +72,9 @@ namespace Auto
 				{
 					for (int j = 0; j < image.height(); ++j)
 					{
-						if (!image[i][j].isBlack() && !hasEnoughNeighboor(i, j))
+						if (!image(i, j).isBlack() && !hasEnoughNeighboor(i, j))
 						{
-							image[i][j] = 0;
+							image(i, j) = 0;
 						}
 					}
 				}

@@ -8,7 +8,7 @@ namespace Integrator
 	class BidirectionalBase: public Integrator
 	{
 	protected:
-		Image::Image<RGBColor> m_frame_buffer;
+		Image::Image < RGBColor, Image::IMAGE_ROW_MAJOR> m_frame_buffer;
 
 		struct LightVertex {
 			RGBColor light;
@@ -75,7 +75,7 @@ namespace Integrator
 					{
 						for (size_t y = 0; y < m_frame_buffer.height(); ++y)
 						{
-							visu.plot(x, y, m_frame_buffer[x][y] / double(total));
+							visu.plot(x, y, m_frame_buffer(x, y) / double(total));
 						}
 					}
 			}

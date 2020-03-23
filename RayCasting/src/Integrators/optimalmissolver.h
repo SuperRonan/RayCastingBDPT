@@ -19,7 +19,6 @@ public:
 	using RGBColor = Geometry::RGBColor;
 
 	using Float = double;
-	using Film = Image::Image<RGBColor>;
 
 	using MatrixT = arma::mat;
 	using VectorT = arma::vec;
@@ -193,7 +192,8 @@ public:
     // // Returns the avg of the estimates already computed for the progressive
     // estimator //
     ////////////////////////////////////////////////////////////////////////////////////
-	void DevelopFilm(Film* film, int numIterations)
+	template <bool MAJOR>
+	void DevelopFilm(Image::Image<RGBColor, MAJOR>* film, int numIterations)
 	{
 		if (useDirect) {
 			// pre allocate the vector and the matrix
@@ -281,7 +281,7 @@ OMP_PARALLEL_FOR
 						estimate[k] = sum(vec);
 						//estimate[k] = vec[vec.size() - 1];
 					}
-					(*film)[x][y] += estimate;
+					(*film)(x, y) += estimate;
 
 				}
 			}
@@ -574,7 +574,7 @@ public:
 							estimate[k] = sum(vec);
 							//estimate[k] = vec[vec.size() - 1];
 						}
-						(*film)[x][y] += estimate;
+						(*film)(x, y) += estimate;
 
 					}
 				}
@@ -704,7 +704,7 @@ public:
 			{
 				for (int y = 0; y < height; ++y)
 				{
-					(*film)[x][y] += m_result[PixelTo1D(x, y)] / numIterations;
+					(*film)(x, y) += m_result[PixelTo1D(x, y)] / numIterations;
 				}
 			}
 		}

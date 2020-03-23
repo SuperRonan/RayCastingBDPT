@@ -83,7 +83,7 @@ namespace Integrator
 
 
 
-						Image::MultiSample<RGBColor>& pixel = m_frame_buffer[x][y];
+						Image::MultiSample<RGBColor>& pixel = m_frame_buffer(x, y);
 						pixel.add(result);
 
 						visu.plot(x, y, pixel.mean());
@@ -178,7 +178,7 @@ namespace Integrator
 
 							RGBColor result = sendRay(scene, ray, sampler);
 
-							Image::MultiSample<RGBColor>& pixel = m_frame_buffer[x][y];
+							Image::MultiSample<RGBColor>& pixel = m_frame_buffer(x, y);
 							pixel.add(result);
 
 						}//pixel x

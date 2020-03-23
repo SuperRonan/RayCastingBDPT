@@ -1,5 +1,6 @@
 #pragma once
 
+#include <settings.h>
 #include <Integrators/Integrator.h>
 #include <Math/Vectorf.h>
 #include <Integrators/PhotonMap.h>
@@ -322,7 +323,7 @@ namespace Integrator
 
 
 
-							Image::MultiSample<RGBColor>& pixel = m_frame[x][y];
+							Image::MultiSample<RGBColor>& pixel = m_frame(x, y);
 							pixel.add(result);
 
 							visu.plot(x, y, pixel.mean());
@@ -417,7 +418,7 @@ namespace Integrator
 
 							RGBColor result = sendRay<false>(scene, ray, sampler);
 
-							Image::MultiSample<RGBColor>& pixel = m_frame[x][y];
+							Image::MultiSample<RGBColor>& pixel = m_frame(x, y);
 							pixel.add(result);
 
 						}//pixel x

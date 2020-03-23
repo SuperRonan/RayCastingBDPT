@@ -86,7 +86,7 @@ namespace Integrator
 
 								double result = depth(scene, ray);
 
-								Image::MultiSample<RGBColor>& pixel = m_frame_buffer[x][y];
+								Image::MultiSample<RGBColor>& pixel = m_frame_buffer(x, y);
 								pixel.add(result);
 
 								visu.plot(x, y, pixel.mean());

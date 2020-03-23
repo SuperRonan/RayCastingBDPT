@@ -62,7 +62,7 @@ namespace Image
 					{
 						for (int c = 0; c < 3; ++c)
 						{
-							res[i][j][c] = channels[c][j * width + i];
+							res(i, j)[c] = channels[c][j * width + i];
 						}
 					}
 				}

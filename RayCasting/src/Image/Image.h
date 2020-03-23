@@ -5,11 +5,12 @@
 
 namespace Image
 {
-
+	bool constexpr IMAGE_ROW_MAJOR = true;
+	bool constexpr IMAGE_COL_MAJOR = false;
 	///////////////////////////////////
 	// Class representing a 2D Image (of anything)
 	///////////////////////////////////
-	template <class T>
+	template <class T, bool ROW_MAJOR=IMAGE_COL_MAJOR>
 	class Image
 	{
 	protected:
@@ -18,9 +19,7 @@ namespace Image
 		
 
 	public:
-		//////////////////////////////////
-		// index = i * width + j
-		//////////////////////////////////
+
 		T* m_data;
 
 	public:
@@ -155,41 +154,56 @@ namespace Image
 		{
 			return m_height;
 		}
-
 		
 
+		size_t index(size_t i, size_t j)const
+		{
+			if constexpr (ROW_MAJOR)
+				return i * m_width + j;
+			else
+				return j * m_height + i;
+		}
 
-
-
-
+		// -i |j
 		inline T const& pixel(size_t i, size_t j)const
 		{
 			assert(i < m_width);
 			assert(j < m_height);
-			return m_data[i * m_width + j];
+			return m_data[index(i, j)];
 		}
 
+		// -i |j
 		inline T & pixel(size_t i, size_t j)
 		{
 			assert(i < m_width);
 			assert(j < m_height);
-			return m_data[i * m_width + j];
+			return m_data[index(i, j)];
+		}
+		
+		inline T const& operator()(size_t i, size_t j)const
+		{
+			return pixel(i, j);
+		}
+
+		inline T & operator()(size_t i, size_t j)
+		{
+			return pixel(i, j);
 		}
 
 		
-		//should be used with an other []
-		inline const T * operator[](size_t i)const
-		{
-			assert(i < m_width);
-			return m_data + i * m_height;
-		}
+		////should be used with an other []
+		//inline const T * operator[](size_t i)const
+		//{
+		//	assert(i < m_width);
+		//	return m_data + i * m_height;
+		//}
 
-		//should be used with an other []
-		inline  T* operator[](size_t i)
-		{
-			assert(i < m_width);
-			return m_data + i * m_height;
-		}
+		////should be used with an other []
+		//inline  T* operator[](size_t i)
+		//{
+		//	assert(i < m_width);
+		//	return m_data + i * m_height;
+		//}
 
 
 		inline void fill(T const& t = 0)

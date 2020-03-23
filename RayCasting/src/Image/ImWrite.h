@@ -19,13 +19,13 @@
 
 namespace Image
 {
-	class ImWrite: public ImageIO
+	class ImWrite : public ImageIO
 	{
 
 	protected:
 
-
-		static bool writeEXR(std::string const& path, Image<Geometry::RGBColor> const& image)
+		template <bool MAJOR>
+		static bool writeEXR(std::string const& path, Image<Geometry::RGBColor, MAJOR> const& image)
 		{
 			float* channels[3] = { new float[image.size()], new float[image.size()], new float[image.size()] };
 			std::vector<std::string> cnames = { "R", "G", "B" };
@@ -36,13 +36,13 @@ namespace Image
 					{
 						for (int c = 0; c < 3; ++c)
 						{
-							channels[c][i * image.width() + j] = image[j][i][c];
+							channels[c][i * image.width() + j] = image(j, i)[c];
 						}
 					}
 				}
 			Imf::Header header(image.width(), image.height());
-			
-			for(int c = 0; c<3; ++c)
+
+			for (int c = 0; c < 3; ++c)
 				header.channels().insert(cnames[c], Imf::Channel(Imf::FLOAT));
 
 			Imf::OutputFile file(path.c_str(), header);
@@ -55,10 +55,10 @@ namespace Image
 			file.setFrameBuffer(frame_buffer);
 
 			file.writePixels(image.height());
-			
-			
 
-			for(int j=0; j<3; ++j)
+
+
+			for (int j = 0; j < 3; ++j)
 				delete[] channels[j];
 			return true;
 		}
@@ -105,7 +105,7 @@ namespace Image
 		////////////////////////
 		static bool writePPM_buffer(std::string const& path, const unsigned char* data, size_t width, size_t height)
 		{
-			try 
+			try
 			{
 				std::ofstream file(path);
 				file << "P6\n";
@@ -121,27 +121,27 @@ namespace Image
 				std::cerr << e.what() << std::endl;
 				return false;
 			}
-			
-		}
 
-		static bool writePPM(std::string const& path, Image<Geometry::RGBColor> img)
+		}
+		template <bool MAJOR>
+		static bool writePPM(std::string const& path, Image<Geometry::RGBColor, MAJOR> img)
 		{
 			unsigned char* data = new unsigned char[img.size() * 3];
 
-OMP_DYNAMIC_FOR
-			for (long i = 0; i < img.size(); ++i)
-			{
-				Geometry::RGBColor color = img.m_data[i];
+			OMP_DYNAMIC_FOR
+				for (long i = 0; i < img.size(); ++i)
+				{
+					Geometry::RGBColor color = img.m_data[i];
 #ifdef MULT_10
-				color = color * 10;
+					color = color * 10;
 #endif
-				unsigned char r = (unsigned char)(color[0] / (color[0] + 1) * 255);
-				unsigned char g = (unsigned char)(color[1] / (color[1] + 1) * 255);
-				unsigned char b = (unsigned char)(color[2] / (color[2] + 1) * 255);
-				data[i * 3 + 0] = r;
-				data[i * 3 + 1] = g;
-				data[i * 3 + 2] = b;
-			}
+					unsigned char r = (unsigned char)(color[0] / (color[0] + 1) * 255);
+					unsigned char g = (unsigned char)(color[1] / (color[1] + 1) * 255);
+					unsigned char b = (unsigned char)(color[2] / (color[2] + 1) * 255);
+					data[i * 3 + 0] = r;
+					data[i * 3 + 1] = g;
+					data[i * 3 + 2] = b;
+				}
 
 			bool res = writePPM_full(path, data, img.width(), img.height());
 			delete[] data;
@@ -150,7 +150,7 @@ OMP_DYNAMIC_FOR
 
 
 
-		
+
 
 
 	protected:
@@ -169,11 +169,11 @@ OMP_DYNAMIC_FOR
 
 			return path + name;
 		}
-	
+
 	public:
 
-
-		static bool write(Image<Geometry::RGBColor> const& img, std::string path)
+		template <bool MAJOR>
+		static bool write(Image<Geometry::RGBColor, MAJOR> const& img, std::string path)
 		{
 			bool res;
 			std::cout << "Writing " << path << std::endl;
@@ -198,8 +198,8 @@ OMP_DYNAMIC_FOR
 		}
 
 
-	
-		static bool write(Image<Geometry::RGBColor> const& img)
+		template <bool MAJOR>
+		static bool write(Image<Geometry::RGBColor, MAJOR> const& img)
 		{
 			std::string path = getPath();
 			if (path.empty())
@@ -211,32 +211,33 @@ OMP_DYNAMIC_FOR
 			return res;
 		}
 
-		
 
 
-		static bool write(Image<MultiSample<Geometry::RGBColor>> const& img)
+		template <bool MAJOR>
+		static bool write(Image<MultiSample<Geometry::RGBColor>, MAJOR> const& img)
 		{
 			Image < Geometry::RGBColor> _img(img.width(), img.height());
-OMP_DYNAMIC_FOR
-			for (long i = 0; i < img.size(); ++i)
-			{
-				Geometry::RGBColor color = img.m_data[i].mean();
-				_img.m_data[i] = color;
-			}
+			OMP_DYNAMIC_FOR
+				for (long i = 0; i < img.size(); ++i)
+				{
+					Geometry::RGBColor color = img.m_data[i].mean();
+					_img.m_data[i] = color;
+				}
 
-			bool res=write(_img);
+			bool res = write(_img);
 			return res;
 		}
 
-		static bool write(Image<Geometry::RGBColor> const& img, double f)
+		template <bool MAJOR>
+		static bool write(Image<Geometry::RGBColor, MAJOR> const& img, double f)
 		{
 			Image < Geometry::RGBColor> _img(img.width(), img.height());
-OMP_DYNAMIC_FOR
-			for (long i = 0; i < img.size(); ++i)
-			{
-				Geometry::RGBColor color = img.m_data[i];
-				_img.m_data[i] = color * f;
-			}
+			OMP_DYNAMIC_FOR
+				for (long i = 0; i < img.size(); ++i)
+				{
+					Geometry::RGBColor color = img.m_data[i];
+					_img.m_data[i] = color * f;
+				}
 
 			bool res = write(_img);
 			return res;

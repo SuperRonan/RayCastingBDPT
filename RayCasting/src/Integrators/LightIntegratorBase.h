@@ -64,7 +64,7 @@ namespace Integrator
 						for (LightVertex const& lv : lvs)
 						{
 							unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
-							RGBColor& pixel = m_frame_buffer[u][v];
+							RGBColor& pixel = m_frame_buffer(u, v);
 							RGBColor Ct = (lv.light);
 							//TODO manage omp atomic
 							pixel += (Ct);
@@ -153,7 +153,7 @@ namespace Integrator
 						for (LightVertex const& lv : lvs)
 						{
 							unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
-							RGBColor& pixel = m_frame_buffer[u][v];
+							RGBColor& pixel = m_frame_buffer(u, v);
 							RGBColor Ct = (lv.light);
 							//TODO manage omp atomic
 							pixel += Ct;
@@ -215,7 +215,7 @@ namespace Integrator
 					for (LightVertex const& lv : lvs)
 					{
 						unsigned int u = (lv.uv[0]) * m_frame_buffer.width(), v = (lv.uv[1]) * m_frame_buffer.height();
-						RGBColor& pixel = m_frame_buffer[u][v];
+						RGBColor& pixel = m_frame_buffer(u, v);
 						RGBColor Ct = (lv.light);
 						
 						//TODO manage omp atomic
