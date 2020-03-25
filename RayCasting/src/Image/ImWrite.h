@@ -216,7 +216,7 @@ namespace Image
 		template <bool MAJOR>
 		static bool write(Image<MultiSample<Geometry::RGBColor>, MAJOR> const& img)
 		{
-			Image < Geometry::RGBColor> _img(img.width(), img.height());
+			Image < Geometry::RGBColor, MAJOR> _img(img.width(), img.height());
 			OMP_DYNAMIC_FOR
 				for (long i = 0; i < img.size(); ++i)
 				{
@@ -231,7 +231,7 @@ namespace Image
 		template <bool MAJOR>
 		static bool write(Image<Geometry::RGBColor, MAJOR> const& img, double f)
 		{
-			Image < Geometry::RGBColor> _img(img.width(), img.height());
+			Image < Geometry::RGBColor, MAJOR> _img(img.width(), img.height());
 			OMP_DYNAMIC_FOR
 				for (long i = 0; i < img.size(); ++i)
 				{

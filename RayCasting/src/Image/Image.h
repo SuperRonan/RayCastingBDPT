@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include <algorithm>
+#include <Math/Vector.h>
 
 
 namespace Image
@@ -164,6 +165,15 @@ namespace Image
 				return j * m_height + i;
 		}
 
+		Math::Vector<size_t, 2> indices(size_t index)const
+		{
+			if constexpr (ROW_MAJOR)
+				return { index / m_width, index % m_width };
+			else
+				return { index % m_height, index / m_height };
+		}
+		
+
 		// -i |j
 		inline T const& pixel(size_t i, size_t j)const
 		{
@@ -188,6 +198,26 @@ namespace Image
 		inline T & operator()(size_t i, size_t j)
 		{
 			return pixel(i, j);
+		}
+
+		inline T const& operator()(Math::Vector<size_t, 2> const& p)const
+		{
+			return pixel(p[0], p[1]);
+		}
+
+		inline T& operator()(Math::Vector<size_t, 2> const& p)
+		{
+			return pixel(p[0], p[1]);
+		}
+
+		inline T const& operator[](size_t index)const
+		{
+			return m_data[index];
+		}
+
+		inline T& operator[](size_t index)
+		{
+			return m_data[index];
 		}
 
 		

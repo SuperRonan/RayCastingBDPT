@@ -41,6 +41,7 @@
 #include <Integrators/OptiMISBDPT.h>
 #include <Integrators/BlackHolePath.h>
 #include <Integrators/PhotonMapper.h>
+#include <Integrators/ProgressivePhotonMapper.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -959,7 +960,7 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 enum RenderMode : int{
 	rayTracing = 0, box = 1, normal = 2, uv = 3, materialID = 4, zBuffer = 5, AmbientOcclusion = 6, pathTracing = 7, iterativePathTracing = 8, lightTracing = 9,
-	bdpt = 10, MISPathTracing = 11, naivePathTracing = 12, naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, PhotonMapper = 16
+	bdpt = 10, MISPathTracing = 11, naivePathTracing = 12, naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, PhotonMapper = 16, ProgressivePhotonMapper = 17,
 };
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
@@ -1021,6 +1022,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	{
 		res[RenderMode::PhotonMapper] = new Integrator::PhotonMapper(sample_per_pixel, w, h);
 		res[RenderMode::PhotonMapper]->setLen(maxLen);
+	}
+
+	{
+		res[RenderMode::ProgressivePhotonMapper] = new Integrator::ProgressivePhotonMapper(sample_per_pixel, w, h);
+		res[RenderMode::ProgressivePhotonMapper]->setLen(maxLen);
 	}
 
 	//{
@@ -1229,6 +1235,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Photon Mapping" << std::endl;
 				render_mode = RenderMode::PhotonMapper;
 				break;
+			case SDLK_p:
+				if (render_mode != RenderMode::ProgressivePhotonMapper)
+					std::cout << "switching to Photon Mapping" << std::endl;
+				render_mode = RenderMode::ProgressivePhotonMapper;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1300,79 +1311,6 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 		}
 	}
 }
-
-
-
-//void testSquareSample(Visualizer::Visualizer& visu)
-//{
-//	GeometryCollection::Material mat(1);
-//	GeometryCollection::Square sqare(&mat, { 0.5, 0.5, 0 });
-//	sqare.divide(100);
-//	sqare.build_lights();
-//	Image::Image<RGBColor> img(visu.width(), visu.height());
-//	img.fill();
-//	int s = GeometryCollection::LightSampleStack::capacity;
-//	GeometryCollection::Camera cam({ 0, 0, 1 }, { 0, 0, 0 });
-//	cam.m_right = { 1, 0, 0 };
-//	cam.m_down = { 0, 1, 0 };
-//	Math::Sampler sampler(1ull);
-//	for (size_t i = 1; i < 100; ++i)
-//	{
-//		GeometryCollection::LightSampleStack lss;
-//		sqare.sampleLights(lss, sampler, s);
-//		for (GeometryCollection::SurfaceLightSample const& sls : lss)
-//		{
-//			Math::Vector2f camuv = cam.screen_position(sls.vector) - 0.5;
-//			Math::Vector2f directuv = { sls.vector[0], sls.vector[1] };
-//			/*std::cout << "-----------------" << std::endl;
-//			std::cout << camuv << std::endl;
-//			std::cout << directuv << std::endl;*/
-//			Math::Vector2f uv = camuv;
-//			int x = uv[0] * visu.width();
-//			int y = uv[1] * visu.height();
-//			img[x][y] += 1;
-//			visu.plot(x, y, img[x][y]);
-//			
-//		}
-//		visu.update();
-//		sqare.increment_offset(s);
-//	}
-//	while (visu.update() != Visualizer::Visualizer::done)
-//	{
-//
-//	}
-//}
-//
-//
-//
-//void testSpecular(Visualizer::Visualizer & visu)
-//{
-//	GeometryCollection::Specular spec(1.0, 10.0);
-//
-//	visu.clean();
-//	Math::Sampler sampler;
-//
-//	GeometryCollection::Hit hit;
-//	hit.primitive_normal = { 0, 0, 1 };
-//	hit.reflected = Math::Vector3f(0, 1, 1).normalized();
-//
-//	for (int sample = 0; sample < 1000; ++sample)
-//	{
-//		GeometryCollection::DirectionSample dir;
-//		spec.sampleBSDF(hit, 1, 1, dir, sampler);
-//
-//		Math::Vector3f wi = dir.direction;
-//
-//		RGBColor bsdf = dir.bsdf;
-//
-//		std::cout << bsdf - spec.BSDF(hit, wi) << std::endl;
-//		std::cout << dir.pdf - spec.pdf(hit, wi)<<std::endl;
-//
-//		
-//	}
-//
-//	exit(0);
-//}
 
 
 template <typename floot>
@@ -1483,7 +1421,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 4;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
@@ -1507,7 +1445,8 @@ int main(int argc, char ** argv)
 	Integrator::Integrator* integrator = integrators[render_mode];
 
 
-	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.005, 500000);
+	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.01, 1000000);
+	((Integrator::PhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
 
 	std::cout << help_message << std::endl;
 
