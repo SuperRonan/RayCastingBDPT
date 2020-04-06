@@ -160,17 +160,17 @@ namespace Image
 		size_t index(size_t i, size_t j)const
 		{
 			if constexpr (ROW_MAJOR)
-				return i * m_width + j;
+				return i * m_height + j;
 			else
-				return j * m_height + i;
+				return j * m_width + i;
 		}
 
 		Math::Vector<size_t, 2> indices(size_t index)const
 		{
 			if constexpr (ROW_MAJOR)
-				return { index / m_width, index % m_width };
+				return { index / m_height, index % m_height };
 			else
-				return { index % m_height, index / m_height };
+				return { index % m_width, index / m_width };
 		}
 		
 
