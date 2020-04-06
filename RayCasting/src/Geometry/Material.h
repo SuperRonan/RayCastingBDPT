@@ -3,7 +3,7 @@
 #include <Geometry/RGBColor.h>
 #include <Geometry/Texture.h>
 #include "medium.h"
-#include "BoundedStack.h"
+#include <Geometry/Sample.h>
 #include "Ray.h"
 #include <string>
 #include <Geometry/Hit.h>
@@ -132,24 +132,6 @@ namespace Geometry
 		}
 
 
-		///////////////////////////////////////
-		//this function computes a set of sampled direction according to the bsdf of the material
-		///////////////////////////////////////
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack & out, Math::Sampler& sampler)const
-		{
-			
-		}
-
-
-		virtual void BSDF(Hit const& hit, ColorStack& res, LightSampleStack const& wis)const
-		{
-			for (SurfaceLightSample const& wi : wis)
-			{
-				res.push(0);
-			}
-		}
-
-
 		//returns the probability of sampling wi knowing that we are comming from wo
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const
 		{
@@ -255,7 +237,7 @@ namespace Geometry
 		}
 
 
-		virtual DirectionSample sampleLightDirection(SurfaceLightSample const& sls, Math::Sampler& sampler)const
+		virtual DirectionSample sampleLightDirection(SurfaceSample const& sls, Math::Sampler& sampler)const
 		{
 			DirectionSample res;
 			Math::RandomDirection diffuse_sampler(&sampler, sls.normal, 1.0);

@@ -238,7 +238,7 @@ namespace Integrator
 			light_vertex.delta = false;
 			light_vertex.type = Vertex::Type::Light;
 
-			SurfaceLightSample sls;
+			SurfaceSample sls;
 			sampleOneLight(scene, sampler, sls);
 
 			light_vertex.hit.geometry = sls.geo;
@@ -308,7 +308,7 @@ namespace Integrator
 						ScopedAssignment<Vertex> resampled_vertex_sa;
 						if(s == 1){
 							double prev_pdf = LightSubPath[0].pdfForward<TransportMode::Radiance>();
-							SurfaceLightSample sls;
+							SurfaceSample sls;
 							sampleOneLight(scene, camera_top.hit, sampler, sls);
 							s1_pdf = sls.pdf;
 							Vertex light_resampled;

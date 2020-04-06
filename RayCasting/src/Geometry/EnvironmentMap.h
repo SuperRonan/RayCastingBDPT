@@ -196,7 +196,7 @@ namespace Geometry
 		}
 
 
-		bool sampleDirection(SurfaceLightSample & res, Math::Sampler & sampler)const
+		bool sampleDirection(SurfaceSample & res, Math::Sampler & sampler)const
 		{
 			if (color().isBlack())
 			{
@@ -232,6 +232,7 @@ namespace Geometry
 					res.uv = { u, v };
 					res.normal = dir;
 					res.geo = &m_sphere;
+					res.primitive = &m_sphere;
 					res.pdf = pdf_pixel / (sin(inclination) * Math::twoPi * Math::pi);
 					return true;
 				}

@@ -119,7 +119,7 @@ namespace Integrator
 			//tech 1: Sampling the light
 			for (int j = 0; j < surface_samples; ++j)
 			{
-				SurfaceLightSample sls;
+				SurfaceSample sls;
 				sampleOneLight(scene, sampler, sls, j);
 				Math::Vector3f dir = sls.vector - hit.point;
 				const double dist2 = dir.norm2();

@@ -83,44 +83,7 @@ namespace Geometry
 			}
 			return 0;
 		}
-		
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& res, Math::Sampler& sampler)const override
-		{
-			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
-			if (dif.isBlack())	return;
-			Math::Vector3f normal = hit.orientedPrimitiveNormal();
-			if constexpr (MODE == TRANSMIT)
-				normal = -normal;
-			Math::RandomDirection direction_sampler(&sampler, normal);
-			for (unsigned int i = 0; i < diffuse_samples; ++i)
-			{
-				DirectionSample out;
-				out.direction = direction_sampler.generate();
-				out.pdf = (out.direction * hit.orientedPrimitiveNormal()) / Math::pi;
-				if (out.pdf == 0)	continue; //let's say the sample is not generated
-				
-				if (out.pdf < 0)
-				{
-					out.direction = -out.direction;
-					out.pdf = -out.pdf;
-				}
-
-				out.bsdf = dif; 
-				res.push(out);
-			}
-		}
-
-
-		virtual void BSDF(Hit const& hit, ColorStack& res, LightSampleStack const& wis)const override
-		{
-			for (SurfaceLightSample const& wi : wis)
-			{
-				//should be inlined (I hope)
-				res.push(BSDF(hit, wi.vector, hit.to_view));
-				//res.push(m_diffuse * getTexturePixel(hit.tex_uv) * (wi.vector * hit.primitive_normal > 0));
-			}
-		}
 
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override

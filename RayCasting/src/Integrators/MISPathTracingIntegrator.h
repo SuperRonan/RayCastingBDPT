@@ -35,7 +35,7 @@ namespace Integrator
 			RGBColor res = 0;
 
 			//sample the surface
-			SurfaceLightSample light_sample;
+			SurfaceSample light_sample;
 			//sampleOneLight(scene, sampler, light_sample);
 			sampleOneLight(scene, hit, sampler, light_sample);
 			Math::Vector3f to_light = (light_sample.vector - hit.point);

@@ -78,7 +78,7 @@ namespace Integrator
 		}
 
 		//clever version
-		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler& sampler, SurfaceLightSample& res, int index=0)const
+		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler& sampler, SurfaceSample& res, int index=0)const
 		{
 			//select one light
 			const GeometryBase* light;
@@ -107,7 +107,7 @@ namespace Integrator
 
 
 		//old version
-		bool sampleOneLight(Scene const& scene, Math::Sampler& sampler, SurfaceLightSample& res, int index=0)const
+		bool sampleOneLight(Scene const& scene, Math::Sampler& sampler, SurfaceSample& res, int index=0)const
 		{
 			if (scene.m_surface_lights.empty())
 			{

@@ -26,6 +26,10 @@ namespace Geometry
 
 	public:
 
+		void reset()
+		{
+			m_size = 0;
+		}
 
 		T const& operator[](int i)const
 		{
@@ -128,33 +132,4 @@ namespace Geometry
 
 	template <class T>
 	using StackN = BoundedStack<12, T>;
-
-	using LightStack = StackN<DirectionalLight>;
-
-	struct DirectionSample
-	{
-		//double weight;
-		double pdf;
-		RGBColor bsdf;
-
-		Math::Vector3f direction;
-	};
-
-	//describes a point sampled on a light
-	struct SurfaceLightSample
-	{
-		double pdf;
-		const GeometryBase* geo;
-		Math::Vector2f uv;
-		Math::Vector3f normal;
-		Math::Vector3f vector;
-	};
-
-	using DirectionStack = StackN<DirectionSample>;
-
-	using VectorStack = StackN<Math::Vector3f>;
-
-	using ColorStack = StackN<RGBColor>;
-
-	using LightSampleStack = StackN<SurfaceLightSample>;
 }

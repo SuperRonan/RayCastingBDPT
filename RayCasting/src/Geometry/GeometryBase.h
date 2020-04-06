@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Geometry/BoundedStack.h>
 #include <random>
 #include <Geometry/Material.h>
 #include <Math/Sampler.h>
 #include <Geometry/BoundingBox.h>
+#include <Geometry/Sample.h>
 
 namespace Geometry
 {
@@ -39,19 +39,11 @@ namespace Geometry
 
 		virtual void divide(unsigned int div=1) = 0;
 
-
-	
-		virtual void sampleLights(LightSampleStack & res, Math::Sampler & sampler, unsigned int n=1)const = 0;
-
-		virtual void sampleLight(SurfaceLightSample& res, Math::Sampler& sampler, unsigned int i=0)const = 0;
+		virtual void sampleLight(SurfaceSample& res, Math::Sampler& sampler, unsigned int i=0)const = 0;
 
 	public:
-		virtual void sampleLights(LightSampleStack& res, const Hit& hit, Math::Sampler & sampler, unsigned int i = 1)const
-		{
-			sampleLights(res, sampler, i);
-		}
 
-		virtual void sampleLight(SurfaceLightSample& res, const Hit& hit, Math::Sampler& sampler, unsigned int i = 0)const
+		virtual void sampleLight(SurfaceSample& res, const Hit& hit, Math::Sampler& sampler, unsigned int i = 0)const
 		{
 			sampleLight(res, sampler, i);
 		}

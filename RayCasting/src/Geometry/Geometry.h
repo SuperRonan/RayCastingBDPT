@@ -482,19 +482,7 @@ namespace Geometry
 
 	public:
 
-
-
-		virtual void sampleLights(LightSampleStack& res, Math::Sampler& sampler, unsigned int n=1)const override
-		{
-			for (unsigned int i = 0; i < n; ++i)
-			{
-				GeometryCollection::sampleLight(*(res.end()+i), sampler, i);
-			}
-			res.grow(n);
-		}
-
-
-		virtual void sampleLight(SurfaceLightSample& res, Math::Sampler& sampler, unsigned int i=0)const override
+		virtual void sampleLight(SurfaceSample& res, Math::Sampler& sampler, unsigned int i=0)const override
 		{
 			unsigned int offset = (m_offset + i) % m_divisions;
 			double rnd = sampler.generateContinuous<double>(offset, offset + 1) / double(m_divisions);
@@ -508,7 +496,7 @@ namespace Geometry
 			double pdf = 1.0 / surface();
 			
 			//TODO maybe use the interpolated normal
-			res = { pdf, this, tri.interpolateTextureCoordinate(uv[0], uv[1]), tri.normal(), point };
+			res = { pdf, this, &tri, tri.interpolateTextureCoordinate(uv[0], uv[1]), tri.normal(), point };
 		}
 
 

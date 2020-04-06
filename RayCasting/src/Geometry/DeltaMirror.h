@@ -78,22 +78,6 @@ namespace Geometry
 			return _BSDF(hit, wi, wo);
 		}
 
-
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& res, Math::Sampler& sampler)const override
-		{
-			DeltaMirror::sampleBSDF(hit, diffuse_samples, specular_samples, *res.end(), sampler);
-			res.grow();
-		}
-
-
-		virtual void BSDF(Hit const& hit, ColorStack& res, LightSampleStack const& wis)const override
-		{
-			for (SurfaceLightSample const& wi : wis)
-			{
-				res.push(_BSDF(hit, wi.vector, hit.to_view));
-			}
-		}
-
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
 			//or maybe always 0?

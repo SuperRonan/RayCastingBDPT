@@ -145,7 +145,7 @@ namespace Integrator
 				for (int sample = 0; sample < m_number_of_photons; ++sample)
 				{
 					Math::Sampler sampler(sample+offset);
-					SurfaceLightSample sls;
+					SurfaceSample sls;
 					sampleOneLight(scene, sampler, sls);
 					
 					DirectionSample dirSample = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
@@ -165,6 +165,10 @@ namespace Integrator
 							hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, dirSample, sampler, true);
 							beta *= dirSample.bsdf / dirSample.pdf * std::abs(dirSample.direction * hit.primitive_normal);
 							ray = { hit.point, dirSample.direction };
+						}
+						else
+						{
+							break;
 						}
 					}
 				}

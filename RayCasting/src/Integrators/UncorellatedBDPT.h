@@ -5,10 +5,12 @@
 #include <armadillo>
 #include <atomic>
 #include <Integrators/optimalmissolver.h>
+#include <Image/Image.h>
+#include <Image/ImWrite.h>
 
 namespace Integrator
 {
-	class OptiMISBDPT : public BidirectionalBase
+	class UncorellatedBDPT : public BidirectionalBase
 	{
 	protected:
 
@@ -173,7 +175,7 @@ namespace Integrator
 		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
 		///////////////////////////////////////////////
 		template <TransportMode MODE>
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_len)const
+		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_len, double & Pp)const
 		{
 			Hit hit;
 			double pdf_solid_angle = pdf;
@@ -192,6 +194,7 @@ namespace Integrator
 					const double cos_vertex = std::abs(hit.primitive_normal * ray.direction());
 					vertex = Vertex(Vertex::Type::Surface, beta * cos_vertex / dist2, hit, hit.geometry->getMaterial()->delta());
 					vertex.setPdfForward<MODE>(pdf_solid_angle * cos_vertex / dist2);
+					Pp *= vertex.pdfForward<MODE>();
 
 					//sample next direction
 
@@ -218,7 +221,7 @@ namespace Integrator
 			return nv;
 		}
 
-		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray const& ray)const
+		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray const& ray, int expected_len, double & Pt)const
 		{
 			res.grow();
 			Vertex& camera_vertex = res.top();
@@ -228,15 +231,20 @@ namespace Integrator
 			camera_vertex.setPdfForward<TransportMode::Importance>(1);
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
-
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), max_camera_len - 1);
-
+			Pt = 1;
 			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
+			if (expected_len == 1)
+				return 1;
+			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), expected_len - 1, Pt);
+
+			
 			return nv + 1;
 		}
 
-		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res)const
+		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, int expected_len, double & Ps)const
 		{
+			if (expected_len == 0)
+				return 0;
 			res.grow();
 			Vertex& light_vertex = res.top();
 			light_vertex.delta = false;
@@ -249,7 +257,7 @@ namespace Integrator
 			light_vertex.hit.normal = light_vertex.hit.primitive_normal = sls.normal;
 			light_vertex.hit.tex_uv = sls.uv;
 			light_vertex.hit.point = sls.vector;
-
+			Ps = sls.pdf;
 			light_vertex.setPdfForward<TransportMode::Radiance>(sls.pdf);
 			light_vertex.beta = 1.0;// / sls.pdf;
 
@@ -260,41 +268,42 @@ namespace Integrator
 			Ray ray(sls.vector, next_dir.direction);
 
 			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal);// / (sls.pdf * next_dir.pdf);
-
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), max_light_len-1);
+			if (expected_len == 1)
+				return 1;
+			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), expected_len - 1, Ps);
 
 			return 1 + nv;
 		}
 
 
 		template <class Solver>
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver> & solvers, double * pdfs)const
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver>& solvers, double* pdfs)const
 		{
 			VertexStack cameraSubPath, LightSubPath;
 
 			Ray ray = scene.m_camera.getRay(u, v);
 
-			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
-			traceLightSubPath(scene, sampler, LightSubPath);
-			double Pt = useLT ? 1 : cameraSubPath[0].pdfForward<TransportMode::Importance>();
 			int t_min = (useLT ? 1 : 2);
-			double s1_pdf;
 			for (int t = t_min; t <= max_camera_len; ++t)
 			{
-				Vertex* camera_top;
-				
-				if (t <= cameraSubPath.size())
-				{
-					camera_top = cameraSubPath.begin() + (t - 1);
-					Pt *= camera_top->pdfForward<TransportMode::Importance>();
-				}
-				double Ps = 1;
 				for (int s = 0; s <= max_light_len; ++s)
 				{
 					if (s + t > m_max_len)
 					{
 						break;
 					}
+					if (s + t == 1)
+						continue;
+					double Ps = 1, Pt = 1;
+					double s1_pdf;
+					cameraSubPath.reset();
+					LightSubPath.reset();
+					traceCameraSubPath(scene, sampler, cameraSubPath, ray, t, Pt);
+					traceLightSubPath(scene, sampler, LightSubPath, s, Ps);
+
+					assert(cameraSubPath.size() <= t);
+					assert(LightSubPath.size() <= s);
+
 					Math::Vector2f p = { u, v };
 					const int depth = s + t - 2;
 					bool zero = false;
@@ -310,9 +319,11 @@ namespace Integrator
 							continue;
 						}
 					}
-					if(!zero)
+					if (!zero)
 					{
-
+						Vertex* camera_top;
+						camera_top = cameraSubPath.begin() + (t - 1);
+						
 						if (s + t > m_max_len)
 						{
 							break;
@@ -356,14 +367,13 @@ namespace Integrator
 								light_resampled.beta = 1.0;
 								resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
 							}
-							else if(s == 2)
+							else if (s >= 2)
 							{
 								// BTW this assumes that the connecting loops are in the order t then s
-								s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point); 
+								s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);
 							}
 
-							Vertex * light_top = LightSubPath.begin() + s - 1;
-							Ps *= light_top->pdfForward<Radiance>();
+							Vertex* light_top = LightSubPath.begin() + s - 1;
 							if (camera_top->delta || light_top->delta)
 							{
 								zero = true;
@@ -451,7 +461,7 @@ namespace Integrator
 		// returns the sum of all the qi (= ni * pi)
 		////////////////////////////////////////////////////////////////
 		double computepdfs(
-			double * pdfs,
+			double* pdfs,
 			VertexStack& cameras, VertexStack& lights,
 			const Camera& camera,
 			const int main_s, const int main_t,
@@ -509,7 +519,7 @@ namespace Integrator
 					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
 					Ph *= camera_end.pdfReverse<TransportMode::Radiance>() / camera_end.pdfForward<TransportMode::Radiance>();
 
-					const double actual_Ph = s == 2 ? 
+					const double actual_Ph = s == 2 ?
 						Ph * s1_pdf / light_end->pdfForward<TransportMode::Radiance>() : Ph;
 
 					if (!(camera_end.delta || (light_end && light_end->delta)))
@@ -527,7 +537,7 @@ namespace Integrator
 			//expand the light subpath
 			{
 				double Ph = main_p;
-				int s = main_s+1;
+				int s = main_s + 1;
 				int t_min = (useLT ? 2 : 3);
 				for (int t = main_t; t >= t_min; --t)
 				{
@@ -559,7 +569,7 @@ namespace Integrator
 
 		const bool useLT = true;
 
-		OptiMISBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
+		UncorellatedBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			BidirectionalBase(sample_per_pixel, width, height),
 			max_camera_len(1),
 			max_light_len(1)
@@ -572,7 +582,7 @@ namespace Integrator
 		{
 			Integrator::setLen(d);
 			max_camera_len = d;
-			max_light_len = d-1;
+			max_light_len = d - 1;
 		}
 
 
@@ -605,15 +615,15 @@ namespace Integrator
 			std::vector<OptimalSolverImage> solvers;
 			//std::vector<OptimalSolverImagePBRT> solvers;
 			//std::vector<BalanceSolverImage> solvers;
-			
-			solvers.reserve(m_max_len-1);
+
+			solvers.reserve(m_max_len - 1);
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int num_tech = useLT ? len : len - 1;
 				solvers.emplace_back(num_tech, visu.width(), visu.height(), m_sample_per_pixel, useLT);
 			}
 			std::cout << omp_get_num_threads() << " threads" << std::endl;
-			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads()+16, std::vector<double>(m_max_len, 0.0));
+			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads() + 16, std::vector<double>(m_max_len, 0.0));
 
 
 			visu.clean();
@@ -646,7 +656,7 @@ namespace Integrator
 
 							computeSample(scene, u, v, sampler, solvers, pdfs_buffer);
 
-							
+
 						}//pixel x
 					}//pixel y
 
@@ -684,7 +694,7 @@ namespace Integrator
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int d = len - 2;
-				std::cout << d << " / " << m_max_len-2 << std::endl;
+				std::cout << d << " / " << m_max_len - 2 << std::endl;
 				solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;
@@ -708,7 +718,7 @@ namespace Integrator
 				}
 			}
 
-			
+
 		}
 
 

@@ -36,24 +36,6 @@ namespace Geometry
 			return 0;
 		}
 
-
-		///////////////////////////////////////
-		//this function computes a set of sampled direction according to the bsdf of the material
-		///////////////////////////////////////
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& out, Math::Sampler& sampler)const override
-		{
-
-		}
-
-
-		virtual void BSDF(Hit const& hit, ColorStack& res, LightSampleStack const& wis)const override
-		{
-			for (SurfaceLightSample const& wi : wis)
-			{
-				res.push(0);
-			}
-		}
-
 		virtual double pdf(const Hit & hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const  override
 		{
 			return Material::pdf(hit, wi, wo);

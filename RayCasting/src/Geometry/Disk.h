@@ -156,12 +156,7 @@ namespace Geometry
 			//todo
 		}
 
-		virtual void sampleLight(SurfaceLightSample& res, Math::Sampler& sampler, unsigned int i = 0)const
-		{
-
-		}
-
-		virtual void sampleLights(LightSampleStack& res, Math::Sampler& sampler, unsigned int n = 0)const
+		virtual void sampleLight(SurfaceSample& res, Math::Sampler& sampler, unsigned int i = 0)const
 		{
 
 		}

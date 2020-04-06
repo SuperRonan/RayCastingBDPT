@@ -134,16 +134,7 @@ namespace Geometry
 			check_capacity(div);
 		}
 
-		virtual void sampleLights(LightSampleStack& res, Math::Sampler & sampler, unsigned int n=1)const final override
-		{
-			for (unsigned int i = 0; i < n; ++i)
-			{
-				Sphere::sampleLight(*(res.end()+i), sampler, i+n);
-			}
-			res.grow(n);
-		}
-
-		virtual void sampleLight(SurfaceLightSample& res, Math::Sampler & sampler, unsigned int i = 0)const final override
+		virtual void sampleLight(SurfaceSample& res, Math::Sampler & sampler, unsigned int i = 0)const final override
 		{
 			unsigned int offset = (m_offset + i) % m_divisions;
 			//offset /= 2;
@@ -156,13 +147,13 @@ namespace Geometry
 			Math::Vector3f normal = Math::Vector3f::make_sphere(inclination, azimuth);
 			Math::Vector3f point = m_center + (normal * m_radius);
 			double pdf = 1.0 / surface();
-			res = { pdf, this, uv(normal, true), normal, point };
+			res = { pdf, this, this, uv(normal, true), normal, point };
 		}
 
 	protected:
 
 		//sample a point on the sphere that is visible from the point of he hit, according to the solid angle sampler
-		void _sampleLight(SurfaceLightSample& res, Math::SolidAngleSampler const& point_sampler, Math::Sampler & sampler, double _pdf, unsigned int i=0)const
+		void _sampleLight(SurfaceSample& res, Math::SolidAngleSampler const& point_sampler, Math::Sampler & sampler, double _pdf, unsigned int i=0)const
 		{
 			unsigned int offset = (m_offset + i) % m_divisions;
 			unsigned int m_sub_inclination = offset % m_azimuth_div;
@@ -171,31 +162,13 @@ namespace Geometry
 			double xi2 = (sampler.generateContinuous<double>(m_sub_azimuth, m_sub_azimuth + 1)) / double(m_azimuth_div);
 			Math::Vector3f normal = point_sampler.generate(xi1, xi2);
 			Math::Vector3f point = m_center + (normal * m_radius);
-			res = { _pdf, this, uv(normal, true), normal, point };
+			res = { _pdf, this, this, uv(normal, true), normal, point };
 		}
 
 	public: 
 
-
-		virtual void sampleLights(LightSampleStack& res, Hit const& hit, Math::Sampler& sampler, unsigned int n)const final override
-		{
-			const Math::Vector3f d = (hit.point - m_center);
-			const double dist = d.norm();
-			double cost = m_radius / dist;
-			const double theta = acos(cost);
-			Math::SolidAngleSampler sasampler(d / dist, theta, cost);
-			double pdf = 1.0 / (Math::twoPi * (1 - cost) * m_radius_2);
-			for (unsigned int i = 0; i < n; ++i)
-			{
-				SurfaceLightSample& sls = *(res.end() + i);
-				Sphere::_sampleLight(sls, sasampler, sampler, pdf, i + n);
-				assert(sls.normal * d >= 0);
-			}
-			res.grow(n);
-		}
-
 		
-		virtual void sampleLight(SurfaceLightSample& res, Hit const& hit, Math::Sampler& sampler, unsigned int i = 0)const final override
+		virtual void sampleLight(SurfaceSample& res, Hit const& hit, Math::Sampler& sampler, unsigned int i = 0)const final override
 		{
 			const Math::Vector3f cp = (m_center - hit.point);
 			const double dist2 = cp.norm2();
@@ -244,7 +217,7 @@ namespace Geometry
 			const Math::Vector3f sampled_normal = (sampled_point - m_center) / m_radius;
 			const double area_pdf = pdf_solid_angle * std::abs(sampled_dir * sampled_normal) / (t*t);
 
-			res = { area_pdf, this, uv(sampled_normal, true), sampled_normal, sampled_point};
+			res = { area_pdf, this, this, uv(sampled_normal, true), sampled_normal, sampled_point};
 		}
 
 		virtual double pdfSamplingPoint(Hit const& hit, Math::Vector3f const& point)const override

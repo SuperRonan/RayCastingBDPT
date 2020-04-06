@@ -46,6 +46,8 @@ namespace Geometry
 			m_sign[2] = m_direction[2]<0.0 ;
 		}
 
+		Ray() = default;
+
 		////////////////////////////////////////////////////////////////////////////////////////////////////
 		/// \fn	const Math::Vector3 & Ray::source() const
 		///

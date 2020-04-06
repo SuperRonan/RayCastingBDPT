@@ -110,49 +110,6 @@ namespace Geometry
 		}
 
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& res, Math::Sampler& sampler)const override
-		{
-			if (!m_specular.isBlack())
-			{
-				Math::Vector3f reflected = hit.primitive_reflected();
-				Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);
-				for (unsigned int i = 0; i < specular_samples; ++i)
-				{
-					DirectionSample out;
-					out.direction = direction_sampler.generate();
-					//TODO transparacy
-					double cosr = reflected * out.direction;
-					double cosd = hit.orientedPrimitiveNormal() * out.direction;
-					if (cosr <= 0)
-					{
-						cosr = -cosr;
-						out.direction = -out.direction;
-					}
-					if (cosd <= 0)
-					{
-						//the bsdf of the sample will be 0 anyway,
-						continue;
-					}
-					double bsdf = pow(cosr, m_shininess);
-					out.pdf = (m_shininess + 1) * bsdf / Math::twoPi;
-					out.bsdf = m_specular * bsdf;
-					//out.weight = 1;
-					res.push(out);
-				}
-			}
-		}
-
-
-		virtual void BSDF(Hit const& hit, ColorStack& res, LightSampleStack const& wis)const override
-		{
-			for (SurfaceLightSample const& wi : wis)
-			{
-				res.push(BSDF(hit, wi.vector, hit.to_view));
-			}
-		}
-
-
-
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
 			double c = hit.primitive_normal.reflect(wo) * wi;

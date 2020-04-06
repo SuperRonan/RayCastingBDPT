@@ -284,6 +284,71 @@ namespace Auto
 	}
 
 
+	void initComplexCausticCornell(Geometry::Scene& scene, size_t width, size_t height)
+	{
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
+
+		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, 1.3);
+		Geometry::Material* blurry = new Geometry::Lambertian<Geometry::LAMBERT_MODE::TRANSMIT>(0.9);
+
+		double light_size = 1;
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+
+		double scale = 5;
+
+		double ratio = (double)width / (double)height;
+		
+		for(double y : {0.0})
+		{
+			Geometry::Square* up_light = new Geometry::Square(light);
+			up_light->scale(scale * 0.2 * light_size);
+			up_light->scaleY(ratio);
+			up_light->translate({ 0, y*scale, scale / 2 - 0.001 });
+			scene.add(up_light);
+		}
+
+		{
+			Geometry::Square* ground = new Geometry::Square(white, Math::Vector3f(0, 0, -0.5) * scale, Math::Vector3f(scale, 0, 0), Math::Vector3f(0, ratio * scale, 0));
+			scene.add(ground);
+
+			Geometry::Square* ceiling = new Geometry::Square(white, Math::Vector3f(0, 0, 0.5) * scale, Math::Vector3f(scale, 0, 0), Math::Vector3f(0, ratio * scale, 0));
+			scene.add(ceiling);
+
+			Geometry::Square* left = new Geometry::Square(red, Math::Vector3f(0, ratio / 2.0 * scale, 0), Math::Vector3f(scale, 0, 0), Math::Vector3f(0, 0, scale));
+			scene.add(left);
+
+			Geometry::Square* right = new Geometry::Square(green, Math::Vector3f(0, -ratio / 2.0 * scale, 0), Math::Vector3f(scale, 0, 0), Math::Vector3f(0, 0, scale));
+			scene.add(right);
+
+			Geometry::Square* front = new Geometry::Square(white, Math::Vector3f(0.5 * scale, 0, 0), Math::Vector3f(0, ratio * scale, 0), Math::Vector3f(0, 0, scale));
+			scene.add(front);
+		}
+		
+		Geometry::Material* cube_mats[] = { glass, blurry};
+		double cube_size = 0.3;
+		Math::Vector3f centers[] = { Math::Vector3f(0.0, 0.2, -0.4 + cube_size/2), Math::Vector3f(0.0, -0.2, -0.4 + cube_size / 2) };
+		double radii[] = { 0.4, 0.49 };
+		for (int i = 0; i < 2; ++i)
+		{
+			Geometry::Cube* cube = new Geometry::Cube(cube_mats[i], centers[i] * scale, Math::Vector3f(scale * cube_size, 0, 0), Math::Vector3f(0, scale * cube_size, 0), Math::Vector3f(0, 0, scale * cube_size));
+			scene.add(cube);
+
+			Geometry::Sphere sphere = Geometry::Sphere(centers[i] * scale, cube_size * radii[i] * scale, orange);
+			scene.add(sphere);
+		}
+
+		Geometry::Camera camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f);
+		scene.setCamera(camera);
+	}
+
 
 
 

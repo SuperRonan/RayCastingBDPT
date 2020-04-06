@@ -104,12 +104,6 @@ namespace Geometry
 			return 0;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& out, Math::Sampler& sampler)const
-		{
-			sampleBSDF(hit, diffuse_samples, specular_samples, out.top(), sampler);
-			out.grow();
-		}
-
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const
 		{
 			return 0;

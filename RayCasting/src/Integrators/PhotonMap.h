@@ -15,12 +15,16 @@ namespace Integrator
 	public:
 		Math::Vector<Float, 3> point()const;
 	};
-
+	struct PhotonId
+	{
+		unsigned int cell = 0;
+		unsigned int id = 0;
+	};
 	template <class PhotonType, class Float=double>
 	class PhotonMap
 	{
-	protected:
-
+	public:
+		
 		template <class T>
 		using Collection = std::vector<T>;
 
@@ -96,13 +100,21 @@ namespace Integrator
 				cell_index[2] >= 0 && cell_index[2] < m_size[2];
 		}
 
-		void addPhoton(PhotonType const& photon)
+		PhotonId addPhoton(PhotonType const& photon)
 		{
-			int id = index(photon.point());
-			Collection<PhotonType>& list = m_map[id];
+			PhotonId res;
+			res.cell = index(photon.point());
+			Collection<PhotonType>& list = m_map[res.cell];
 			m_mutex.lock();
-			list.push_back(photon);
+			list.push_back(std::move(photon));
+			res.id = list.size() - 1;
 			m_mutex.unlock();
+			return res;
+		}
+
+		PhotonType const& operator[](PhotonId const& id)const
+		{
+			return m_map[id.cell][id.id];
 		}
 
 		void buildDone()

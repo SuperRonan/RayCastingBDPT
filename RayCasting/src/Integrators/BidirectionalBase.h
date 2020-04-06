@@ -10,6 +10,11 @@ namespace Integrator
 	protected:
 		Image::Image < RGBColor, Image::IMAGE_ROW_MAJOR> m_frame_buffer;
 
+		void resizeFrameBuffer(size_t w, size_t h)
+		{
+			m_frame_buffer.resize(w, h);
+		}
+
 		struct LightVertex {
 			RGBColor light;
 			Math::Vector2f uv;

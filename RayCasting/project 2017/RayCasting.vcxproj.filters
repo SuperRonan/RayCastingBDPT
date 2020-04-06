@@ -336,6 +336,15 @@
     <ClInclude Include="..\src\Integrators\ProgressivePhotonMapper.h">
       <Filter>src\Integrators</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\SimpleVCM.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\UncorellatedBDPT.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Sample.h">
+      <Filter>src\Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

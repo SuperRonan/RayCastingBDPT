@@ -694,7 +694,8 @@ public:
 	// // Returns the avg of the estimates already computed for the progressive
 	// estimator //
 	////////////////////////////////////////////////////////////////////////////////////
-	void DevelopFilm(Film* film, int numIterations)
+	template <bool MAJOR>
+	void DevelopFilm(Image::Image<RGBColor, MAJOR>* film, int numIterations)
 	{
 		if (useDirect) {
 

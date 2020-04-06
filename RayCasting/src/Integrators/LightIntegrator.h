@@ -60,7 +60,7 @@ namespace Integrator
 		{
 			// The fist sample can be drawn with the information of the camera
 			{
-				SurfaceLightSample light_point;
+				SurfaceSample light_point;
 				Hit camera_hit;
 				camera_hit.point = scene.m_camera.m_position;
 				sampleOneLight(scene, camera_hit, sampler, light_point);
@@ -75,7 +75,7 @@ namespace Integrator
 			}
 
 			//first, sample a point a light
-			SurfaceLightSample light_point;
+			SurfaceSample light_point;
 			sampleOneLight(scene, sampler, light_point);
 
 

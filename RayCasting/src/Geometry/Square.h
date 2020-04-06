@@ -67,16 +67,7 @@ namespace Geometry
 			check_capacity(div);
 		}
 
-		virtual void sampleLights(LightSampleStack& res, Math::Sampler & sampler, unsigned int n = 1)const override
-		{
-			for (unsigned int i = 0; i < n; ++i)
-			{
-				Square::sampleLight(*(res.end()+i), sampler, i);
-			}
-			res.grow(n);
-		}
-
-		virtual void sampleLight(SurfaceLightSample& res, Math::Sampler & sampler, unsigned int i=0)const override
+		virtual void sampleLight(SurfaceSample& res, Math::Sampler & sampler, unsigned int i=0)const override
 		{
 			
 			unsigned int offset = (m_offset + i) % m_divisions;
@@ -91,9 +82,10 @@ namespace Geometry
 			double v = (double(index_v) + sub_v) / double(m_v_div);
 
 
+			const Triangle* tri = u + v > 1 ? &m_triangles[1] : &m_triangles[0];
 			Math::Vector3f u_axis = (m_vertices[1] - m_vertices[0]), v_axis = (m_vertices[2] - m_vertices[0]);
 			Math::Vector3f point = m_vertices[0] + u_axis * u + v_axis * v;
-			res = { 1.0 / surface(), this, {u, v}, GeometryCollection::m_triangles[0].normal(), point };
+			res = { 1.0 / surface(), this, tri, {u, v}, GeometryCollection::m_triangles[0].normal(), point };
 			
 		}
 
