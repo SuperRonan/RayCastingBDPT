@@ -45,16 +45,16 @@ namespace Geometry
 			}
 
 			{//up
-				Square sq1(material, origin, u, v);
-				sq1.translate(-w/2);
-				sq1.rotate(Math::Quaternion<double>(Math::makeVector(1.0f, 0.0f, 0.0f), (double)M_PI));
+				Square sq1(material, origin, v, u);
+				sq1.translate(w/2);
+				//sq1.rotate(Math::Quaternion<double>(Math::makeVector(1.0f, 0.0f, 0.0f), (double)M_PI));
 				merge(sq1);
 			}
 
 			{//right
-				Square sq2(material, origin, u, w);
-				sq2.translate(v/2);
-				sq2.rotate(Math::Quaternion<double>(Math::makeVector(1.0f, 0.0f, 0.0f), (double)M_PI));
+				Square sq2(material, origin, w, u);
+				sq2.translate(-v/2);
+				//sq2.rotate(Math::Quaternion<double>(Math::makeVector(1.0f, 0.0f, 0.0f), (double)M_PI));
 				merge(sq2);
 			}
 
@@ -73,9 +73,9 @@ namespace Geometry
 			}
 
 			{//back
-				Square sq5(material, origin, v, w);
-				sq5.translate(-u/2);
-				sq5.rotate(Math::Quaternion<double>(Math::makeVector(0.0f, 1.0f, 0.0f), (double)M_PI));
+				Square sq5(material, origin, w, v);
+				sq5.translate(u/2);
+				//sq5.rotate(Math::Quaternion<double>(Math::makeVector(0.0f, 1.0f, 0.0f), (double)M_PI));
 				merge(sq5);
 			}
 			//ca marche peu
