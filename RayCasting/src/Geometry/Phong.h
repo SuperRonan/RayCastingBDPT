@@ -24,14 +24,14 @@ namespace Geometry
 			return PHONG_ID_COLOR;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false)const override
 		{
-			Material::sampleBSDF(hit, diffuse_samples, specular_samples, out, sampler);
+			Material::sampleBSDF(hit, out, sampler);
 			return;
 		}
 
 
-		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
 			return 0;
 		}

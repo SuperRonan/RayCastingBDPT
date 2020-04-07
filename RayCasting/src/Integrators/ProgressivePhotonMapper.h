@@ -185,7 +185,7 @@ namespace Integrator
 									m_map.addPhoton(imp);
 								}
 								DirectionSample dirSample;
-								hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, dirSample, sampler, true);
+								hit.geometry->getMaterial()->sampleBSDF(hit, dirSample, sampler, true);
 								beta *= dirSample.bsdf / dirSample.pdf * std::abs(dirSample.direction * hit.primitive_normal);
 								ray = { hit.point, dirSample.direction };
 							}
@@ -241,7 +241,7 @@ namespace Integrator
 						addImportons(beta, hit, len);
 					}
 
-					hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, ds, sampler, true);
+					hit.geometry->getMaterial()->sampleBSDF(hit, ds, sampler, true);
 					beta *= ds.bsdf / ds.pdf * std::abs(ds.direction * hit.primitive_normal);
 					ray = { hit.point, ds.direction };
 				}

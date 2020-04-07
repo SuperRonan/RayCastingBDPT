@@ -174,7 +174,7 @@ namespace Integrator
 							double pdf_area = pdf_solid_angle * std::abs(hit.primitive_normal * ray.direction()) / (hit.z * hit.z);
 							prod_pdf *= pdf_area;
 
-							hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, dirSample, sampler, true);
+							hit.geometry->getMaterial()->sampleBSDF(hit, dirSample, sampler, true);
 							{
 								Photonf photon = { hit, (uint8_t)(len), beta / ((double)m_number_of_photons) };
 								photon.pdfProd = prod_pdf;
@@ -220,7 +220,7 @@ namespace Integrator
 					if (hit.geometry->getMaterial()->spicky())
 					{
 						DirectionSample ds;
-						hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, ds, sampler);
+						hit.geometry->getMaterial()->sampleBSDF(hit, ds, sampler);
 						ray = { hit.point, ds.direction };
 						beta *= ds.bsdf / ds.pdf * std::abs(ds.direction * hit.primitive_normal);
 					}
@@ -280,7 +280,7 @@ namespace Integrator
 					pt_res += beta * connectToLight(scene, hit, sampler, path_pdf);
 					
 					DirectionSample ds;
-					hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, ds, sampler);
+					hit.geometry->getMaterial()->sampleBSDF(hit, ds, sampler);
 					beta *= ds.bsdf / ds.pdf * std::abs(hit.normal * ds.direction);
 					ray = { hit.point, ds.direction };
 					double pdf_solid_angle = ds.pdf;

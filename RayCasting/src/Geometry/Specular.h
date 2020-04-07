@@ -76,7 +76,7 @@ namespace Geometry
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
 		{
 			Math::Vector3f reflected = hit.primitive_reflected();
 			Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);
@@ -104,7 +104,7 @@ namespace Geometry
 			out.bsdf = m_specular * bsdf;
 		}
 
-		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
 			return _BSDF(hit, wi, wo);
 		}

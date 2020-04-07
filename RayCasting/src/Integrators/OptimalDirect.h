@@ -93,7 +93,7 @@ namespace Integrator
 			{
 				Hit light_hit;
 				DirectionSample dir;
-				material.sampleBSDF(hit, 1, 1, dir, sampler);
+				material.sampleBSDF(hit, dir, sampler);
 
 				RGBColor f = L(scene, Ray(hit.point, dir.direction), sampler, light_hit) * dir.bsdf * std::abs(dir.direction * hit.primitive_normal);
 

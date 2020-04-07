@@ -99,7 +99,7 @@ namespace Integrator
 					if (xi < m_alpha)
 					{
 						DirectionSample next_dir;
-						hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, next_dir, sampler);
+						hit.geometry->getMaterial()->sampleBSDF(hit, next_dir, sampler);
 						T *= next_dir.bsdf * std::abs(hit.primitive_normal * next_dir.direction) / next_dir.pdf / m_alpha;
 						ray = Ray(hit.point, next_dir.direction);
 						dir_pdf = next_dir.pdf;

@@ -192,7 +192,7 @@ namespace Integrator
 					//sample next direction
 
 					DirectionSample next_dir;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, 1, 1, next_dir, sampler, MODE==TransportMode::Radiance);
+					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE==TransportMode::Radiance);
 
 					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
 					prev->pdfReverse<MODE>() = next_dir.pdf * cos_prev / dist2;
@@ -351,7 +351,7 @@ namespace Integrator
 						else
 						{
 							//general case
-							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir);
+							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir, false);
 							G *= std::abs(camera_top.hit.primitive_normal * dir);
 						}
 
@@ -363,7 +363,7 @@ namespace Integrator
 						else
 						{
 							//general case
-							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir);
+							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir, true);
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;

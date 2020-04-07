@@ -40,7 +40,7 @@ namespace Integrator
 					else
 					{
 						DirectionSample next_dir;
-						material.sampleBSDF(hit, m_diffuse_samples, m_specular_samples, next_dir, sampler);
+						material.sampleBSDF(hit, next_dir, sampler);
 
 						ray = Ray(hit.point, next_dir.direction);
 						T *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal) / next_dir.pdf;

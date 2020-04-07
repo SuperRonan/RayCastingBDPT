@@ -162,7 +162,7 @@ namespace Integrator
 								m_map.addPhoton(photon);
 							}
 
-							hit.geometry->getMaterial()->sampleBSDF(hit, 1, 1, dirSample, sampler, true);
+							hit.geometry->getMaterial()->sampleBSDF(hit, dirSample, sampler, true);
 							beta *= dirSample.bsdf / dirSample.pdf * std::abs(dirSample.direction * hit.primitive_normal);
 							ray = { hit.point, dirSample.direction };
 						}
@@ -220,7 +220,7 @@ namespace Integrator
 						Hit subhit = hit;
 						RGBColor subbeta = beta;
 						DirectionSample next_dir;
-						material.sampleBSDF(subhit, 1, 1, next_dir, sampler, false);
+						material.sampleBSDF(subhit, next_dir, sampler, false);
 						ray = { subhit.point, next_dir.direction };
 						subbeta *= next_dir.bsdf / next_dir.pdf * std::abs(next_dir.direction * subhit.primitive_normal);
 						for (int sublen = 3; sublen <= m_max_len; ++sublen)
@@ -231,7 +231,7 @@ namespace Integrator
 								subres += subbeta * submaterial.Le(subhit.facing, subhit.tex_uv);
 								if (submaterial.spicky())
 								{
-									submaterial.sampleBSDF(subhit, 1, 1, next_dir, sampler, false);
+									submaterial.sampleBSDF(subhit, next_dir, sampler, false);
 									ray = { subhit.point, next_dir.direction };
 									subbeta *= next_dir.bsdf / next_dir.pdf * std::abs(next_dir.direction * subhit.primitive_normal);
 								}
