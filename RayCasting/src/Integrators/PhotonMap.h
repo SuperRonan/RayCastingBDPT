@@ -156,5 +156,54 @@ namespace Integrator
 			}
 		}
 
+		template <class Function>
+		__forceinline void loopThroughPhotons(const Function& function, Math::Vector<Float, 3> const& point)
+		{
+			const Math::Vector<int, 3> ijk = cell_index(point);
+			for (int i = -1; i <= 1; ++i)
+			{
+				for (int j = -1; j <= 1; ++j)
+				{
+					for (int k = -1; k <= 1; ++k)
+					{
+						const Math::Vector<int, 3> cell = ijk + Math::Vector<int, 3>(i, j, k);
+						if (insideMap(cell))
+						{
+							Collection<PhotonType>& photons = m_map[index_int(cell)];
+							for (PhotonType & photon : photons)
+							{
+								function(photon);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		template <class Function>
+		__forceinline void loopThroughPhotons(const Function& function, Math::Vector<Float, 3> const& point, Float custom_radius)const
+		{
+			Math::Vector<int, 3> range = Math::Vector<Float, 3>(custom_radius).simdDiv(m_cell_size).ceil();
+			const Math::Vector<int, 3> ijk = cell_index(point);
+			for (int i = -range[0]; i <= range[0]; ++i)
+			{
+				for (int j = -range[1]; j <= range[1]; ++j)
+				{
+					for (int k = -range[2]; k <= range[2]; ++k)
+					{
+						const Math::Vector<int, 3> cell = ijk + Math::Vector<int, 3>(i, j, k);
+						if (insideMap(cell))
+						{
+							const Collection<PhotonType>& photons = m_map[index_int(cell)];
+							for (PhotonType const& photon : photons)
+							{
+								function(photon);
+							}
+						}
+					}
+				}
+			}
+		}
+
 	};
 }

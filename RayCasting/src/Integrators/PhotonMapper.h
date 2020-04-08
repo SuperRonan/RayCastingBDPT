@@ -124,7 +124,7 @@ namespace Integrator
 
 			m_radius = max_dir * m_relative_radius;
 			m_radius2 = m_radius * m_radius;
-			Math::Vector3f m_pixel_size = m_radius * 2.0;
+			Math::Vector3f m_pixel_size = m_radius;
 			Vector3f sizef = dim.simdDiv(m_pixel_size);
 			Vector3i m_size = sizef.ceil();
 

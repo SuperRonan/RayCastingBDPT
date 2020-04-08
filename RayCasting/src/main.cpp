@@ -1366,7 +1366,7 @@ int main(int argc, char ** argv)
 		return Auto::Auto::__main__(argc, argv);
 	}
 
-
+	
 
 	int nthread = 4*2*2;
 	omp_set_num_threads(nthread);
@@ -1398,13 +1398,13 @@ int main(int argc, char ** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	
 	//Auto::initBlackHole(scene, visu.width(), visu.height());
@@ -1439,10 +1439,10 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 10;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
@@ -1458,8 +1458,8 @@ int main(int argc, char ** argv)
 	scene.check_capacity();
 
 
-	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderOption render_option = RenderOption::Pass;
+	RenderMode render_mode = RenderMode::ProgressivePhotonMapper;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
@@ -1468,7 +1468,7 @@ int main(int argc, char ** argv)
 
 	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.01, 1000000);
 	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
-	((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000000);
+	((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
 
 	std::cout << help_message << std::endl;
 

@@ -17,6 +17,10 @@ namespace Integrator
 
 		Image::Image<RGBColor> m_frame;
 
+		Image::Image<std::mutex> m_mutex;
+
+		Image::Image<PhotonId> m_importons_index;
+
 		void showFrame(Visualizer::Visualizer& visu, size_t total)const
 		{
 			if (visu.visible())
@@ -52,7 +56,12 @@ namespace Integrator
 			uint8_t m_depth;
 			Math::Vector<Float, 3> m_dir;
 			Float m_beta[3];
+			
 			int m_pixel;
+
+			Float m_radius;
+			int NdivbyAlpha;
+			Float m_tau[3];
 
 			Importon(Hit const& hit, uint8_t depth, RGBColor const& beta, int pixel) :
 				m_primitive(hit.primitve),
@@ -93,6 +102,21 @@ namespace Integrator
 				return m_point;
 			}
 
+			Vector3f pnormal()const
+			{
+				return m_primitive->normal(m_point, m_primitive->tuv(m_primitive->uv(m_point)));
+			}
+
+			RGBColor tau()const
+			{
+				return RGBColor(m_tau[0], m_tau[1], m_tau[2]);
+			}
+
+			void setTau(RGBColor const& t)
+			{
+				for (int i = 0; i < 3; ++i)
+					m_tau[i] = t[i];
+			}
 		};
 
 		using Importonf = Importon<PhotonFloat>;
@@ -108,14 +132,8 @@ namespace Integrator
 
 		unsigned int m_spicky_samples;
 
-		double m_alpha, m_beta;
 
-		double kernel(double dist2)const
-		{
-			return 1.0 / (Math::pi * m_radius2);
-			double dist = std::sqrt(dist2);
-			return m_alpha - dist * m_beta;
-		}
+		double m_alpha = 0.9;
 
 	public:
 
@@ -136,14 +154,11 @@ namespace Integrator
 
 			m_radius = max_dir * m_relative_radius;
 			m_radius2 = m_radius * m_radius;
-			Math::Vector3f m_pixel_size = m_radius * 2.0;
+			Math::Vector3f m_pixel_size = m_radius;
 			Vector3f sizef = dim.simdDiv(m_pixel_size);
 			Vector3i m_size = sizef.ceil();
 
 			m_map.init(m_bb, m_size);
-
-			m_alpha = 3.0 / (Math::pi * m_radius2);
-			m_beta = 3.0 / (Math::pi * m_radius2 * m_radius);
 
 			m_number_of_photons = pcount;
 
@@ -179,10 +194,16 @@ namespace Integrator
 								{
 									m_frame[index] += beta * hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
 								}
-								if (!hit.geometry->getMaterial()->spicky())
+								if (!hit.geometry->getMaterial()->delta())
 								{
 									Importonf imp = Importonf(hit, len - 2, beta, index);
-									m_map.addPhoton(imp);
+									imp.m_radius = m_radius;
+									imp.setTau(0);
+									imp.NdivbyAlpha = 0;
+									
+									PhotonId map_index = m_map.addPhoton(imp);
+									m_importons_index[index] = map_index;
+									break;
 								}
 								DirectionSample dirSample;
 								hit.geometry->getMaterial()->sampleBSDF(hit, dirSample, sampler, true);
@@ -198,22 +219,35 @@ namespace Integrator
 			m_map.buildDone();
 		}
 
-		void addImportons(RGBColor const& beta, Hit const& hit, int len)
+		void updateImportons(RGBColor const& beta, Hit const& hit, int len)
 		{
-			m_map.loopThroughPhotons([&](Importonf const& imp) {
+			m_map.loopThroughPhotons([&](Importonf & imp) {
 				int path_len = imp.m_depth + 2 + len - 1;
 				if (path_len <= m_max_len)
 				{
+					double radius = imp.m_radius;
+					double radius2 = radius * radius;
 					const Vector3f d = hit.point - imp.m_point;
 					const double dist2 = d.norm2();
-					if (dist2 < m_radius2)
+					if (dist2 < radius2)
 					{
 						const Geometry::Material* mat = imp.m_primitive->geometry()->getMaterial();
 						if (mat == hit.geometry->getMaterial())
 						{
-							const double k = kernel(dist2);
-							RGBColor contrib = beta * imp.beta() * mat->BSDF(hit, imp.m_dir, hit.to_view) * k;
-							m_frame[imp.m_pixel] += contrib / (double)m_number_of_photons;
+							//m_mutex[imp.m_pixel].lock();
+							RGBColor tau = beta * mat->BSDF(hit, imp.m_dir, hit.to_view);
+							RGBColor itau = imp.tau();
+
+							double g = (imp.NdivbyAlpha*m_alpha+m_alpha) / (imp.NdivbyAlpha*m_alpha+1.0);
+							RGBColor new_tau = (itau + tau) * g;
+							double new_radius = radius * g;
+
+							imp.NdivbyAlpha++;
+							imp.setTau(new_tau);
+							imp.m_radius = new_radius;
+
+							
+							//m_mutex[imp.m_pixel].unlock();
 						}
 					}
 				}
@@ -238,7 +272,7 @@ namespace Integrator
 				{
 					if (!hit.geometry->getMaterial()->spicky())
 					{
-						addImportons(beta, hit, len);
+						updateImportons(beta, hit, len);
 					}
 
 					hit.geometry->getMaterial()->sampleBSDF(hit, ds, sampler, true);
@@ -251,6 +285,8 @@ namespace Integrator
 		void render(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
 			resizeFrameBuffer(visu.width(), visu.height());
+			m_mutex.resize(visu.width(), visu.height());
+			m_importons_index.resize(visu.width(), visu.height());
 			m_frame.fill(0);
 
 			// 1 - Rendering time
@@ -266,13 +302,14 @@ namespace Integrator
 			const size_t number_of_pixels = m_frame.size();
 			const size_t sample_pass = number_of_pixels;
 			size_t pass = 0;
+			m_map.init();
+			buildMap(scene, m_frame.size() * 0);
 			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
 			{
-
+				//m_frame.fill(0);
 				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
 
-				m_map.init();
-				buildMap(scene, m_frame.size() * passPerPixelCounter);
+				
 
 				OMP_PARALLEL_FOR
 					for (int p = 0; p < m_number_of_photons; ++p)
@@ -280,6 +317,13 @@ namespace Integrator
 						Math::Sampler sampler(p + m_number_of_photons * passPerPixelCounter);
 						sendPhoton(scene, sampler);
 					}
+
+				OMP_PARALLEL_FOR
+				for (int i = 0; i < m_importons_index.size(); ++i)
+				{
+					Importonf imp = m_map[m_importons_index[i]];
+					m_frame[i] = imp.beta() * imp.tau() / (Math::pi * imp.m_radius * imp.m_radius * m_number_of_photons);
+				}
 				
 				showFrame(visu, passPerPixelCounter+1);
 				++pass;
@@ -299,6 +343,7 @@ namespace Integrator
 				{
 					Image::ImWrite::write(m_frame, 1.0 / (double)passPerPixelCounter);
 				}
+				
 
 			}//pass per pixel
 		__render__end__loop__:

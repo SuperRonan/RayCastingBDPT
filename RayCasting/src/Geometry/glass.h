@@ -216,6 +216,10 @@ namespace Geometry
 			else
 				out.bsdf *= 1.0 / std::abs(out.direction * normal);
 
+			RGBColor bsdf = BSDF(hit, out.direction, hit.to_view), bsdf_r = BSDF(hit, hit.to_view, out.direction);
+			double _pdf = out.pdf, _pdfr = pdf(hit, hit.to_view, out.direction);
+			if (std::abs(_pdf - _pdfr) > 0.0000001)
+				__debugbreak();
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
