@@ -220,12 +220,121 @@ namespace Geometry
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
-			return 0;
+			double scaling = (m_shininess + 1) / Math::twoPi;
+			Math::Vector3f normal = hit.normal; if (wo * normal < 0) normal = -normal;
+			bool entering = hit.facing;
+			double n1 = 1, n2 = m_eta;
+			if (!entering)	std::swap(n1, n2);
+
+			double cos_theta = std::abs(wo * normal);
+			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
+
+			bool reflect = sin_theta != 0;
+
+			if (!reflect)
+			{
+				double cos_t = wi * -normal;
+				double f = scaling * std::pow(cos_t, m_shininess);
+				RGBColor res = m_albedo * f;
+				if (RADIANCE)
+					res *= 1.0 / std::abs(normal * wo);
+				return res;
+			}
+
+			double eta_ratio = n1 / n2;
+			double next_sin_theta = eta_ratio * sin_theta;
+
+			bool transmit = next_sin_theta < 1;
+
+			const Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
+
+			RGBColor res;
+			if (transmit) // and reflects
+			{
+				const Math::Vector3f tg = (wo - normal * cos_theta) / (sin_theta);
+				double next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
+				const Math::Vector3f transmited = normal * (-next_cos_theta) + tg * (-next_sin_theta);
+
+				double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
+				double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+				double fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
+
+				bool has_reflected = wi * normal > 0;
+				double cfr = std::max(reflected * wi, 0.0);
+				double cft = std::max(transmited * wi, 0.0);
+
+				double pfr = std::pow(cfr, m_shininess);
+				double pft = std::pow(cft, m_shininess);
+
+				res = m_albedo * (has_reflected ? pfr * fresnel_reflectance : pft * (1 - fresnel_reflectance)) * scaling;
+			}
+			else // only reflects
+			{
+				double cos_reflected = reflected * wi;
+				double f = scaling * std::pow(cos_reflected, m_shininess);
+				res = m_albedo * f;
+			}
+
+			if (RADIANCE)
+				res *= 1.0 / std::abs(normal * wo);
+			else
+				res *= 1.0 / std::abs(wi * normal);
+			return res;
 		}
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			return 0;
+			double scaling = (m_shininess + 1) / Math::twoPi;
+			Math::Vector3f normal = hit.normal; if (wo * normal < 0) normal = -normal;
+			bool entering = hit.facing;
+			double n1 = 1, n2 = m_eta;
+			if (!entering)	std::swap(n1, n2);
+
+			double cos_theta = std::abs(wo * normal);
+			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
+
+			bool reflect = sin_theta != 0;
+
+			if (!reflect)
+			{
+				double cos_t = wi * -normal;
+				double f = scaling * std::pow(cos_t, m_shininess);
+				return f;
+			}
+
+			double eta_ratio = n1 / n2;
+			double next_sin_theta = eta_ratio * sin_theta;
+
+			bool transmit = next_sin_theta < 1;
+
+			const Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
+
+			RGBColor res;
+			if (transmit) // and reflects
+			{
+				const Math::Vector3f tg = (wo - normal * cos_theta) / (sin_theta);
+				double next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
+				const Math::Vector3f transmited = normal * (-next_cos_theta) + tg * (-next_sin_theta);
+
+				double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
+				double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+				double fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
+				double pdf_reflect = fresnel_reflectance;
+				bool has_reflected = wi * normal > 0;
+				double cfr = std::max(reflected * wi, 0.0);
+				double cft = std::max(transmited * wi, 0.0);
+
+				double pfr = std::pow(cfr, m_shininess);
+				double pft = std::pow(cft, m_shininess);
+
+				return (pfr * pdf_reflect + pft * (1 - pdf_reflect)) * scaling;
+			}
+			else // only reflects
+			{
+				double cos_reflected = reflected * wi;
+				double f = scaling * std::pow(cos_reflected, m_shininess);
+				return f;
+			}
 		}
 
 	};

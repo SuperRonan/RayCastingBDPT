@@ -297,10 +297,10 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Specular(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.3);
-		Geometry::Material* blurry_glass = new Geometry::GlossyGlass({ 1, 1, 1 }, 1.3, 1000);
+		Geometry::Material* blurry_glass = new Geometry::GlossyGlass({ 1, 1, 1 }, 1.3, 100);
 		Geometry::Material* wax = new Geometry::Lambertian<Geometry::LAMBERT_MODE::TRANSMIT>(0.9);
 
-		double light_size = 0.25;
+		double light_size = 0.025;
 		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
 
 		double scale = 5;
