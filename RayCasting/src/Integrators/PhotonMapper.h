@@ -74,6 +74,10 @@ namespace Integrator
 				return m_point;
 			}
 
+			Vector3f pnormal()const
+			{
+				return m_primitive->normal(m_point, m_primitive->tuv(m_primitive->uv(m_point)));
+			}
 		};
 
 		using Photonf = Photon<PhotonFloat>;
@@ -185,14 +189,10 @@ namespace Integrator
 				{
 					const Vector3f d = hit.point - photon.m_point;
 					const double dist2 = d.norm2();
-					if (dist2 < m_radius2)
+					if (dist2 < m_radius2 && std::abs(hit.primitive_normal * photon.pnormal()) > 0.8)
 					{
-						const Geometry::Material* mat = photon.m_primitive->geometry()->getMaterial();
-						if (mat == hit.geometry->getMaterial())
-						{
-							const double k = kernel(dist2);
-							photons_contrib += photon.beta() * mat->BSDF(hit, photon.m_dir, hit.to_view) * k;
-						}
+						const double k = kernel(dist2);
+						photons_contrib += photon.beta() * hit.geometry->getMaterial()->BSDF(hit, photon.m_dir, hit.to_view) * k;
 					}
 				}
 				}, hit.point);

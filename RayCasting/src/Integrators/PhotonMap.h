@@ -5,6 +5,7 @@
 #include <Math/Vectorf.h>
 #include <Geometry/BoundingBox.h>
 #include <functional>
+#include <limits>
 
 namespace Integrator
 {
@@ -19,6 +20,23 @@ namespace Integrator
 	{
 		unsigned int cell = 0;
 		unsigned int id = 0;
+
+		static constexpr PhotonId invalid()
+		{
+			PhotonId res;
+			res.cell = res.id = std::numeric_limits<unsigned int>::max();
+			return res;
+		}
+
+		bool isInvalid()const
+		{
+			return cell == std::numeric_limits<unsigned int>::max() && id == std::numeric_limits<unsigned int>::max();
+		}
+
+		bool isValid()const
+		{
+			return cell != std::numeric_limits<unsigned int>::max() || id != std::numeric_limits<unsigned int>::max();
+		}
 	};
 	template <class PhotonType, class Float=double>
 	class PhotonMap
@@ -113,6 +131,11 @@ namespace Integrator
 		}
 
 		PhotonType const& operator[](PhotonId const& id)const
+		{
+			return m_map[id.cell][id.id];
+		}
+
+		PhotonType & operator[](PhotonId const& id)
 		{
 			return m_map[id.cell][id.id];
 		}
