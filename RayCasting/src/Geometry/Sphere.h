@@ -93,7 +93,8 @@ namespace Geometry
 
 		Math::Vector2f uv(Math::Vector3f const& point)const final override
 		{
-			return uv((point - m_center).normalized());
+			Math::Vector3f normal = (point - m_center).normalized();
+			return uv(normal, true);
 		}
 
 		Math::Vector2f tuv(Math::Vector2f const& uv)const final override
