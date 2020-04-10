@@ -199,7 +199,7 @@ namespace Integrator
 					//sample next direction
 
 					DirectionSample next_dir;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler);
+					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE == TransportMode::Radiance);
 
 					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
 					prev->pdfReverse<MODE>() = next_dir.pdf * cos_prev / dist2;
