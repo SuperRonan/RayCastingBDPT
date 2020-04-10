@@ -54,23 +54,19 @@ namespace Geometry
 		__forceinline RGBColor _BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const
 		{
 			return 0;
-			return m_specular * (hit.primitive_normal.reflect(wo) == wi);
 		}
 
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false)const override
 		{
 			out.direction = hit.primitive_reflected();
 			double cosd = hit.normal * out.direction;
 			out.pdf = 1;
 			out.bsdf = m_specular;
 
-			if (RADIANCE)
-				out.bsdf *= 1.0 / std::abs(hit.to_view * hit.normal);
-			else
-				out.bsdf *= 1.0 / std::abs(out.direction * hit.normal);
+			out.bsdf *= 1.0 / cosd;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
@@ -80,8 +76,8 @@ namespace Geometry
 
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
 		{
-			//or maybe always 0?
-			return hit.primitive_normal.reflect(wo) == wi ? 1.0 : 0.0;
+			return 0;
+			//return hit.primitive_normal.reflect(wo) == wi ? 1.0 : 0.0;
 		}
 	};
 }
