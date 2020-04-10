@@ -83,12 +83,8 @@ namespace Geometry
 				{
 					out.direction = normal * (-next_cos_theta) + tg * (-next_sin_theta);
 					out.bsdf *= (1 - fresnel_reflectance);
-					/*
-					if (n2 > n1)
-					{
-						out.bsdf *= ((n2 * n2) / (n1 * n1));
-					}
-					*/
+					if (RADIANCE)
+						out.bsdf *= (eta_ratio * eta_ratio);
 					out.pdf = 1 - pdf_reflect;
 				}
 			}
