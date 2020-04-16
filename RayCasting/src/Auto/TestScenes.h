@@ -283,6 +283,40 @@ namespace Auto
 		}
 	}
 
+	void initTestNonSymmetry(Geometry::Scene& scene, size_t width, size_t height, int mode)
+	{
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
+
+		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
+
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, mode ? 1.3 : 1.3);
+
+		double scale = 5;
+		Geometry::Cube* box = new Geometry::Cube(glass, 0.f, Math::Vector3f(scale, 0, 0), Math::Vector3f(0, scale, 0), Math::Vector3f(0, 0, scale));
+		scene.add(box);
+		double light_size = 3;
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5)*1.3 / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Square* up_light = new Geometry::Square(light);
+		up_light->scale(scale * 0.2 * light_size);
+		up_light->translate({ 0, 0, scale / 2 * 1.5 });
+		scene.add(up_light);
+
+		Geometry::Cube* cube = new Geometry::Cube(white, Math::Vector3f(0, 0, -scale/2), Math::Vector3f(scale, 0, 0), Math::Vector3f(0, scale, 0), Math::Vector3f(0, 0, scale * 0.003));
+		scene.add(cube);
+		// Sets the camera
+		{
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, -scale/2 }, 0.3f, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+	}
+
 
 	void initComplexCausticCornell(Geometry::Scene& scene, size_t width, size_t height)
 	{
