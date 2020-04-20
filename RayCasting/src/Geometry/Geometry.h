@@ -4,7 +4,7 @@
 //#include <Geometry/CastedRay.h>
 #include <Geometry/Triangle.h>
 #include <Geometry/ComputeVertexNormals.h>
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/Quaternion.h>
 #include <Math/Vectorf.h>
 #include <vector>
@@ -14,7 +14,6 @@
 #include <Math/Constant.h>
 #include "medium.h"
 #include <Geometry/GeometryBase.h>
-#include <Geometry/Material.h>
 #include <Geometry/BoundingBox.h>
 
 namespace Geometry

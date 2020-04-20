@@ -5,7 +5,6 @@
 #include <Geometry/Triangle.h>
 #include <Geometry/Geometry.h>
 #include <Geometry/PointLight.h>
-#include "Phong.h"
 
 namespace Geometry
 {

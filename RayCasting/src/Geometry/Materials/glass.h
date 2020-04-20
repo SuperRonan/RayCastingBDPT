@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/RandomDirection.h>
 
 namespace Geometry
@@ -30,7 +30,7 @@ namespace Geometry
 			return GLASS_ID_COLOR;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true, double *pdf_rev=nullptr)const override
 		{
 			bool entering = hit.facing;
 			double nr = 1, nt = m_eta;
@@ -90,7 +90,8 @@ namespace Geometry
 			}
 			
 			out.bsdf *= 1.0 / std::abs(out.direction * normal);
-			
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
@@ -98,7 +99,7 @@ namespace Geometry
 			return 0;
 		}
 
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
 			return 0;
 		}
@@ -132,7 +133,7 @@ namespace Geometry
 			return GLOSSY_GLASS_ID_COLOR;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE = true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE = true, double *pdf_rev=nullptr)const override
 		{
 			double scaling = (m_shininess + 1) / Math::twoPi;
 			Math::Vector3f normal = hit.orientedPrimitiveNormal();
@@ -207,6 +208,8 @@ namespace Geometry
 			}
 			
 			out.bsdf *= 1.0 / std::abs(out.direction * normal);
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
@@ -272,7 +275,7 @@ namespace Geometry
 			return res;
 		}
 
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
 		{
 			double scaling = (m_shininess + 1) / Math::twoPi;
 			Math::Vector3f normal = hit.normal; if (wo * normal < 0) normal = -normal;

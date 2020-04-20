@@ -2,7 +2,6 @@
 #define _Geometry_Cylinder_H
 
 #include <Geometry/Geometry.h>
-#include <Geometry/Material.h>
 
 namespace Geometry
 {

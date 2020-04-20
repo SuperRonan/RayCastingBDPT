@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/Constant.h>
 
 
@@ -43,7 +43,7 @@ namespace Geometry
 		}
 
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false, double *pdf_rev=nullptr)const override
 		{
 			RGBColor dif = m_diffuse * getTexturePixel(hit.tex_uv);
 			Math::Vector3f normal = hit.orientedPrimitiveNormal();
@@ -67,6 +67,8 @@ namespace Geometry
 			}
 			
 			out.bsdf = dif;
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
@@ -86,7 +88,7 @@ namespace Geometry
 
 
 
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
 		{
 			if constexpr (MODE == REFLECT)
 			{

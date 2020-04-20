@@ -1,7 +1,7 @@
 #pragma once
 
 #include <random>
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/Sampler.h>
 #include <Geometry/BoundingBox.h>
 #include <Geometry/Sample.h>

@@ -111,7 +111,7 @@ namespace Integrator
 			// delta_works: if true, the pdf returned by the delta pdf will be assumed to be 1, 
 			// delta works should be true when the connection has beed sampled by the bsdf (like during the random walk), for deterministic connection, it should be false
 			//////////////////////////////////
-			template <bool DENSITY_AREA = true>
+			template <TransportMode MODE, bool DENSITY_AREA = true>
 			double pdf(Geometry::Camera const& camera, Vertex const& next, const Vertex* prev, bool delta_works)const
 			{
 				double pdf_solid_angle;
@@ -141,7 +141,7 @@ namespace Integrator
 					if (hit.geometry->getMaterial()->delta() && delta_works)
 						pdf_solid_angle = 1;
 					else
-						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized());
+						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized(), MODE == TransportMode::Radiance);
 				}
 				if constexpr (DENSITY_AREA)
 				{
@@ -196,10 +196,11 @@ namespace Integrator
 					//sample next direction
 
 					DirectionSample next_dir;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE==TransportMode::Radiance);
+					double pdf_rev;
+					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE==TransportMode::Radiance, &pdf_rev);
 
 					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
-					prev->pdfReverse<MODE>() = next_dir.pdf * cos_prev / dist2;
+					prev->pdfReverse<MODE>() = pdf_rev * cos_prev / dist2;
 
 					//update info for the next loop
 					ray = Ray(hit.point, next_dir.direction);
@@ -473,24 +474,24 @@ namespace Integrator
 				if (main_t == 1)
 					return 0.0;
 				if (ys)
-					return ys->pdf<true>(camera, *xt, ysm, false);
+					return ys->pdf<TransportMode::Radiance, true>(camera, *xt, ysm, false);
 				else
 					return pdf_sampling_point;
 			}() };
 
 			if (ys)
 			{
-				ys_pdf_rev_sa = { &ys->pdfReverse<TransportMode::Radiance>(), xt->pdf<true>(camera, *ys, xtm, false) };
+				ys_pdf_rev_sa = { &ys->pdfReverse<TransportMode::Radiance>(), xt->pdf<TransportMode::Importance, true>(camera, *ys, xtm, false) };
 			}
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdfReverse<TransportMode::Importance>(), xt->pdf<true>(camera, *xtm, ys, false) };
+				xtm_pdf_rev_sa = { &xtm->pdfReverse<TransportMode::Importance>(), xt->pdf<TransportMode::Importance, true>(camera, *xtm, ys, false) };
 			}
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<true>(camera, *ysm, xt, false) };
+				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<TransportMode::Radiance, true>(camera, *ysm, xt, false) };
 			}
 
 			const double main_p = Ps * Pt;

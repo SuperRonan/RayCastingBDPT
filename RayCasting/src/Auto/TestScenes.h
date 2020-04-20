@@ -3,11 +3,11 @@
 #include <Geometry/Scene.h>
 #include <Geometry/Cube.h>
 #include <Geometry/Disk.h>
-#include <Geometry/DeltaMirror.h>
+#include <Geometry/Materials/DeltaMirror.h>
 #include <Geometry/Cornel.h>
 #include <Geometry/Cylinder.h>
 #include <Image/ImWrite.h>
-#include <Geometry/glass.h>
+#include <Geometry/Materials/glass.h>
 #include <Image/ImRead.h>
 
 namespace Auto
@@ -210,7 +210,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
 		double scale = 5;
@@ -293,7 +293,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, mode ? 1.3 : 1.3);
@@ -328,7 +328,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.1);
 		Geometry::Material* blurry_glass = new Geometry::GlossyGlass({ 1, 1, 1 }, 1.3, 100);
@@ -346,7 +346,7 @@ namespace Auto
 			Geometry::Square* up_light = new Geometry::Square(light);
 			up_light->scale(scale * 0.2 * light_size);
 			up_light->scaleY(ratio);
-			up_light->translate({ 0, y*scale, scale / 2 - 0.001 });
+			up_light->translate({ 0, y*scale, scale / 2 - 0.01 });
 			scene.add(up_light);
 		}
 
@@ -399,7 +399,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(1, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, mode ? 1.3 : 1.3);
 		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1}, 1);
@@ -479,7 +479,7 @@ namespace Auto
 		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
 		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(0.9, 100);
+		Geometry::Material* spec = new Geometry::Glossy(0.9, 100);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(0.9);
 
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
@@ -538,7 +538,7 @@ namespace Auto
 
 		if (mode != 4)
 		{
-			Geometry::Material* spec = new Geometry::Specular(0.8, 10);
+			Geometry::Material* spec = new Geometry::Glossy(0.8, 10);
 			Geometry::Sphere ball({ 0, 0, -0.3 * scale }, light_size, spec);
 			//scene.add(ball);
 		}
@@ -572,7 +572,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Specular(0.8, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(0.8, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(0.8);
 
 		double scale = 5;
@@ -608,7 +608,7 @@ namespace Auto
 		}
 
 		{
-			Geometry::Material* spec = new Geometry::Specular(0.8, 10);
+			Geometry::Material* spec = new Geometry::Glossy(0.8, 10);
 			Geometry::Sphere ball({ 0, 0, -0.3 * scale }, 0.75, spec);
 			scene.add(ball);
 		}
@@ -685,7 +685,7 @@ namespace Auto
 		{
 			Math::Vector3f base = { -1 * scale, 0, 5 * scale };
 			Math::Vector3f T = { 0, 0, -26 * scale };
-			Geometry::Square* cube = new Geometry::Square(new Geometry::Specular(1, shininesses[i] * multiplier));
+			Geometry::Square* cube = new Geometry::Square(new Geometry::Glossy(1, shininesses[i] * multiplier));
 			//Geometry::Square* cube = new Geometry::Square(new Geometry::Lambertian<Geometry::REFLECT>(1));
 			cube->rotate(Math::Quaternion<double>({ 0, -1, 0 }, rad(corrections[i])));
 			cube->translate(T);

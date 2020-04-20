@@ -9,10 +9,10 @@
 #include <algorithm>
 #include <iterator>
 #include <map>
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Geometry/Geometry.h>
-#include <Geometry/Lambert.h>
-#include <Geometry/Specular.h>
+#include <Geometry/Materials/Lambert.h>
+#include <Geometry/Materials/Glossy.h>
 #include <settings.h>
 
 
@@ -57,13 +57,14 @@ namespace Geometry
 				if (dif.isBlack())
 				{
 					//no emissive?
-					return new Specular(spec, material->shininess);
+					return new Glossy(spec, material->shininess);
 				}
 				else
 				{
 					RGBColor ambient;
 					ambient.set(material->ambient);
-					return new Phong(dif, spec, material->shininess);
+					return new Glossy(spec, material->shininess);
+					//return new Phong(dif, spec, material->shininess);
 				}
 			}
 		}

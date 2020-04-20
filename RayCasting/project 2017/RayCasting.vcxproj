@@ -212,34 +212,35 @@
     <ClInclude Include="..\src\Geometry\BRDFViewer.h" />
     <ClInclude Include="..\src\Geometry\BVH.h" />
     <ClInclude Include="..\src\Geometry\Camera.h" />
-    <ClInclude Include="..\src\Geometry\CartoonMaterial.h" />
     <ClInclude Include="..\src\Geometry\CastedRay.h" />
     <ClInclude Include="..\src\Geometry\ComputeVertexNormals.h" />
     <ClInclude Include="..\src\Geometry\Cone.h" />
     <ClInclude Include="..\src\Geometry\Cornel.h" />
     <ClInclude Include="..\src\Geometry\Cube.h" />
     <ClInclude Include="..\src\Geometry\Cylinder.h" />
-    <ClInclude Include="..\src\Geometry\DeltaMirror.h" />
     <ClInclude Include="..\src\Geometry\DirectionalLight.h" />
     <ClInclude Include="..\src\Geometry\Disk.h" />
     <ClInclude Include="..\src\Geometry\EnvironmentMap.h" />
     <ClInclude Include="..\src\Geometry\generic_texture.hpp" />
     <ClInclude Include="..\src\Geometry\Geometry.h" />
     <ClInclude Include="..\src\Geometry\GeometryBase.h" />
-    <ClInclude Include="..\src\Geometry\glass.h" />
     <ClInclude Include="..\src\Geometry\Hit.h" />
     <ClInclude Include="..\src\Geometry\IntersecitonSet.h" />
     <ClInclude Include="..\src\Geometry\Intersection.h" />
-    <ClInclude Include="..\src\Geometry\Lambert.h" />
     <ClInclude Include="..\src\Geometry\LightCache.h" />
     <ClInclude Include="..\src\Geometry\BoundedStack.h" />
     <ClInclude Include="..\src\Geometry\LightSampler.h" />
     <ClInclude Include="..\src\Geometry\Loader3ds.h" />
-    <ClInclude Include="..\src\Geometry\Material.h" />
+    <ClInclude Include="..\src\Geometry\Materials\CartoonMaterial.h" />
+    <ClInclude Include="..\src\Geometry\Materials\DeltaMirror.h" />
+    <ClInclude Include="..\src\Geometry\Materials\glass.h" />
+    <ClInclude Include="..\src\Geometry\Materials\Lambert.h" />
+    <ClInclude Include="..\src\Geometry\Materials\Material.h" />
+    <ClInclude Include="..\src\Geometry\Materials\Phong.h" />
+    <ClInclude Include="..\src\Geometry\Materials\Glossy.h" />
     <ClInclude Include="..\src\Geometry\medium.h" />
     <ClInclude Include="..\src\Geometry\namespaceDoc.h" />
     <ClInclude Include="..\src\Geometry\octo_tree.h" />
-    <ClInclude Include="..\src\Geometry\Phong.h" />
     <ClInclude Include="..\src\Geometry\PointLight.h" />
     <ClInclude Include="..\src\Geometry\Primitive.h" />
     <ClInclude Include="..\src\Geometry\Ray.h" />
@@ -251,7 +252,6 @@
     <ClInclude Include="..\src\Geometry\Sample.h" />
     <ClInclude Include="..\src\Geometry\Scene.h" />
     <ClInclude Include="..\src\Geometry\Skybox.h" />
-    <ClInclude Include="..\src\Geometry\Specular.h" />
     <ClInclude Include="..\src\Geometry\Sphere.h" />
     <ClInclude Include="..\src\Geometry\Square.h" />
     <ClInclude Include="..\src\Geometry\Texture.h" />
@@ -311,8 +311,6 @@
     <ClInclude Include="..\src\Visualizer\Visualizer_backup.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\Geometry\Material.cpp" />
-    <ClCompile Include="..\src\Geometry\Scene.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Math\src\sobol.cpp" />
   </ItemGroup>

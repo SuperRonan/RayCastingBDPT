@@ -1,13 +1,13 @@
 #pragma once
 
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/Constant.h>
 
 
 namespace Geometry
 {
 
-	class Specular :public Material
+	class Glossy :public Material
 	{
 	protected:
 
@@ -28,7 +28,7 @@ namespace Geometry
 		}
 
 
-		Specular(RGBColor const& specular, double shininess=1, RGBColor const& emissive = 0, std::string const& texture = "") :
+		Glossy(RGBColor const& specular, double shininess=1, RGBColor const& emissive = 0, std::string const& texture = "") :
 			Material(emissive, texture),
 			m_specular(specular * (shininess+1) / Math::twoPi),
 			m_shininess(shininess)
@@ -76,7 +76,7 @@ namespace Geometry
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true, double *pdf_rev=nullptr)const override
 		{
 			Math::Vector3f reflected = hit.primitive_reflected();
 			Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);
@@ -102,6 +102,8 @@ namespace Geometry
 			
 			
 			out.bsdf = m_specular * bsdf;
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
@@ -110,7 +112,7 @@ namespace Geometry
 		}
 
 
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
 		{
 			double c = hit.primitive_normal.reflect(wo) * wi;
 			if (c < 0)

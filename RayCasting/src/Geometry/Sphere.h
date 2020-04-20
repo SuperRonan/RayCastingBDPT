@@ -4,7 +4,7 @@
 #include <Geometry/GeometryBase.h>
 #include <utils.h>
 #include <Math/SolidAngleSampler.h>
-#include <Geometry/Lambert.h>
+#include <Geometry/Materials/Lambert.h>
 #include <Geometry/Primitive.h>
 
 namespace Geometry

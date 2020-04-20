@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Math/Constant.h>
 
 
@@ -59,7 +59,7 @@ namespace Geometry
 	public:
 
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false, double *pdf_rev=nullptr)const override
 		{
 			out.direction = hit.primitive_reflected();
 			double cosd = hit.normal * out.direction;
@@ -67,6 +67,8 @@ namespace Geometry
 			out.bsdf = m_specular;
 
 			out.bsdf *= 1.0 / cosd;
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
 		}
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
@@ -74,7 +76,7 @@ namespace Geometry
 			return _BSDF(hit, wi, wo);
 		}
 
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const override
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
 		{
 			return 0;
 			//return hit.primitive_normal.reflect(wo) == wi ? 1.0 : 0.0;

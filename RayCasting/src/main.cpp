@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <Geometry/RGBColor.h>
-#include <Geometry/Material.h>
+#include <Geometry/Materials/Material.h>
 #include <Geometry/PointLight.h>
 #include <Geometry/Camera.h>
 #include <Geometry/Cube.h>
@@ -21,11 +21,11 @@
 #include <chrono>
 #include <array>
 #include <tbb/tick_count.h>
-#include "Geometry/Phong.h"
-#include "Geometry/CartoonMaterial.h"
-#include <Geometry/Lambert.h>
-#include <Geometry/Specular.h>
-#include <Geometry/DeltaMirror.h>
+#include "Geometry/Materials/Phong.h"
+#include "Geometry/Materials/CartoonMaterial.h"
+#include <Geometry/Materials/Lambert.h>
+#include <Geometry/Materials/Glossy.h>
+#include <Geometry/Materials/DeltaMirror.h>
 #include <Math/Sampler.h>
 
 #include <Integrators/DirectIntegrator.h>
@@ -77,7 +77,7 @@ void createGround(Geometry::Scene & scene)
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(0., 0., 0.), RGBColor(1., 1., 1.), 10000.0f);	//perfect mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0f, 1.0f, 1.0f), RGBColor(0.f, 0.f, 0.f), 100.0f); //not a mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0,.4,.4)*0.5, RGBColor(), 1000.0f, RGBColor(0.5, 0.5, 0.5)*0.5); // Non existing material...
-	//Geometry::Material* material = new Geometry::Specular(0.9, 1000);
+	//Geometry::Material* material = new Geometry::Glossy(0.9, 1000);
 	//Geometry::Material* material = new GeometryCollection::DeltaMirror(0.5);
 	Geometry::Material* material = new Geometry::Lambertian<Geometry::REFLECT>(1);
 
@@ -1404,9 +1404,9 @@ int main(int argc, char ** argv)
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
-	Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
+	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
 	//Auto::initBlackHole(scene, visu.width(), visu.height());
 	

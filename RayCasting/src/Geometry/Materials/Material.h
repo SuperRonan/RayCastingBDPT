@@ -2,9 +2,7 @@
 
 #include <Geometry/RGBColor.h>
 #include <Geometry/Texture.h>
-#include "medium.h"
 #include <Geometry/Sample.h>
-#include "Ray.h"
 #include <string>
 #include <Geometry/Hit.h>
 #include <Math/RandomDirection.h>
@@ -114,7 +112,7 @@ namespace Geometry
 		// what matters is that the bsdf is 0, and so there is no need to go further with the sample
 		//Do I need the whole hit?
 		/////////////////////////
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler & sampler, bool RADIANCE=false)const
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler & sampler, bool RADIANCE=false, double * pdf_rev=nullptr)const
 		{
 			out.direction = hit.primitive_normal;
 			out.pdf = 1;
@@ -134,14 +132,14 @@ namespace Geometry
 
 
 		//returns the probability of sampling wi knowing that we are comming from wo
-		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const
 		{
-			return 1.0 / Math::twoPi; // or 0 or 1, actually this function should not be called, ever?
+			return 0; // or 0 or 1, actually this function should not be called, ever?
 		}
 
-		__forceinline double pdf(Hit const& hit, Math::Vector3f const& wi)const //implicitly, wo = hit.to_view
+		__forceinline double pdf(Hit const& hit, Math::Vector3f const& wi, bool RADIANCE=false)const //implicitly, wo = hit.to_view
 		{
-			return pdf(hit, wi, hit.to_view);
+			return pdf(hit, wi, hit.to_view, RADIANCE);
 		}
 
 		/// <summary>

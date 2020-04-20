@@ -27,7 +27,7 @@ namespace Integrator
 			const GeometryBase* m_geometry;
 			Math::Vector<Float, 3> m_point;
 			uint8_t m_len;
-			Math::Vector<Float, 3> m_dir;
+			//Math::Vector<Float, 3> m_dir;
 			Float m_beta[3];
 			
 			Float pdfProd = 0.0;
@@ -38,32 +38,30 @@ namespace Integrator
 				m_geometry(hit.geometry),
 				m_primitive(hit.primitve),
 				m_point(hit.point),
-				m_len(len),
-				m_dir(hit.to_view)
+				m_len(len)
 			{
 				m_beta[0] = beta[0];
 				m_beta[1] = beta[1];
 				m_beta[2] = beta[2];
 			}
 
-			Photon(const GeometryBase* geo, const Primitive* primitive, Vector3f const& point, Vector3f const& dir, uint8_t len, RGBColor const& beta) :
+			Photon(const GeometryBase* geo, const Primitive* primitive, Vector3f const& point, uint8_t len, RGBColor const& beta) :
 				m_geometry(geo),
 				m_primitive(primitive),
 				m_point(point),
-				m_len(len),
-				m_dir(dir)
+				m_len(len)
 			{
 				m_beta[0] = beta[0];
 				m_beta[1] = beta[1];
 				m_beta[2] = beta[2];
 			}
 
-			void fillHit(Hit& res)const
+			void fillHit(Hit& res, PhotonMap<Photon> const& m_map)const
 			{
 				res.primitve = m_primitive;
 				res.geometry = m_primitive->geometry();
 				res.point = m_point;
-				res.to_view = m_dir;
+				res.to_view = m_len == 1 ? 0.0 : (m_map[prev].point() - point()).normalized();
 
 				res.primitive_uv = m_primitive->uv(m_point);
 				res.tex_uv = m_primitive->tuv(res.primitive_uv);
@@ -144,7 +142,7 @@ namespace Integrator
 					sampleOneLight(scene, sampler, sls);
 					double prod_pdf = sls.pdf;
 					
-					Photonf light_photon = Photonf(sls.geo, sls.primitive, sls.vector, 0.0, 1, 1);
+					Photonf light_photon = Photonf(sls.geo, sls.primitive, sls.vector, 1, 1);
 					light_photon.pdfProd = prod_pdf;
 					
 					
@@ -271,7 +269,9 @@ namespace Integrator
 			RGBColor pt_res = 0, npt_res = 0, pm_res=0;
 			// Path tracings
 			{
+				StackN<Hit> path;
 				double path_pdf = 1;
+				double pm_pdf = 1;
 				Hit hit = base;
 				RGBColor beta = 1;
 				Ray ray;
@@ -312,14 +312,15 @@ namespace Integrator
 					const Material& mat = *photon.m_primitive->geometry()->getMaterial();
 					if (kernel(dist2) > 0 && base.geometry == photon.m_primitive->geometry())
 					{
-						RGBColor contrib = photon.beta() * mat.BSDF(base, photon.m_dir, wo) * k;
+						Math::Vector3f photon_dir = (m_map[photon.prev].point() - photon.point()).normalized();
+						RGBColor contrib = photon.beta() * mat.BSDF(base, photon_dir, wo) * k;
 						if (!contrib.isBlack())
 						{
 							double npt_pdf, pt_pdf;
 							double path_pdf = 1;
 							const Photonf* current_photon = &photon;
 							Hit current_hit;
-							current_photon->fillHit(current_hit);
+							current_photon->fillHit(current_hit, m_map);
 							Vector3f prev_wi = wo;
 							for (int len = photon.m_len; len > 2; --len)
 							{
@@ -329,7 +330,7 @@ namespace Integrator
 								const double dist2 = dir.norm2();
 								dir /= std::sqrt(dist2);
 								double pdf_solid_angle = photon_mat.pdf(current_hit, dir, prev_wi);
-								next_photon->fillHit(current_hit);
+								next_photon->fillHit(current_hit, m_map);
 								double pdf_area = pdf_solid_angle * std::abs(current_hit.primitive_normal * dir) / dist2;
 								path_pdf *= pdf_area;
 								prev_wi = -dir;

@@ -34,6 +34,9 @@
     <Filter Include="src\Auto">
       <UniqueIdentifier>{a57b83dc-4472-46f1-977c-8f78a9373f0b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Geometry\Materials">
+      <UniqueIdentifier>{c9495ff7-df73-4c27-8bac-ab0271fff8ae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry\BoundingBox.h">
@@ -67,9 +70,6 @@
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\LightCache.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Material.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\namespaceDoc.h">
@@ -207,9 +207,6 @@
     <ClInclude Include="..\src\Geometry\TriangleTetxture.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Geometry\CartoonMaterial.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Geometry\GeometryBase.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
@@ -230,15 +227,6 @@
     </ClInclude>
     <ClInclude Include="..\src\Image\ImWrite.h">
       <Filter>src\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Lambert.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Specular.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\DeltaMirror.h">
-      <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Math\Sampler.h">
       <Filter>src\Math</Filter>
@@ -306,9 +294,6 @@
     <ClInclude Include="..\src\Geometry\BVH.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Geometry\Phong.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Math\OptiMISSolver.h">
       <Filter>src\Math</Filter>
     </ClInclude>
@@ -317,9 +302,6 @@
     </ClInclude>
     <ClInclude Include="..\src\Integrators\OptiMISBDPT.h">
       <Filter>src\Integrators</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\glass.h">
-      <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Integrators\optimalmissolver.h">
       <Filter>src\Integrators</Filter>
@@ -345,6 +327,27 @@
     <ClInclude Include="..\src\Geometry\Sample.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\DeltaMirror.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\glass.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\Lambert.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\Material.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\Phong.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\CartoonMaterial.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\Glossy.h">
+      <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -353,7 +356,5 @@
     <ClCompile Include="..\src\Math\src\sobol.cpp">
       <Filter>src\Math\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Geometry\Scene.cpp" />
-    <ClCompile Include="..\src\Geometry\Material.cpp" />
   </ItemGroup>
 </Project>

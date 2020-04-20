@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Material.h"
-#include <Geometry/Lambert.h>
-#include <Geometry/Specular.h>
 
 namespace Geometry
 {
@@ -24,7 +22,7 @@ namespace Geometry
 			return PHONG_ID_COLOR;
 		}
 
-		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false)const override
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false, double* pdf_rev=nullptr)const override
 		{
 			Material::sampleBSDF(hit, out, sampler);
 			return;
@@ -36,7 +34,7 @@ namespace Geometry
 			return 0;
 		}
 
-		virtual double pdf(const Hit & hit, Math::Vector3f const& wi, Math::Vector3f const& wo)const  override
+		virtual double pdf(const Hit & hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const  override
 		{
 			return Material::pdf(hit, wi, wo);
 		}
