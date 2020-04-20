@@ -33,8 +33,8 @@ namespace Geometry
 		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true)const override
 		{
 			bool entering = hit.facing;
-			double n1 = 1, n2 = m_eta;
-			if (!entering)	std::swap(n1, n2);
+			double nr = 1, nt = m_eta;
+			if (!entering)	std::swap(nr, nt);
 
 			Math::Vector3f normal = hit.orientedPrimitiveNormal();
 
@@ -49,7 +49,7 @@ namespace Geometry
 			else
 			{
 				Math::Vector3f tg = (hit.to_view - normal * cos_theta) / (sin_theta);
-				double eta_ratio = n1 / n2;
+				double eta_ratio = nr / nt;
 				double next_sin_theta = eta_ratio * sin_theta;
 
 				bool reflect = next_sin_theta >= 1;
@@ -61,8 +61,8 @@ namespace Geometry
 				if (!reflect)
 				{
 					next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
-					double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
-					double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+					double rs = (nt * cos_theta - nr * next_cos_theta) / (nt * cos_theta + nr * next_cos_theta);
+					double rp = (nr * cos_theta - nt * next_cos_theta) / (nr * cos_theta + nt * next_cos_theta);
 
 					fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
 					pdf_reflect = fresnel_reflectance;
@@ -83,8 +83,8 @@ namespace Geometry
 				{
 					out.direction = normal * (-next_cos_theta) + tg * (-next_sin_theta);
 					out.bsdf *= (1 - fresnel_reflectance);
-					if (RADIANCE)
-						out.bsdf *= (eta_ratio * eta_ratio);
+					//if (!RADIANCE)
+						out.bsdf *= (eta_ratio);
 					out.pdf = 1 - pdf_reflect;
 				}
 			}
@@ -137,8 +137,8 @@ namespace Geometry
 			double scaling = (m_shininess + 1) / Math::twoPi;
 			Math::Vector3f normal = hit.orientedPrimitiveNormal();
 			bool entering = hit.facing;
-			double n1 = 1, n2 = m_eta;
-			if (!entering)	std::swap(n1, n2);
+			double nr = 1, nt = m_eta;
+			if (!entering)	std::swap(nr, nt);
 			
 			double cos_theta = std::abs(hit.to_view * normal);
 			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
@@ -153,13 +153,13 @@ namespace Geometry
 				double f = scaling * std::pow(cos_t, m_shininess);
 				out.pdf = f;
 				out.bsdf = m_albedo * f;
-				if (RADIANCE)
+				if (!RADIANCE)
 					out.bsdf *= 1.0 / std::abs(normal * hit.to_view);
 				return;
 			}
 
 			
-			double eta_ratio = n1 / n2;
+			double eta_ratio = nr / nt;
 			double next_sin_theta = eta_ratio * sin_theta;
 
 			bool transmit = next_sin_theta < 1;
@@ -173,8 +173,8 @@ namespace Geometry
 				double next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
 				const Math::Vector3f transmited = normal * (-next_cos_theta) + tg * (-next_sin_theta);
 
-				double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
-				double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+				double rs = (nt * cos_theta - nr * next_cos_theta) / (nt * cos_theta + nr * next_cos_theta);
+				double rp = (nr * cos_theta - nt * next_cos_theta) / (nr * cos_theta + nt * next_cos_theta);
 				double fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
 				double pdf_reflect = fresnel_reflectance;
 				double xi = sampler.generateContinuous<double>();
@@ -214,8 +214,8 @@ namespace Geometry
 			double scaling = (m_shininess + 1) / Math::twoPi;
 			Math::Vector3f normal = hit.normal; if (wo * normal < 0) normal = -normal;
 			bool entering = hit.facing;
-			double n1 = 1, n2 = m_eta;
-			if (!entering)	std::swap(n1, n2);
+			double nr = 1, nt = m_eta;
+			if (!entering)	std::swap(nr, nt);
 
 			double cos_theta = std::abs(wo * normal);
 			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
@@ -232,7 +232,7 @@ namespace Geometry
 				return res;
 			}
 
-			double eta_ratio = n1 / n2;
+			double eta_ratio = nr / nt;
 			double next_sin_theta = eta_ratio * sin_theta;
 
 			bool transmit = next_sin_theta < 1;
@@ -246,8 +246,8 @@ namespace Geometry
 				double next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
 				const Math::Vector3f transmited = normal * (-next_cos_theta) + tg * (-next_sin_theta);
 
-				double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
-				double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+				double rs = (nt * cos_theta - nr * next_cos_theta) / (nt * cos_theta + nr * next_cos_theta);
+				double rp = (nr * cos_theta - nt * next_cos_theta) / (nr * cos_theta + nt * next_cos_theta);
 				double fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
 
 				bool has_reflected = wi * normal > 0;
@@ -277,8 +277,8 @@ namespace Geometry
 			double scaling = (m_shininess + 1) / Math::twoPi;
 			Math::Vector3f normal = hit.normal; if (wo * normal < 0) normal = -normal;
 			bool entering = hit.facing;
-			double n1 = 1, n2 = m_eta;
-			if (!entering)	std::swap(n1, n2);
+			double nr = 1, nt = m_eta;
+			if (!entering)	std::swap(nr, nt);
 
 			double cos_theta = std::abs(wo * normal);
 			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
@@ -292,7 +292,7 @@ namespace Geometry
 				return f;
 			}
 
-			double eta_ratio = n1 / n2;
+			double eta_ratio = nr / nt;
 			double next_sin_theta = eta_ratio * sin_theta;
 
 			bool transmit = next_sin_theta < 1;
@@ -306,8 +306,8 @@ namespace Geometry
 				double next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
 				const Math::Vector3f transmited = normal * (-next_cos_theta) + tg * (-next_sin_theta);
 
-				double rs = (n2 * cos_theta - n1 * next_cos_theta) / (n2 * cos_theta + n1 * next_cos_theta);
-				double rp = (n1 * cos_theta - n2 * next_cos_theta) / (n1 * cos_theta + n2 * next_cos_theta);
+				double rs = (nt * cos_theta - nr * next_cos_theta) / (nt * cos_theta + nr * next_cos_theta);
+				double rp = (nr * cos_theta - nt * next_cos_theta) / (nr * cos_theta + nt * next_cos_theta);
 				double fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
 				double pdf_reflect = fresnel_reflectance;
 				bool has_reflected = wi * normal > 0;
