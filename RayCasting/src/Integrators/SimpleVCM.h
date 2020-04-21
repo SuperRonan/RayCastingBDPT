@@ -270,8 +270,7 @@ namespace Integrator
 			// Path tracings
 			{
 				StackN<Hit> path;
-				double path_pdf = 1;
-				double pm_pdf = 1;
+				double path_pdf = 1;;
 				Hit hit = base;
 				RGBColor beta = 1;
 				Ray ray;

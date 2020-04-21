@@ -22,7 +22,7 @@
 #include <tbb/parallel_for_each.h>
 #include <functional>
 #include <Geometry/Hit.h>
-#include <Geometry/BoundedStack.h>
+#include <System/BoundedStack.h>
 #include <tbb/atomic.h>
 #include "DirectionalLight.h"
 #include <Geometry/Sphere.h>

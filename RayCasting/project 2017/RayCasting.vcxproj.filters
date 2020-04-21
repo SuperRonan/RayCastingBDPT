@@ -186,9 +186,6 @@
     <ClInclude Include="..\src\Geometry\Skybox.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Geometry\BoundedStack.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Geometry\DirectionalLight.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
@@ -347,6 +344,12 @@
     </ClInclude>
     <ClInclude Include="..\src\Geometry\Materials\Glossy.h">
       <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Integrators\VCM.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\System\BoundedStack.h">
+      <Filter>src\System</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
