@@ -351,6 +351,9 @@
     <ClInclude Include="..\src\System\BoundedStack.h">
       <Filter>src\System</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\System\Merger.h">
+      <Filter>src\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

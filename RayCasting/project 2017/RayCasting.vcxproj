@@ -305,6 +305,7 @@
     <ClInclude Include="..\src\struct\static_dual_tree.h" />
     <ClInclude Include="..\src\System\aligned_allocator.h" />
     <ClInclude Include="..\src\System\BoundedStack.h" />
+    <ClInclude Include="..\src\System\Merger.h" />
     <ClInclude Include="..\src\System\ScopedAssignment.h" />
     <ClInclude Include="..\src\utils.h" />
     <ClInclude Include="..\src\Visualizer\namespaceDoc.h" />

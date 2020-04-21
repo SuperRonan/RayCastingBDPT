@@ -20,6 +20,10 @@ protected:
 
 public:
 
+	BoundedStack():
+		m_size(0)
+	{}
+
 	void reset()
 	{
 		m_size = 0;

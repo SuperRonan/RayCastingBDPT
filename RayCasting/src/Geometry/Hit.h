@@ -8,6 +8,7 @@ namespace Geometry
 
 	class GeometryBase;
 	class Primitive;
+	class Camera;
 
 	class Hit
 	{
@@ -15,10 +16,12 @@ namespace Geometry
 
 	public:
 		double z;
-
-		const GeometryBase * geometry;
-		const Primitive * primitve;
-
+		union
+		{
+			const GeometryBase* geometry;
+			const Camera* camera;
+		};
+		const Primitive* primitve;
 		Math::Vector3f point;
 		
 		Math::Vector3f to_view;
