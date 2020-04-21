@@ -228,7 +228,6 @@
     <ClInclude Include="..\src\Geometry\IntersecitonSet.h" />
     <ClInclude Include="..\src\Geometry\Intersection.h" />
     <ClInclude Include="..\src\Geometry\LightCache.h" />
-    <ClInclude Include="..\src\Geometry\BoundedStack.h" />
     <ClInclude Include="..\src\Geometry\LightSampler.h" />
     <ClInclude Include="..\src\Geometry\Loader3ds.h" />
     <ClInclude Include="..\src\Geometry\Materials\CartoonMaterial.h" />
@@ -283,6 +282,7 @@
     <ClInclude Include="..\src\Integrators\RegularIntegrators.h" />
     <ClInclude Include="..\src\Integrators\SimpleVCM.h" />
     <ClInclude Include="..\src\Integrators\UncorellatedBDPT.h" />
+    <ClInclude Include="..\src\Integrators\VCM.h" />
     <ClInclude Include="..\src\Integrators\ZIntegrator.h" />
     <ClInclude Include="..\src\Math\Constant.h" />
     <ClInclude Include="..\src\Math\finite.h" />
@@ -304,6 +304,7 @@
     <ClInclude Include="..\src\Spy\Spy.h" />
     <ClInclude Include="..\src\struct\static_dual_tree.h" />
     <ClInclude Include="..\src\System\aligned_allocator.h" />
+    <ClInclude Include="..\src\System\BoundedStack.h" />
     <ClInclude Include="..\src\System\ScopedAssignment.h" />
     <ClInclude Include="..\src\utils.h" />
     <ClInclude Include="..\src\Visualizer\namespaceDoc.h" />

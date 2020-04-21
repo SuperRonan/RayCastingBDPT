@@ -2,7 +2,6 @@
 
 #include <Integrators/DirectIntegrator.h>
 #include <Geometry/GeometryBase.h>
-#include <Geometry/BoundedStack.h>
 
 
 namespace Integrator
