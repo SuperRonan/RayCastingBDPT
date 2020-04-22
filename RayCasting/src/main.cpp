@@ -1455,7 +1455,7 @@ int main(int argc, char ** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::VCM;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

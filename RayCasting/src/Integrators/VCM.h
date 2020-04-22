@@ -370,7 +370,6 @@ namespace Integrator
 			const int main_s, const int main_t,
 			double s1_pdf, double pdf_sampling_point = -1)const
 		{
-			if (main_t + main_s == 2)	return 0.5;
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -409,12 +408,12 @@ namespace Integrator
 			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].pdf_fwd : 1);
 
 			
-			double sum = actual_main_ri;
+			double sum = actual_main_ri * actual_ni;
 
 
 			//expand the camera sub path
 			{
-				double ri = main_t == 1 ? 1.0 / camera.resolution : 1.0;
+				double ri = 1.0;
 				for (int s = main_s; s >= 1; --s)
 				{
 					const Vertex& camera_end = lights[s - 1];
@@ -433,7 +432,7 @@ namespace Integrator
 
 			//expand the light subpath
 			{
-				double ri = 1;
+				double ri = 1.0;
 				for (int t = main_t; t >= 2; --t)
 				{
 					const Vertex& light_end = cameras[t - 1];
@@ -442,7 +441,7 @@ namespace Integrator
 
 					double actual_ri = ri;
 					if (main_s == 0 && t == main_t)
-						actual_ri = ri * s1_pdf / light_end.pdf_fwd;
+						actual_ri = ri * s1_pdf / light_end.pdf_rev;
 
 					if (!(light_end.delta || camera_end.delta))
 					{
@@ -452,7 +451,7 @@ namespace Integrator
 				}
 			}
 
-			double weight = actual_main_ri / sum;
+			double weight = (actual_main_ri*actual_ni) / sum;
 			return weight;
 		}
 
