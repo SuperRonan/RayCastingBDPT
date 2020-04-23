@@ -84,6 +84,12 @@ namespace Integrator
 			init();
 		}
 
+		void dumpPhotons()
+		{
+			std::fill(m_map.begin(), m_map.end(), Collection<PhotonType>());
+			m_built = false;
+		}
+
 		void freeMemory()
 		{
 			clear();

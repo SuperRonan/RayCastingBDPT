@@ -87,6 +87,24 @@ namespace Integrator
 		using Stack = StackN<T>;
 		using Path = Stack<Vertex>;
 
+
+
+		struct Photon
+		{
+			Math::Vector3f m_point;
+
+			Math::Vector3f point()const
+			{
+				return m_point;
+			}
+
+			unsigned int pixel;
+			unsigned char len;
+		};
+
+		
+
+
 		///////////////////////////////////////////////
 		//Takes a random walk through the scene (draws a path and record it in res)
 		// -Starts at ray
@@ -194,8 +212,17 @@ namespace Integrator
 	public:
 
 
+		
+
+		mutable PhotonMap<Photon> m_map;
+
+		double m_relative_radius;
+		double m_radius, m_radius2;
+		double m_photon_emitted;
+
 		mutable Image::Image<Path> m_light_paths;
 		bool m_light_paths_built = false;
+
 
 
 		VCM(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
@@ -210,11 +237,29 @@ namespace Integrator
 			Integrator::setLen(len);
 		}
 
+		void setParams(Scene const& scene, double relative_radius)
+		{
+			m_relative_radius = relative_radius;
+			BoundingBox m_bb = scene.m_sceneBoundingBox;
+			m_bb[0] -= Math::Vector3f(0.001, 0.001, 0.001);
+			m_bb[1] += Math::Vector3f(0.001, 0.001, 0.001);
+			Math::Vector3f dim = m_bb.diag();
+			double max_dir = dim.simdAbs().max();
+
+			m_radius = max_dir * m_relative_radius;
+			m_radius2 = m_radius * m_radius;
+			Math::Vector3f m_pixel_size = m_radius;
+			Math::Vector3f sizef = dim.simdDiv(m_pixel_size);
+			Math::Vector<int, 3> m_size = sizef.ceil();
+
+			m_map.init(m_bb, m_size);
+		}
 
 
 		void buildLightPaths(Scene const& scene, size_t width, size_t height, size_t pass)
 		{
 			m_light_paths.resize(width, height);
+			m_map.dumpPhotons();
 			m_light_paths_built = false;
 			OMP_PARALLEL_FOR
 			for (int x = 0; x < width; ++x)
@@ -225,28 +270,27 @@ namespace Integrator
 					path.reset();
 					Math::Sampler sampler(pixelSeed(x, y, width, height, pass) * 2);
 					traceLightSubPath(scene, sampler, path);
+					
+					// Fill the photon map
+					for (int i = 1; i < path.size(); ++i)
+					{
+						Photon photon;
+						photon.m_point = path[i].hit.point;
+						photon.pixel = m_light_paths.index(x, y);
+						photon.len = i+1;
+						m_map.addPhoton(photon);
+					}
 				}
 			}
+			m_photon_emitted = width * height;
 			m_light_paths_built = true;
+			m_map.buildDone();
 		}
 
 
-
-
-
-
-
-
-
-		void computeSample(Scene const& scene, int pix_index, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+		
+		void VertexConnection(Scene const& scene, Path& cameraSubPath, Path& lightSubPath, Math::Sampler& sampler, RGBColor& pixel_res, LightVertexStack& lt_vertices)const
 		{
-			Path cameraSubPath;
-
-			Ray ray = scene.m_camera.getRay(u, v);
-
-			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
-			Path& lightSubPath = m_light_paths[pix_index];
-
 			double s1_pdf;
 			for (int t = 1; t <= cameraSubPath.size(); ++t)
 			{
@@ -271,7 +315,7 @@ namespace Integrator
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
-							double weight = MISWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf, pdf);
+							double weight = BDPTWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf, pdf);
 							pixel_res += L * weight;
 						}
 					}
@@ -337,7 +381,7 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						L *= MISWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf);
+						L *= BDPTWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
@@ -359,12 +403,68 @@ namespace Integrator
 			}
 		}
 
+		__forceinline bool accept(Hit const& hit, Vertex const& photon)const
+		{
+			Math::Vector3f d = hit.point - photon.hit.point;
+			const double dist2 = d.norm2();
+			d /= std::sqrt(dist2);
+			return dist2 < m_radius2 &&
+				std::abs(hit.primitive_normal * photon.hit.primitive_normal > 0.8) &&
+				std::abs(hit.primitive_normal * d) < 0.3;
+		}
+		
+		RGBColor VertexMerging(Scene const& scene, Path& cameraSubPath, Math::Sampler& sampler)const
+		{
+			RGBColor res = 0;
+			for (int i = 1; i < cameraSubPath.size(); ++i)
+			{
+				Vertex& pt = cameraSubPath[i];
+				if (!pt.delta)
+				{
+					m_map.loopThroughPhotons([&](Photon const& photon)
+						{
+							const int len = photon.len + i;
+							if (len <= m_max_len)
+							{
+								Path& lightSubPath = m_light_paths[photon.pixel];
+								Vertex& qs_plus = lightSubPath[photon.len - 1];
+								if (accept(pt.hit, qs_plus))
+								{
+									const double k = 1.0 / (Math::pi * m_radius2);
+									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
+
+									double w = 0.5;
+
+									res += L * k / m_photon_emitted * w;
+								}
+							}
+						}, pt.hit.point);
+					break;
+				}
+			}
+			return res;
+		}
+
+		void computeSample(Scene const& scene, int pix_index, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+		{
+			pixel_res = 0;
+			Ray ray = scene.m_camera.getRay(u, v);
+			Path cameraSubPath;
+			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
+			Path& lightSubPath = m_light_paths[pix_index];
+
+
+			VertexConnection(scene, cameraSubPath, lightSubPath, sampler, pixel_res, lt_vertices);
+
+			pixel_res += VertexMerging(scene, cameraSubPath, sampler);
+		}
+
 
 		////////////////////////////////////////////////////////////////
 		//Computes te MIS weights for the bidirectional path tracer
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double MISWeight(
+		double BDPTWeight(
 			Path& cameras, Path& lights,
 			const Camera& camera,
 			const int main_s, const int main_t,
@@ -452,11 +552,105 @@ namespace Integrator
 			}
 
 			double weight = (actual_main_ri*actual_ni) / sum;
-			return weight;
+			double vcm_half = (main_s + main_t) == 2 ? 1.0 : 0.5;
+			return weight * vcm_half;
 		}
 
 
+		////////////////////////////////////////////////////////////////
+		//Computes te MIS weights for the VCM
+		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
+		////////////////////////////////////////////////////////////////
+		double VCMWeight(
+			Path& cameras, Path& lights,
+			const Camera& camera,
+			const int main_s, const int main_t,
+			double s1_pdf, double pdf_sampling_point = -1)const
+		{
+			Vertex* xt = cameras.begin() + (main_t - 1);
+			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
+			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
+			Vertex* ysm = main_s < 2 ? nullptr : lights.begin() + (main_s - 2);
 
+			ScopedAssignment<double> xt_pdf_rev_sa;
+			ScopedAssignment<double> ys_pdf_rev_sa;
+			ScopedAssignment<double> xtm_pdf_rev_sa;
+			ScopedAssignment<double> ysm_pdf_rev_sa;
+
+			xt_pdf_rev_sa = { &xt->pdf_rev,[&]() {
+				if (main_t == 1)
+					return 0.0;
+				else if (ys)
+					return ys->pdf<TransportMode::Radiance, true>(*xt, ysm);
+				else
+					return pdf_sampling_point;
+			}() };
+
+			if (ys)
+			{
+				ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xtm) };
+			}
+
+			if (xtm)
+			{
+				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, ys) };
+			}
+
+			if (ysm)
+			{
+				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, xt) };
+			}
+
+			const double actual_ni = main_t == 1 ? camera.resolution : 1;
+			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].pdf_fwd : 1);
+
+
+			double sum = actual_main_ri * actual_ni;
+
+
+			//expand the camera sub path
+			{
+				double ri = 1.0;
+				for (int s = main_s; s >= 1; --s)
+				{
+					const Vertex& camera_end = lights[s - 1];
+					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
+					ri *= camera_end.pdf_rev / (camera_end.pdf_fwd);
+
+					const double actual_ri = s != 2 ? ri :
+						ri * s1_pdf / light_end->pdf_fwd;
+
+					if (!(camera_end.delta || (light_end && light_end->delta)))
+					{
+						sum += actual_ri;
+					}
+				}
+			}
+
+			//expand the light subpath
+			{
+				double ri = 1.0;
+				for (int t = main_t; t >= 2; --t)
+				{
+					const Vertex& light_end = cameras[t - 1];
+					const Vertex& camera_end = cameras[t - 2];
+					ri *= light_end.pdf_rev / light_end.pdf_fwd;
+
+					double actual_ri = ri;
+					if (main_s == 0 && t == main_t)
+						actual_ri = ri * s1_pdf / light_end.pdf_rev;
+
+					if (!(light_end.delta || camera_end.delta))
+					{
+						double ni = (t == 2 ? camera.resolution : 1); // account for the extra samples of the light tracer
+						sum += (actual_ri * ni);
+					}
+				}
+			}
+
+			double weight = (actual_main_ri * actual_ni) / sum;
+			return weight;
+		}
 
 
 
@@ -552,7 +746,7 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / double(m_sample_per_pixel));
+					Image::ImWrite::write(m_frame_buffer, 1.0 / double(passPerPixelCounter+1));
 				}
 			}//pass per pixel
 

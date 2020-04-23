@@ -300,7 +300,7 @@ namespace Integrator
 
 				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
 
-				m_map.init();
+				m_map.dumpPhotons();
 				buildMap(scene, m_frame.size() * passPerPixelCounter);
 
 				OMP_PARALLEL_FOR
