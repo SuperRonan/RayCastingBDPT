@@ -548,6 +548,7 @@ namespace Integrator
 				else
 					return pdf_sampling_point;
 			}() };
+			assert(xt->pdf_rev >= 0);
 
 			if (ys)
 			{
@@ -590,6 +591,7 @@ namespace Integrator
 					}
 					double pacc = Math::pi * m_radius2 * camera_end->pdf_rev;
 					vm_ri *= pacc;
+					assert(vm_ri >= 0);
 					sum += vm_ri * m_photon_emitted;
 				}
 				else if (first_t_not_spicky == -1 && last_s_not_spicky != -1) // The merge is on the light subpath

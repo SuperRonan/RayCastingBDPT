@@ -254,7 +254,7 @@ namespace Geometry
 		//assumes dir is normalized
 		virtual double pdfLight(Hit const& hit, Math::Vector3f const& dir)const
 		{
-			return (hit.primitive_normal * dir) / Math::pi;
+			return std::max(0.0, hit.primitive_normal * dir) / Math::pi;
 		}
 
 

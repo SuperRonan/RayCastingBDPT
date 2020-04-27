@@ -1428,7 +1428,7 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*2;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
 	unsigned int maxLen = 3;
