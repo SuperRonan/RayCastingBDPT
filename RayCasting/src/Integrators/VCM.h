@@ -321,7 +321,7 @@ namespace Integrator
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
-							double weight = VCWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
+							double weight = VCWeight(cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
 							pixel_res += L * weight;
 						}
 					}
@@ -390,7 +390,7 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						L *= VCWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
+						L *= VCWeight(cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
@@ -446,7 +446,7 @@ namespace Integrator
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
 									
 									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
-									const double w = VMWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf);
+									const double w = VMWeight(cameraSubPath, lightSubPath, s, t, s1_pdf);
 
 									res += L * k / m_photon_emitted * w;
 								}
@@ -472,6 +472,53 @@ namespace Integrator
 			pixel_res += VertexMerging(scene, cameraSubPath, sampler);
 		}
 
+		// Returns the sum of the ratios of the pdf except for technique (main_s, main_t)
+		double sumRatioVC(Path& cameras, Path& lights, const int main_s, const int main_t, double s1_pdf)const
+		{
+			const double resolution = cameras[0].hit.camera->resolution;
+			double sum = 0;
+			//expand the camera sub path
+			{
+				double ri = 1.0;
+				for (int s = main_s; s >= 1; --s)
+				{
+					const Vertex& camera_end = lights[s - 1];
+					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
+					ri *= camera_end.pdf_rev / (camera_end.pdf_fwd);
+
+					const double actual_ri = s != 2 ? ri :
+						ri * s1_pdf / light_end->pdf_fwd;
+
+					if (!(camera_end.delta || (light_end && light_end->delta)))
+					{
+						sum += actual_ri;
+					}
+				}
+			}
+
+			//expand the light subpath
+			{
+				double ri = 1.0;
+				for (int t = main_t; t >= 2; --t)
+				{
+					const Vertex& light_end = cameras[t - 1];
+					const Vertex& camera_end = cameras[t - 2];
+					ri *= light_end.pdf_rev / light_end.pdf_fwd;
+
+					double actual_ri = ri;
+					if (main_s == 0 && t == main_t)
+						actual_ri = ri * s1_pdf / light_end.pdf_rev;
+
+					if (!(light_end.delta || camera_end.delta))
+					{
+						double ni = (t == 2 ? resolution : 1); // account for the extra samples of the light tracer
+						sum += (actual_ri * ni);
+					}
+				}
+			}
+			return sum;
+		}
+
 
 		////////////////////////////////////////////////////////////////
 		//Computes te MIS weights for Vertex Connection
@@ -479,7 +526,6 @@ namespace Integrator
 		////////////////////////////////////////////////////////////////
 		double VCWeight(
 			Path& cameras, Path& lights,
-			const Camera& camera,
 			const int main_s, const int main_t,
 			const int first_t_not_spicky, const int last_s_not_spicky,
 			double s1_pdf, double pdf_sampling_point = -1)const
@@ -518,52 +564,14 @@ namespace Integrator
 				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, xt) };
 			}
 
-			const double actual_ni = main_t == 1 ? camera.resolution : 1;
+			const double actual_ni = main_t == 1 ? cameras[0].hit.camera->resolution : 1;
 			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].pdf_fwd : 1);
 
 			
 			double sum = actual_main_ri * actual_ni;
 
-
-			//expand the camera sub path
-			{
-				double ri = 1.0;
-				for (int s = main_s; s >= 1; --s)
-				{
-					const Vertex& camera_end = lights[s - 1];
-					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
-					ri *= camera_end.pdf_rev / (camera_end.pdf_fwd);
-					
-					const double actual_ri = s != 2 ? ri :
-						ri * s1_pdf / light_end->pdf_fwd;
-
-					if (!(camera_end.delta || (light_end && light_end->delta)))
-					{
-						sum += actual_ri;
-					}
-				}
-			}
-
-			//expand the light subpath
-			{
-				double ri = 1.0;
-				for (int t = main_t; t >= 2; --t)
-				{
-					const Vertex& light_end = cameras[t - 1];
-					const Vertex& camera_end = cameras[t - 2];
-					ri *= light_end.pdf_rev / light_end.pdf_fwd;
-
-					double actual_ri = ri;
-					if (main_s == 0 && t == main_t)
-						actual_ri = ri * s1_pdf / light_end.pdf_rev;
-
-					if (!(light_end.delta || camera_end.delta))
-					{
-						double ni = (t == 2 ? camera.resolution : 1); // account for the extra samples of the light tracer
-						sum += (actual_ri * ni);
-					}
-				}
-			}
+			sum += sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
+			
 
 			// Find the VM pdf
 			if (main_s + main_t > 2)
@@ -612,7 +620,6 @@ namespace Integrator
 		////////////////////////////////////////////////////////////////
 		double VMWeight(
 			Path& cameras, Path& lights,
-			const Camera& camera,
 			const int main_s, const int main_t,
 			double s1_pdf)const
 		{
@@ -651,48 +658,7 @@ namespace Integrator
 
 			double sum = actual_main_ri * actual_ni;
 
-			sum += 1.0;
-
-
-			//expand the camera sub path
-			{
-				double ri = 1.0;
-				for (int s = main_s; s >= 1; --s)
-				{
-					const Vertex& camera_end = lights[s - 1];
-					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
-					ri *= camera_end.pdf_rev / (camera_end.pdf_fwd);
-
-					const double actual_ri = s != 2 ? ri :
-						ri * s1_pdf / light_end->pdf_fwd;
-
-					if (!(camera_end.delta || (light_end && light_end->delta)))
-					{
-						sum += actual_ri;
-					}
-				}
-			}
-
-			//expand the light subpath
-			{
-				double ri = 1.0;
-				for (int t = main_t; t >= 2; --t)
-				{
-					const Vertex& light_end = cameras[t - 1];
-					const Vertex& camera_end = cameras[t - 2];
-					ri *= light_end.pdf_rev / light_end.pdf_fwd;
-
-					double actual_ri = ri;
-					if (main_s == 0 && t == main_t)
-						actual_ri = ri * s1_pdf / light_end.pdf_rev;
-
-					if (!(light_end.delta || camera_end.delta))
-					{
-						double ni = (t == 2 ? camera.resolution : 1); // account for the extra samples of the light tracer
-						sum += (actual_ri * ni);
-					}
-				}
-			}
+			sum += 1.0 + sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
 
 			double weight = (actual_main_ri * actual_ni) / sum;
 			return weight;
