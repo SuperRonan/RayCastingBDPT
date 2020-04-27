@@ -56,11 +56,17 @@ namespace Geometry
 
 		virtual void divide(unsigned int div=1)
 		{
-			m_divisions = div;
-
-			m_u_div = std::max(1u, unsigned int(sqrt(div)));
-
-			m_v_div = std::max(1u, unsigned int(div / m_u_div));
+			unsigned int sqrt_div = std::max(1.0, std::sqrt(div));
+			if (sqrt_div * sqrt_div == div)
+			{
+				m_u_div = sqrt_div;
+				m_v_div = sqrt_div;
+			}
+			else
+			{
+				m_u_div = div;
+				m_v_div = 1;
+			}
 
 			m_divisions = m_u_div * m_v_div;
 

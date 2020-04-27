@@ -501,8 +501,7 @@ namespace Geometry
 
 		virtual void divide(unsigned int div = 1)
 		{
-			m_divisions = std::min(div, (unsigned int)m_triangles.size());
-			check_capacity(div);
+			m_divisions = div;
 		}
 
 

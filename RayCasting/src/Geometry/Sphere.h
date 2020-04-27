@@ -127,10 +127,19 @@ namespace Geometry
 
 		virtual void divide(unsigned int div)override
 		{
-			m_inclination_div = std::max(1u, unsigned int(std::sqrt(div)));
-			m_azimuth_div = std::max(1u, unsigned int(div / m_inclination_div));
+			unsigned int sqrt_div = std::max(1.0, std::sqrt(div));
+			if (sqrt_div * sqrt_div == div)
+			{
+				m_inclination_div = sqrt_div;
+				m_azimuth_div = sqrt_div;
+			}
+			else
+			{
+				m_inclination_div = div;
+				m_azimuth_div = 1;
+			}
+			
 			m_divisions = m_inclination_div * m_azimuth_div;
-
 			m_surface = 4 * Math::pi * m_radius_2;
 			check_capacity(div);
 		}
@@ -149,21 +158,6 @@ namespace Geometry
 			Math::Vector3f point = m_center + (normal * m_radius);
 			double pdf = 1.0 / surface();
 			res = { pdf, this, this, uv(normal, true), normal, point };
-		}
-
-	protected:
-
-		//sample a point on the sphere that is visible from the point of he hit, according to the solid angle sampler
-		void _sampleLight(SurfaceSample& res, Math::SolidAngleSampler const& point_sampler, Math::Sampler & sampler, double _pdf, unsigned int i=0)const
-		{
-			unsigned int offset = (m_offset + i) % m_divisions;
-			unsigned int m_sub_inclination = offset % m_azimuth_div;
-			unsigned int m_sub_azimuth = offset / m_azimuth_div;
-			double xi1 = (sampler.generateContinuous<double>(m_sub_inclination, m_sub_inclination + 1)) / double(m_inclination_div);
-			double xi2 = (sampler.generateContinuous<double>(m_sub_azimuth, m_sub_azimuth + 1)) / double(m_azimuth_div);
-			Math::Vector3f normal = point_sampler.generate(xi1, xi2);
-			Math::Vector3f point = m_center + (normal * m_radius);
-			res = { _pdf, this, this, uv(normal, true), normal, point };
 		}
 
 	public: 
@@ -186,8 +180,8 @@ namespace Geometry
 			const Math::SolidAngleSampler sasampler(cp / dist, theta, cost);
 
 			const unsigned int offset = (m_offset + i) % m_divisions;
-			const unsigned int m_sub_inclination = offset % m_azimuth_div;
-			const unsigned int m_sub_azimuth = offset / m_azimuth_div;
+			const unsigned int m_sub_inclination = offset / m_azimuth_div;
+			const unsigned int m_sub_azimuth = offset % m_azimuth_div;
 			const double xi1 = (sampler.generateContinuous<double>(m_sub_inclination, m_sub_inclination + 1)) / double(m_inclination_div);
 			const double xi2 = (sampler.generateContinuous<double>(m_sub_azimuth, m_sub_azimuth + 1)) / double(m_azimuth_div);
 			const Math::Vector3f sampled_dir = sasampler.generate(xi1, xi2);
