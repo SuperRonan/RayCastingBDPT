@@ -1403,13 +1403,6 @@ int main(int argc, char ** argv)
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
-	//Auto::initBlackHole(scene, visu.width(), visu.height());
-	
-	//initDiffuse(scene, visu);
-	//initDiffuse_dif(scene, visu);
-	//initDiffuse_surface_light<GeometryCollection::Phong>(scene, visu);
-	//initDiffuseSpecular(scene, visu) ;//custom
-	//initSpecular(scene, visu) ;
 	//initGuitar(scene, visu);
 	//initDog(scene, visu);
 	//initGarage(scene, visu);
@@ -1438,7 +1431,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 7;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel;
 

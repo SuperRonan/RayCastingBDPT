@@ -274,11 +274,14 @@ namespace Integrator
 					// Fill the photon map
 					for (int i = 1; i < path.size(); ++i)
 					{
-						Photon photon;
-						photon.m_point = path[i].hit.point;
-						photon.pixel = m_light_paths.index(x, y);
-						photon.len = i+1;
-						m_map.addPhoton(photon);
+						if (!path[i].hit.geometry->getMaterial()->spicky())
+						{
+							Photon photon;
+							photon.m_point = path[i].hit.point;
+							photon.pixel = m_light_paths.index(x, y);
+							photon.len = i + 1;
+							m_map.addPhoton(photon);
+						}
 					}
 				}
 			}
@@ -291,11 +294,14 @@ namespace Integrator
 		
 		void VertexConnection(Scene const& scene, Path& cameraSubPath, Path& lightSubPath, Math::Sampler& sampler, RGBColor& pixel_res, LightVertexStack& lt_vertices)const
 		{
+			int first_t_not_spicky=-1;
 			double s1_pdf;
 			for (int t = 1; t <= cameraSubPath.size(); ++t)
 			{
 				Vertex& camera_top = cameraSubPath[t - 1];
-
+				if (first_t_not_spicky == -1 && t >= 2 && !camera_top.hit.geometry->getMaterial()->spicky())
+					first_t_not_spicky = t;
+				int last_s_not_spicky = -1;
 				for (int s = 0; s <= lightSubPath.size(); ++s)
 				{
 					if (s + t > m_max_len)
@@ -315,7 +321,7 @@ namespace Integrator
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
-							double weight = BDPTWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf, pdf);
+							double weight = VCWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
 							pixel_res += L * weight;
 						}
 					}
@@ -347,7 +353,10 @@ namespace Integrator
 						Vertex& light_top = lightSubPath[s - 1];
 						if (camera_top.delta || light_top.delta)
 							continue;
-
+						
+						if (s >= 2 && !light_top.hit.geometry->getMaterial()->spicky())
+							last_s_not_spicky = s;
+						
 						Math::Vector3f dir = camera_top.hit.point - light_top.hit.point;
 						const double dist2 = dir.norm2();
 						const double dist = sqrt(dist2);
@@ -381,7 +390,7 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						L *= BDPTWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf);
+						L *= VCWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
@@ -408,7 +417,7 @@ namespace Integrator
 			Math::Vector3f d = hit.point - photon.hit.point;
 			const double dist2 = d.norm2();
 			d /= std::sqrt(dist2);
-			return dist2 < m_radius2 &&
+			return dist2 < m_radius2 && !photon.hit.geometry->getMaterial()->spicky() &&
 				std::abs(hit.primitive_normal * photon.hit.primitive_normal > 0.8) &&
 				std::abs(hit.primitive_normal * d) < 0.3;
 		}
@@ -416,24 +425,28 @@ namespace Integrator
 		RGBColor VertexMerging(Scene const& scene, Path& cameraSubPath, Math::Sampler& sampler)const
 		{
 			RGBColor res = 0;
-			for (int i = 1; i < cameraSubPath.size(); ++i)
+			for (int t = 2; t <= cameraSubPath.size(); ++t)
 			{
-				Vertex& pt = cameraSubPath[i];
+				const Vertex& pt = cameraSubPath[t-1];
 				if (!pt.delta)
 				{
 					m_map.loopThroughPhotons([&](Photon const& photon)
 						{
-							const int len = photon.len + i;
+							const int len = photon.len + t - 1;
 							if (len <= m_max_len)
 							{
 								Path& lightSubPath = m_light_paths[photon.pixel];
-								Vertex& qs_plus = lightSubPath[photon.len - 1];
+								const int s = photon.len - 1;
+								assert(s >= 1);
+								const Vertex& qs_plus = lightSubPath[photon.len - 1];
+								const Vertex& qs = lightSubPath[s - 1];
 								if (accept(pt.hit, qs_plus))
 								{
 									const double k = 1.0 / (Math::pi * m_radius2);
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
-
-									double w = 0.5;
+									
+									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
+									const double w = VMWeight(cameraSubPath, lightSubPath, scene.m_camera, s, t, s1_pdf);
 
 									res += L * k / m_photon_emitted * w;
 								}
@@ -461,13 +474,14 @@ namespace Integrator
 
 
 		////////////////////////////////////////////////////////////////
-		//Computes te MIS weights for the bidirectional path tracer
+		//Computes te MIS weights for Vertex Connection
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double BDPTWeight(
+		double VCWeight(
 			Path& cameras, Path& lights,
 			const Camera& camera,
 			const int main_s, const int main_t,
+			const int first_t_not_spicky, const int last_s_not_spicky,
 			double s1_pdf, double pdf_sampling_point = -1)const
 		{
 			Vertex* xt = cameras.begin() + (main_t - 1);
@@ -551,45 +565,75 @@ namespace Integrator
 				}
 			}
 
+			// Find the VM pdf
+			if (main_s + main_t > 2)
+			{
+				double vm_ri = 1.0;
+				if (first_t_not_spicky != -1) // A merge is possible on the camera subpath
+				{
+					const Vertex* camera_end = xt;
+					const Vertex* light_end = ys; // the photon is merged with camera_end
+					for (int t = main_t; t > first_t_not_spicky; --t)
+					{
+						light_end = camera_end;
+						camera_end = &cameras[t - 1];
+
+						vm_ri *= light_end->pdf_rev / light_end->pdf_fwd;
+					}
+					double pacc = Math::pi * m_radius2 * camera_end->pdf_rev;
+					vm_ri *= pacc;
+					sum += vm_ri * m_photon_emitted;
+				}
+				else if (first_t_not_spicky == -1 && last_s_not_spicky != -1) // The merge is on the light subpath
+				{
+					const Vertex* camera_end = nullptr;
+					const Vertex* light_end;
+					assert(main_s >= last_s_not_spicky);
+					for (int s = main_s; s >= last_s_not_spicky; --s)
+					{
+						camera_end = &lights[s - 1];
+						light_end = &lights[s - 2];
+
+						vm_ri *= camera_end->pdf_rev / camera_end->pdf_fwd;
+					}
+					double pacc = Math::pi * m_radius2 * camera_end->pdf_fwd;
+					vm_ri *= pacc;
+					sum += vm_ri * m_photon_emitted;
+				}
+			}
+
 			double weight = (actual_main_ri*actual_ni) / sum;
-			double vcm_half = (main_s + main_t) == 2 ? 1.0 : 0.5;
-			return weight * vcm_half;
+			return weight;
 		}
 
 
 		////////////////////////////////////////////////////////////////
-		//Computes te MIS weights for the VCM
-		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
+		//Computes te MIS weights for the Vertex Merging
 		////////////////////////////////////////////////////////////////
-		double VCMWeight(
+		double VMWeight(
 			Path& cameras, Path& lights,
 			const Camera& camera,
 			const int main_s, const int main_t,
-			double s1_pdf, double pdf_sampling_point = -1)const
+			double s1_pdf)const
 		{
-			Vertex* xt = cameras.begin() + (main_t - 1);
-			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
+			assert(lights.size() >= main_s + 1);
+			assert(main_s > 0);
+			assert(main_t >= 2);
+
+			Vertex* xt = &cameras[main_t - 1];
+			Vertex* ys = &lights[main_s - 1];
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
 			Vertex* ysm = main_s < 2 ? nullptr : lights.begin() + (main_s - 2);
+			const Vertex* photon = &lights[main_s];
 
 			ScopedAssignment<double> xt_pdf_rev_sa;
 			ScopedAssignment<double> ys_pdf_rev_sa;
 			ScopedAssignment<double> xtm_pdf_rev_sa;
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
-			xt_pdf_rev_sa = { &xt->pdf_rev,[&]() {
-				if (main_t == 1)
-					return 0.0;
-				else if (ys)
-					return ys->pdf<TransportMode::Radiance, true>(*xt, ysm);
-				else
-					return pdf_sampling_point;
-			}() };
+			xt_pdf_rev_sa = { &xt->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*xt, ysm) };
 
-			if (ys)
-			{
-				ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xtm) };
-			}
+			ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xtm) };
 
 			if (xtm)
 			{
@@ -601,11 +645,13 @@ namespace Integrator
 				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, xt) };
 			}
 
-			const double actual_ni = main_t == 1 ? camera.resolution : 1;
-			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].pdf_fwd : 1);
+			const double actual_ni = m_photon_emitted;
+			const double actual_main_ri = photon->pdf_fwd * Math::pi * m_radius2;
 
 
 			double sum = actual_main_ri * actual_ni;
+
+			sum += 1.0;
 
 
 			//expand the camera sub path
