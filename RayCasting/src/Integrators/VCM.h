@@ -237,7 +237,8 @@ namespace Integrator
 			Integrator::setLen(len);
 		}
 
-		void setParams(Scene const& scene, double relative_radius)
+		// Relative readius is relative to the scene radius
+		void setParams(Scene const& scene, double relative_radius, double photon_relative_radius = 1)
 		{
 			m_relative_radius = relative_radius;
 			BoundingBox m_bb = scene.m_sceneBoundingBox;
@@ -247,10 +248,13 @@ namespace Integrator
 			double max_dir = dim.simdAbs().max();
 
 			m_radius = max_dir * m_relative_radius;
-			m_radius2 = m_radius * m_radius;
+			
 			Math::Vector3f m_pixel_size = m_radius;
 			Math::Vector3f sizef = dim.simdDiv(m_pixel_size);
 			Math::Vector<int, 3> m_size = sizef.ceil();
+			
+			m_radius *= photon_relative_radius;
+			m_radius2 = m_radius * m_radius;
 
 			m_map.init(m_bb, m_size);
 		}
@@ -625,6 +629,7 @@ namespace Integrator
 			const int main_s, const int main_t,
 			double s1_pdf)const
 		{
+			return 0.5;
 			assert(lights.size() >= main_s + 1);
 			assert(main_s > 0);
 			assert(main_t >= 2);

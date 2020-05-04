@@ -1397,9 +1397,9 @@ int main(int argc, char ** argv)
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
@@ -1458,7 +1458,7 @@ int main(int argc, char ** argv)
 	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.01, 1000000);
 	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
 	//((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
-	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.01);
+	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.01, 0.5);
 
 	std::cout << help_message << std::endl;
 
