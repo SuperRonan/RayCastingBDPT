@@ -1360,8 +1360,6 @@ int main(int argc, char ** argv)
 		return Auto::Auto::__main__(argc, argv);
 	}
 
-	
-
 	int nthread = 4*2*2;
 	omp_set_num_threads(nthread);
 
