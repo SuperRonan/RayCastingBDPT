@@ -346,7 +346,7 @@ namespace Auto
 			Geometry::Square* up_light = new Geometry::Square(light);
 			up_light->scale(scale * 0.2 * light_size);
 			up_light->scaleY(ratio);
-			up_light->translate({ 0, y*scale, scale / 2 - 0.01 });
+			up_light->translate({ scale*0.2*0, y*scale, scale / 2 - 0.01 });
 			scene.add(up_light);
 		}
 

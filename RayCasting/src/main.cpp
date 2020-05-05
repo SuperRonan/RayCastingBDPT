@@ -1429,7 +1429,7 @@ int main(int argc, char ** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
@@ -1456,7 +1456,7 @@ int main(int argc, char ** argv)
 	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.01, 1000000);
 	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
 	//((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
-	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.01, 0.5);
+	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.0075, 0.5);
 
 	std::cout << help_message << std::endl;
 

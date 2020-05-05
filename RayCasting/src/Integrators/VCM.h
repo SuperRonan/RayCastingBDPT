@@ -36,6 +36,13 @@ namespace Integrator
 
 			Vertex() {}
 
+			Math::Vector3f dir_to_vertex(const Vertex* vert = nullptr)const
+			{
+				if (vert)
+					return (vert->hit.point - hit.point).normalized();
+				return 0.0;
+			}
+
 			//////////////////////////////////
 			// returns the probability of sampling the direction from this to next, knowing this has been sampled from prev
 			// the probability returned is in area density
@@ -44,7 +51,7 @@ namespace Integrator
 			// delta works should be true when the connection has beed sampled by the bsdf (like during the random walk), for deterministic connection, it should be false
 			//////////////////////////////////
 			template <TransportMode MODE, bool DENSITY_AREA = true>
-			double pdf(Vertex const& next, const Vertex* prev)const
+			double pdf(Vertex const& next, Math::Vector3f const& wo=Math::Vector3f(0, 0, 0))const
 			{
 				double pdf_solid_angle;
 				Math::Vector3f to_vertex = next.hit.point - hit.point;
@@ -55,7 +62,7 @@ namespace Integrator
 				{
 					pdf_solid_angle = hit.camera->pdfWeSolidAngle(to_vertex);
 				}
-				else if (type == Type::Light || prev == nullptr)
+				else if (type == Type::Light || (wo.norm2() == 0))
 				{
 					pdf_solid_angle = hit.geometry->getMaterial()->pdfLight(hit, to_vertex);
 				}
@@ -64,7 +71,7 @@ namespace Integrator
 					if (hit.geometry->getMaterial()->delta())
 						return 0;
 					else
-						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized(), MODE == TransportMode::Radiance);
+						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, wo, MODE == TransportMode::Radiance);
 				}
 				if constexpr (DENSITY_AREA)
 				{
@@ -548,7 +555,7 @@ namespace Integrator
 				if (main_t == 1)
 					return 0.0;
 				else if (ys)
-					return ys->pdf<TransportMode::Radiance, true>(*xt, ysm);
+					return ys->pdf<TransportMode::Radiance, true>(*xt, ys->hit.to_view);
 				else
 					return pdf_sampling_point;
 			}() };
@@ -556,17 +563,17 @@ namespace Integrator
 
 			if (ys)
 			{
-				ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xtm) };
+				ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
 			}
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, ys) };
+				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
 			}
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, xt) };
+				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
 
 			const double actual_ni = main_t == 1 ? cameras[0].hit.camera->resolution : 1;
@@ -589,7 +596,7 @@ namespace Integrator
 					for (int t = main_t; t > first_t_not_spicky; --t)
 					{
 						light_end = camera_end;
-						camera_end = &cameras[t - 1];
+						camera_end = &cameras[t - 2];
 
 						vm_ri *= light_end->pdf_rev / light_end->pdf_fwd;
 					}
@@ -629,11 +636,10 @@ namespace Integrator
 			const int main_s, const int main_t,
 			double s1_pdf)const
 		{
-			return 0.5;
 			assert(lights.size() >= main_s + 1);
 			assert(main_s > 0);
 			assert(main_t >= 2);
-
+		
 			Vertex* xt = &cameras[main_t - 1];
 			Vertex* ys = &lights[main_s - 1];
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -645,18 +651,19 @@ namespace Integrator
 			ScopedAssignment<double> xtm_pdf_rev_sa;
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
-			xt_pdf_rev_sa = { &xt->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*xt, ysm) };
+			//xt_pdf_rev_sa = { &xt->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*xt, ys->hit.to_view) };
+			xt_pdf_rev_sa = { &xt->pdf_rev, photon->pdf_fwd }; // Merging
 
-			ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xtm) };
+			ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, ys) };
+				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
 			}
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, xt) };
+				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
 
 			const double actual_ni = m_photon_emitted;
