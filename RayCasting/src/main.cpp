@@ -1426,10 +1426,10 @@ int main(int argc, char ** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*16;
 										
 	// max lenght is included
-	unsigned int maxLen = 5;
+	unsigned int maxLen = 7;
 
 	unsigned int lights_divisions = sample_per_pixel;
 

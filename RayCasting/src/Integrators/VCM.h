@@ -663,7 +663,8 @@ namespace Integrator
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
+				// Since it is already computed
+				//ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
 
 			const double actual_ni = m_photon_emitted;
