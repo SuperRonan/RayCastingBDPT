@@ -21,7 +21,7 @@ namespace Geometry
 			const GeometryBase* geometry;
 			const Camera* camera;
 		};
-		const Primitive* primitve;
+		const Primitive* primitive;
 		Math::Vector3f point;
 		
 		Math::Vector3f to_view;
@@ -39,7 +39,7 @@ namespace Geometry
 		Hit():
 			z(-1),
 			geometry(nullptr),
-			primitve(nullptr)
+			primitive(nullptr)
 		{}
 
 		Hit(Hit const& other) = default;
@@ -51,7 +51,7 @@ namespace Geometry
 			return *this;
 			z = other.z;
 			geometry = other.geometry;
-			primitve = other.primitve;
+			primitive = other.primitive;
 			point = other.point;
 			to_view = other.to_view;
 			facing = other.facing;

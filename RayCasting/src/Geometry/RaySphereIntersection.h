@@ -78,7 +78,7 @@ namespace Geometry
 			assert(m_valid);
 			hit.z = m_t;
 			hit.geometry = m_sphere;
-			hit.primitve = (const void*)m_sphere;
+			hit.primitive = (const void*)m_sphere;
 			hit.point = ray.sample_point(m_t);
 			hit.to_view = -ray.direction();
 			hit.facing = m_sphere->facing(hit.point - m_sphere->center(), hit.to_view);

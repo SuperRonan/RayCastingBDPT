@@ -65,7 +65,7 @@ namespace Geometry
 			assert(m_valid);
 			hit.z = m_t;
 			hit.geometry = m_triangle->geometry();
-			hit.primitve = (const void*)m_triangle;
+			hit.primitive = (const void*)m_triangle;
 			hit.point = ray.sample_point(m_t);
 			hit.to_view = -ray.direction();
 			hit.facing = m_triangle->facing(hit.to_view);

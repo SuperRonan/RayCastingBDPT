@@ -37,7 +37,7 @@ namespace Integrator
 			Float m_beta[3];
 
 			Photon(Hit const& hit, uint8_t depth, RGBColor const& beta):
-				m_primitive(hit.primitve),
+				m_primitive(hit.primitive),
 				m_point(hit.point),
 				m_depth(depth),
 				m_dir(hit.to_view)
@@ -49,7 +49,7 @@ namespace Integrator
 
 			void fillHit(Hit& res)const
 			{
-				res.primitve = m_primitive;
+				res.primitive = m_primitive;
 				res.geometry = m_primitive->geometry();
 				res.point = m_point;
 				res.to_view = m_dir;

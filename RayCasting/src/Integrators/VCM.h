@@ -4,97 +4,14 @@
 #include <Integrators/PhotonMap.h>
 #include <omp.h>
 #include <Image/ImWrite.h>
+#include <utils.h>
+#include <System/ScopedAssignment.h>
 
 namespace Integrator
 {
 	class VCM : public BidirectionalBase
 	{
 	protected:
-
-		enum TransportMode { Importance, Radiance };
-		struct Vertex
-		{
-			enum Type { Camera, Light, Surface } type;
-
-			RGBColor beta;
-
-			//maybe use something lighter than a full hit?
-			Hit hit;
-
-			//wether the bsdf of this has a delta distribution, which would make it unconnectable
-			bool delta;
-
-			double pdf_fwd, pdf_rev;
-
-
-			Vertex(Type t, RGBColor b, Hit const& h, bool d) :
-				type(t),
-				beta(b),
-				hit(h),
-				delta(d)
-			{}
-
-			Vertex() {}
-
-			Math::Vector3f dir_to_vertex(const Vertex* vert = nullptr)const
-			{
-				if (vert)
-					return (vert->hit.point - hit.point).normalized();
-				return 0.0;
-			}
-
-			//////////////////////////////////
-			// returns the probability of sampling the direction from this to next, knowing this has been sampled from prev
-			// the probability returned is in area density
-			// the function should handle most cases (all for now)
-			// delta_works: if true, the pdf returned by the delta pdf will be assumed to be 1, 
-			// delta works should be true when the connection has beed sampled by the bsdf (like during the random walk), for deterministic connection, it should be false
-			//////////////////////////////////
-			template <TransportMode MODE, bool DENSITY_AREA = true>
-			double pdf(Vertex const& next, Math::Vector3f const& wo=Math::Vector3f(0, 0, 0))const
-			{
-				double pdf_solid_angle;
-				Math::Vector3f to_vertex = next.hit.point - hit.point;
-				const double dist2 = to_vertex.norm2();
-				const double dist = std::sqrt(dist2);
-				to_vertex /= dist;
-				if (type == Type::Camera)
-				{
-					pdf_solid_angle = hit.camera->pdfWeSolidAngle(to_vertex);
-				}
-				else if (type == Type::Light || (wo.norm2() == 0))
-				{
-					pdf_solid_angle = hit.geometry->getMaterial()->pdfLight(hit, to_vertex);
-				}
-				else
-				{
-					if (hit.geometry->getMaterial()->delta())
-						return 0;
-					else
-						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, wo, MODE == TransportMode::Radiance);
-				}
-				if constexpr (DENSITY_AREA)
-				{
-					double res = pdf_solid_angle / dist2;
-
-					if (next.type != Type::Camera)
-					{
-						res *= std::abs(next.hit.primitive_normal * to_vertex);
-					}
-					return res;
-				}
-				else
-				{
-					return pdf_solid_angle;
-				}
-			}
-		};
-
-		template <class T>
-		using Stack = StackN<T>;
-		using Path = Stack<Vertex>;
-
-
 
 		struct Photon
 		{
@@ -108,113 +25,6 @@ namespace Integrator
 			unsigned int pixel;
 			unsigned char len;
 		};
-
-		
-
-
-		///////////////////////////////////////////////
-		//Takes a random walk through the scene (draws a path and record it in res)
-		// -Starts at ray
-		// -beta is the throughput of the path
-		// -pdf is the solid angle probability of sampling ray.dir
-		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
-		///////////////////////////////////////////////
-		template <TransportMode MODE>
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, Path& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_len)const
-		{
-			Hit hit;
-			double pdf_solid_angle = pdf;
-			Vertex* prev = &res.top();
-			double cos_prev = std::abs(prev->hit.primitive_normal * ray.direction());
-			int nv = 0;
-			for (nv = 0; nv < max_len; ++nv)
-			{
-				if (scene.full_intersection(ray, hit))
-				{
-					const double dist = hit.z;
-					const double dist2 = dist * dist;
-
-					res.grow();
-					Vertex& vertex = res.top();
-					vertex = Vertex(Vertex::Type::Surface, beta, hit, hit.geometry->getMaterial()->delta());
-					const double cos_vertex = std::abs(hit.primitive_normal * ray.direction());
-					vertex.pdf_fwd = pdf_solid_angle * cos_vertex / dist2;
-
-					//sample next direction
-					DirectionSample next_dir;
-					double pdf_rev;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE == TransportMode::Radiance, &pdf_rev);
-
-					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
-					prev->pdf_rev = pdf_rev * cos_prev / dist2;
-
-					//update info for the next loop
-					ray = Ray(hit.point, next_dir.direction);
-					prev = &vertex;
-
-					cos_prev = std::abs(next_dir.direction * hit.primitive_normal);
-					beta = beta * next_dir.bsdf * cos_prev;
-					if (beta.isBlack())
-						break;
-					beta = beta / next_dir.pdf;
-					pdf_solid_angle = next_dir.pdf;
-				}
-				else
-					break;
-			}
-			return nv;
-		}
-
-		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, Path& res, Ray const& ray)const
-		{
-			res.grow();
-			Vertex& camera_vertex = res.top();
-			camera_vertex.beta = 1;
-			camera_vertex.delta = false;
-			camera_vertex.type = Vertex::Type::Camera;
-			camera_vertex.pdf_fwd = 1;
-			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
-			camera_vertex.hit.point = scene.m_camera.getPosition();
-			camera_vertex.hit.camera = &scene.m_camera;
-			double pdf_sa = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
-			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / pdf_sa;
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, beta, pdf_sa, m_max_len-1);
-
-			camera_vertex.pdf_rev = 0;
-			return nv + 1;
-		}
-
-		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, Path& res)const
-		{
-			res.grow();
-			Vertex& light_vertex = res.top();
-			light_vertex.delta = false;
-			light_vertex.type = Vertex::Type::Light;
-
-			SurfaceSample sls;
-			sampleOneLight(scene, sampler, sls);
-
-			light_vertex.hit.geometry = sls.geo;
-			light_vertex.hit.normal = light_vertex.hit.primitive_normal = sls.normal;
-			light_vertex.hit.tex_uv = sls.uv;
-			light_vertex.hit.point = sls.vector;
-
-			light_vertex.pdf_fwd = sls.pdf;
-			light_vertex.beta = 1.0 / sls.pdf;
-
-			//generate a direction
-			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
-			DirectionSample next_dir = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
-
-			Ray ray(sls.vector, next_dir.direction);
-
-			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal) / (sls.pdf * next_dir.pdf);
-
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), m_max_len-2);
-
-			return 1 + nv;
-		}
-		
 
 	public:
 
@@ -340,7 +150,7 @@ namespace Integrator
 					{
 						ScopedAssignment<Vertex> resampled_vertex_sa;
 						if (s == 1) {
-							double prev_pdf = lightSubPath[0].pdf_fwd;
+							double prev_pdf = lightSubPath[0].fwd_pdf;
 							SurfaceSample sls;
 							sampleOneLight(scene, camera_top.hit, sampler, sls);
 							s1_pdf = sls.pdf;
@@ -352,7 +162,7 @@ namespace Integrator
 							light_resampled.hit.tex_uv = sls.uv;
 							light_resampled.hit.point = sls.vector;
 
-							light_resampled.pdf_fwd = prev_pdf;
+							light_resampled.fwd_pdf = prev_pdf;
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = { lightSubPath.begin(), light_resampled };
 						}
@@ -483,53 +293,6 @@ namespace Integrator
 			pixel_res += VertexMerging(scene, cameraSubPath, sampler);
 		}
 
-		// Returns the sum of the ratios of the pdf except for technique (main_s, main_t)
-		double sumRatioVC(Path& cameras, Path& lights, const int main_s, const int main_t, double s1_pdf)const
-		{
-			const double resolution = cameras[0].hit.camera->resolution;
-			double sum = 0;
-			//expand the camera sub path
-			{
-				double ri = 1.0;
-				for (int s = main_s; s >= 1; --s)
-				{
-					const Vertex& camera_end = lights[s - 1];
-					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
-					ri *= camera_end.pdf_rev / (camera_end.pdf_fwd);
-
-					const double actual_ri = s != 2 ? ri :
-						ri * s1_pdf / light_end->pdf_fwd;
-
-					if (!(camera_end.delta || (light_end && light_end->delta)))
-					{
-						sum += actual_ri;
-					}
-				}
-			}
-
-			//expand the light subpath
-			{
-				double ri = 1.0;
-				for (int t = main_t; t >= 2; --t)
-				{
-					const Vertex& light_end = cameras[t - 1];
-					const Vertex& camera_end = cameras[t - 2];
-					ri *= light_end.pdf_rev / light_end.pdf_fwd;
-
-					double actual_ri = ri;
-					if (main_s == 0 && t == main_t)
-						actual_ri = ri * s1_pdf / light_end.pdf_rev;
-
-					if (!(light_end.delta || camera_end.delta))
-					{
-						double ni = (t == 2 ? resolution : 1); // account for the extra samples of the light tracer
-						sum += (actual_ri * ni);
-					}
-				}
-			}
-			return sum;
-		}
-
 
 		////////////////////////////////////////////////////////////////
 		//Computes te MIS weights for Vertex Connection
@@ -551,7 +314,7 @@ namespace Integrator
 			ScopedAssignment<double> xtm_pdf_rev_sa;
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
-			xt_pdf_rev_sa = { &xt->pdf_rev,[&]() {
+			xt_pdf_rev_sa = { &xt->rev_pdf,[&]() {
 				if (main_t == 1)
 					return 0.0;
 				else if (ys)
@@ -563,21 +326,21 @@ namespace Integrator
 
 			if (ys)
 			{
-				ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
+				ys_pdf_rev_sa = { &ys->rev_pdf, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
 			}
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
+				xtm_pdf_rev_sa = { &xtm->rev_pdf, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
 			}
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
+				ysm_pdf_rev_sa = { &ysm->rev_pdf, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
 
 			const double actual_ni = main_t == 1 ? cameras[0].hit.camera->resolution : 1;
-			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].pdf_fwd : 1);
+			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].fwd_pdf : 1);
 
 			
 			double sum = actual_main_ri * actual_ni;
@@ -598,9 +361,9 @@ namespace Integrator
 						light_end = camera_end;
 						camera_end = &cameras[t - 2];
 
-						vm_ri *= light_end->pdf_rev / light_end->pdf_fwd;
+						vm_ri *= light_end->rev_pdf / light_end->fwd_pdf;
 					}
-					double pacc = Math::pi * m_radius2 * camera_end->pdf_rev;
+					double pacc = Math::pi * m_radius2 * camera_end->rev_pdf;
 					vm_ri *= pacc;
 					assert(vm_ri >= 0);
 					sum += vm_ri * m_photon_emitted;
@@ -615,9 +378,9 @@ namespace Integrator
 						camera_end = &lights[s - 1];
 						light_end = &lights[s - 2];
 
-						vm_ri *= camera_end->pdf_rev / camera_end->pdf_fwd;
+						vm_ri *= camera_end->rev_pdf / camera_end->fwd_pdf;
 					}
-					double pacc = Math::pi * m_radius2 * camera_end->pdf_fwd;
+					double pacc = Math::pi * m_radius2 * camera_end->fwd_pdf;
 					vm_ri *= pacc;
 					sum += vm_ri * m_photon_emitted;
 				}
@@ -652,13 +415,13 @@ namespace Integrator
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
 			//xt_pdf_rev_sa = { &xt->pdf_rev, ys->pdf<TransportMode::Radiance, true>(*xt, ys->hit.to_view) };
-			xt_pdf_rev_sa = { &xt->pdf_rev, photon->pdf_fwd }; // Merging
+			xt_pdf_rev_sa = { &xt->rev_pdf, photon->fwd_pdf }; // Merging
 
-			ys_pdf_rev_sa = { &ys->pdf_rev, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
+			ys_pdf_rev_sa = { &ys->rev_pdf, xt->pdf<TransportMode::Importance, true>(*ys, xt->hit.to_view) };
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdf_rev, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
+				xtm_pdf_rev_sa = { &xtm->rev_pdf, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
 			}
 
 			if (ysm)
@@ -668,7 +431,7 @@ namespace Integrator
 			}
 
 			const double actual_ni = m_photon_emitted;
-			const double actual_main_ri = photon->pdf_fwd * Math::pi * m_radius2;
+			const double actual_main_ri = photon->fwd_pdf * Math::pi * m_radius2;
 
 
 			double sum = actual_main_ri * actual_ni;

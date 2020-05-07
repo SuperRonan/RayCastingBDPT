@@ -354,6 +354,9 @@
     <ClInclude Include="..\src\System\Merger.h">
       <Filter>src\System</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\OptiVCM.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

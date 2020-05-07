@@ -36,7 +36,7 @@ namespace Integrator
 
 			Photon(Hit const& hit, uint8_t len, RGBColor const& beta) :
 				m_geometry(hit.geometry),
-				m_primitive(hit.primitve),
+				m_primitive(hit.primitive),
 				m_point(hit.point),
 				m_len(len)
 			{
@@ -58,7 +58,7 @@ namespace Integrator
 
 			void fillHit(Hit& res, PhotonMap<Photon> const& m_map)const
 			{
-				res.primitve = m_primitive;
+				res.primitive = m_primitive;
 				res.geometry = m_primitive->geometry();
 				res.point = m_point;
 				res.to_view = m_len == 1 ? 0.0 : (m_map[prev].point() - point()).normalized();

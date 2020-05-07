@@ -236,12 +236,7 @@ namespace Geometry
 		//return a solid angle pdf
 		double pdfWeSolidAngle(Math::Vector3f const& dir)const
 		{
-			if (validRaster(raster(dir)))
-			{
-				double cost = dir * m_front;
-				return pdfWeArea() / (cost * cost * cost);
-			}
-			return 0;
+			return pdfWeSolidAngle<false>(dir);
 		}
 
 		template <bool WORKS>

@@ -101,7 +101,7 @@ namespace Geometry
 		assert(m_valid);
 		hit.z = m_t;
 		hit.geometry = m_primitive;
-		hit.primitve = m_primitive;
+		hit.primitive = m_primitive;
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.point - m_primitive->center(), hit.to_view);
@@ -167,7 +167,7 @@ namespace Geometry
 		assert(m_valid);
 		hit.z = m_t;
 		hit.geometry = m_primitive->geometry();
-		hit.primitve = m_primitive;
+		hit.primitive = m_primitive;
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.to_view);
@@ -214,7 +214,7 @@ namespace Geometry
 		assert(m_valid);
 		hit.z = m_t;
 		hit.geometry = m_primitive;
-		hit.primitve = m_primitive;
+		hit.primitive = m_primitive;
 		hit.point = ray.sample_point(m_t);
 		hit.to_view = -ray.direction();
 		hit.facing = m_primitive->facing(hit.to_view);
