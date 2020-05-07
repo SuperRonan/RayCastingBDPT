@@ -8,6 +8,7 @@
 #include <Auto/TestScenes.h>
 #include <Auto/RenderResult.h>
 #include <omp.h>
+#include <System/Parallel.h>
 #include <filesystem>
 #include <Image/ImWrite.h>
 
@@ -319,7 +320,7 @@ namespace Auto
 			options.print(std::cout);
 
 
-			omp_set_num_threads(options.nthreads);
+			Parallel::setNumThread(options.nthreads);
 
 			using SceneInitializer = std::function<void (Geometry::Scene &, size_t, size_t)>;
 

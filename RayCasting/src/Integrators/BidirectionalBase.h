@@ -253,7 +253,7 @@ namespace Integrator
 					//sample next direction
 					DirectionSample next_dir;
 					double pdf_rev;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE == TransportMode::Radiance, &pdf_rev);
+					hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE == TransportMode::Radiance, &pdf_rev);
 
 					prev->rev_pdf = pdf_rev * cos_prev / dist2;
 

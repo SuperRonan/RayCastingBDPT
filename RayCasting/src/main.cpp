@@ -27,6 +27,7 @@
 #include <Geometry/Materials/Glossy.h>
 #include <Geometry/Materials/DeltaMirror.h>
 #include <Math/Sampler.h>
+#include <System/Parallel.h>
 
 #include <Integrators/DirectIntegrator.h>
 #include <Integrators/RegularIntegrators.h>
@@ -1353,15 +1354,16 @@ void testPrecision()
 
 
 
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
+	Parallel::init();
 	if (argc > 1)
 	{
 		return Auto::Auto::__main__(argc, argv);
 	}
 
-	int nthread = 4*2*2;
-	omp_set_num_threads(nthread);
+	int nthread = 4 * 2 * 2;
+	Parallel::setNumThread(nthread);
 
 #ifdef _DEBUG
 	int scale = 10;
