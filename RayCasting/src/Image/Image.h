@@ -157,21 +157,33 @@ namespace Image
 		}
 		
 
-		size_t index(size_t i, size_t j)const
+		inline size_t index(size_t i, size_t j)const
 		{
-			if constexpr (ROW_MAJOR)
-				return i * m_height + j;
-			else
-				return j * m_width + i;
+			return index(i, j, m_width, m_height);
 		}
 
-		Math::Vector<size_t, 2> indices(size_t index)const
+		inline Math::Vector<size_t, 2> indices(size_t index)const
+		{
+			return indices(index, m_width, m_height);
+		}
+
+		inline static size_t index(size_t i, size_t j, size_t width, size_t height)
 		{
 			if constexpr (ROW_MAJOR)
-				return { index / m_height, index % m_height };
+				return i * height + j;
 			else
-				return { index % m_width, index / m_width };
+				return j * width + i;
 		}
+
+		inline static Math::Vector<size_t, 2> indices(size_t index, size_t width, size_t height)
+		{
+			if constexpr (ROW_MAJOR)
+				return { index / height, index % height };
+			else
+				return { index % width, index / width };
+		}
+
+
 		
 
 		// -i |j

@@ -46,6 +46,7 @@
 #include <Integrators/SimpleVCM.h>
 #include <Integrators/UncorellatedBDPT.h>
 #include <Integrators/VCM.h>
+#include <Integrators/OptiVCM.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -543,7 +544,7 @@ void initDog(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 	for (size_t cpt = 0; cpt < loader.getMeshes().size(); ++cpt)
 	{
 		Geometry::GeometryCollection * obj = new Geometry::GeometryCollection(*loader.getMeshes()[cpt]);
-		obj->set_material(Lglass);
+		obj->set_material(glass);
 		scene.add(obj);
 	}
 
@@ -1399,12 +1400,12 @@ int main(int argc, char** argv)
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
 	//initGuitar(scene, visu);
-	//initDog(scene, visu);
+	initDog(scene, visu);
 	//initGarage(scene, visu);
 	//initRobot(scene, visu);
 	//initTemple(scene, visu);
@@ -1428,10 +1429,10 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*4;
 										
 	// max lenght is included
-	unsigned int maxLen = 7;
+	unsigned int maxLen = 11;
 
 	unsigned int lights_divisions = sample_per_pixel;
 

@@ -372,6 +372,56 @@ namespace Integrator
 			return sum;
 		}
 
+		void ComputeSumRatioVC(Path& cameras, Path& lights, const int main_s, const int main_t, double s1_pdf, double * buffer)const
+		{
+			const double resolution = cameras[0].camera().resolution;
+			//expand the camera sub path
+			{
+				double ri = 1.0;
+				for (int s = main_s; s >= 1; --s)
+				{
+					const Vertex& camera_end = lights[s - 1];
+					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
+					ri *= camera_end.rev_pdf / (camera_end.fwd_pdf);
+
+					const double actual_ri = s != 2 ? ri :
+						ri * s1_pdf / light_end->fwd_pdf;
+
+					if (!(camera_end.delta || (light_end && light_end->delta)))
+					{
+						buffer[s - 1] = actual_ri;
+					}
+					else
+						buffer[s - 1] = 0;
+				}
+			}
+
+			//expand the light subpath
+			{
+				double ri = 1.0;
+				int s = main_s + 1;
+				for (int t = main_t; t >= 2; --t)
+				{
+					const Vertex& light_end = cameras[t - 1];
+					const Vertex& camera_end = cameras[t - 2];
+					ri *= light_end.rev_pdf / light_end.fwd_pdf;
+
+					double actual_ri = ri;
+					if (main_s == 0 && t == main_t)
+						actual_ri = ri * s1_pdf / light_end.rev_pdf;
+
+					if (!(light_end.delta || camera_end.delta))
+					{
+						double ni = (t == 2 ? resolution : 1); // account for the extra samples of the light tracer
+						buffer[s] = (actual_ri * ni);
+					}
+					else
+						buffer[s] = 0;
+					++s;
+				}
+			}
+		}
+
 
 		////////////////////////////////////////////////////////////////
 		//Computes te MIS weights for Vertex Connection
@@ -428,6 +478,8 @@ namespace Integrator
 			double weight = (actual_main_ri * actual_ni) / sum;
 			return weight;
 		}
+
+		
 
 	};
 }
