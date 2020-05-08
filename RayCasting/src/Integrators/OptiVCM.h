@@ -322,7 +322,7 @@ namespace Integrator
 				else
 					return pdf_sampling_point;
 			}() };
-			assert(xt->pdf_rev >= 0);
+			assert(xt->rev_pdf >= 0);
 
 			if (ys)
 			{

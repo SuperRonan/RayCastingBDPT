@@ -290,7 +290,7 @@ namespace Integrator
 
 			VertexConnection(scene, cameraSubPath, lightSubPath, sampler, pixel_res, lt_vertices);
 
-			//pixel_res += VertexMerging(scene, cameraSubPath, sampler);
+			pixel_res += VertexMerging(scene, cameraSubPath, sampler);
 		}
 
 
@@ -322,7 +322,7 @@ namespace Integrator
 				else
 					return pdf_sampling_point;
 			}() };
-			assert(xt->pdf_rev >= 0);
+			assert(xt->rev_pdf >= 0);
 
 			if (ys)
 			{
@@ -346,13 +346,12 @@ namespace Integrator
 			double sum = actual_main_ri * actual_ni;
 
 			sum += sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
-			
 
 			// Find the VM pdf
-			if (main_s + main_t > 2 && false)
+			if (main_s + main_t > 2)
 			{
 				double vm_ri = 1.0;
-				if (first_t_not_spicky != -1) // A merge is possible on the camera subpath
+				if (first_t_not_spicky != -1 && !(first_t_not_spicky == main_t && main_s == 0)) // A merge is possible on the camera subpath
 				{
 					const Vertex* camera_end = xt;
 					const Vertex* light_end = ys; // the photon is merged with camera_end
@@ -385,6 +384,7 @@ namespace Integrator
 					sum += vm_ri * m_photon_emitted;
 				}
 			}
+			
 
 			double weight = (actual_main_ri*actual_ni) / sum;
 			return weight;
