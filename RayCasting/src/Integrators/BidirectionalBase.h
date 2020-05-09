@@ -372,8 +372,9 @@ namespace Integrator
 			return sum;
 		}
 
-		void ComputeSumRatioVC(Path& cameras, Path& lights, const int main_s, const int main_t, double s1_pdf, double * buffer)const
+		double ComputeSumRatioVC(Path& cameras, Path& lights, const int main_s, const int main_t, double s1_pdf, double * buffer)const
 		{
+			double sum = 0;
 			const double resolution = cameras[0].camera().resolution;
 			//expand the camera sub path
 			{
@@ -390,6 +391,7 @@ namespace Integrator
 					if (!(camera_end.delta || (light_end && light_end->delta)))
 					{
 						buffer[s - 1] = actual_ri;
+						sum += actual_ri;
 					}
 					else
 						buffer[s - 1] = 0;
@@ -414,12 +416,14 @@ namespace Integrator
 					{
 						double ni = (t == 2 ? resolution : 1); // account for the extra samples of the light tracer
 						buffer[s] = (actual_ri * ni);
+						sum += (actual_ri * ni);
 					}
 					else
 						buffer[s] = 0;
 					++s;
 				}
 			}
+			return sum;
 		}
 
 

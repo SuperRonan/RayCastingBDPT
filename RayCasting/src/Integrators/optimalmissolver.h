@@ -753,13 +753,55 @@ public:
 		m_height(height)
 	{}
 
-	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector<int, 2> const& pixel) = 0;
+	virtual void setOverSample(int techIndex, int n)
+	{}
 
-	virtual void addZeroEstimate(int tech_index, Math::Vector<int, 2> const& pixel) = 0;
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv) = 0;
+
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) = 0;
 
 	virtual void loop() = 0;
 
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) = 0;
+};
+
+template <bool MAJOR>
+class BalanceEstimatorImage: public ImageEstimator<MAJOR>
+{
+protected:
+
+	Image::Image<Geometry::RGBColor, MAJOR> m_image;
+
+public:
+
+	BalanceEstimatorImage(int N, int width, int height) :
+		ImageEstimator(N, width, height),
+		m_image(width, height)
+	{
+		m_image.fill(0);
+	}
+
+
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv)
+	{
+		Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
+		m_image(pixel) += balanceEstimate;
+	}
+
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv)
+	{}
+
+	virtual void loop()
+	{}
+
+	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations)
+	{
+		Parallel::ParallelFor(0, m_width * m_height,
+			[&](int pixel)
+			{
+				res[pixel] += m_image[pixel] / iterations;
+			});
+	}
 };
 
 template <bool MAJOR>
@@ -770,8 +812,8 @@ protected:
 	using MatrixT = arma::mat;
 	using VectorT = arma::vec;
 	using Float = double;
-	using AtomicUInt = std::atomic<unsigned int>;
-	using AtomicFloat = std::atomic<Float>;
+	using AtomicUInt = unsigned int;// std::atomic<unsigned int>;
+	using AtomicFloat = Float;// std::atomic<Float>;
 
 	const int msize;
 
@@ -784,7 +826,7 @@ protected:
 	struct PixelData
 	{
 		AtomicFloat* techMatrix;
-		// The three channels are one after the other [RRRRRRRR GGGGGGGG BBBBBBBBB RRRRRRRRRR GGGGGGGGG BBBBBBBBB...]
+		// The three channels are one after the other [RRRRRRRR GGGGGGGG BBBBBBBBB]
 		AtomicFloat* contribVector;
 		AtomicUInt* sampleCount;
 
@@ -803,8 +845,9 @@ protected:
 		return res;
 	}
 
-	PixelData getPixelData(Math::Vector<int, 2> const& pixel)
+	PixelData getPixelData(Math::Vector2f const& uv)
 	{
+		const Math::Vector<int, 2> pixel(uv[0] * m_width, uv[1] * m_height);
 		const int index = PixelTo1D(pixel[0], pixel[1]);
 		return getPixelData(index);
 	}
@@ -836,13 +879,18 @@ public:
 		m_over_samples = std::vector<unsigned int>(m_numtechs, 1);
 	}
 
-	void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector<int, 2> const& pixel)
+	void setOverSample(int techIndex, int n)
 	{
-		PixelData data = getPixelData(pixel);
+		m_over_samples[techIndex] = n;
+	}
+
+	void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv)
+	{
+		PixelData data = getPixelData(uv);
 		++data.sampleCount[tech_index];
 		for (int i = 0; i < m_numtechs; ++i)
 		{
-			for (int j = 0; j <= i; j)
+			for (int j = 0; j <= i; ++j)
 			{
 				const int mat_index = matTo1D(i, j);
 				Float tmp = balanceWeights[i] * balanceWeights[j];
@@ -864,9 +912,9 @@ public:
 	}
 
 	
-	void addZeroEstimate(int tech_index, Math::Vector<int, 2> const& pixel)
+	void addZeroEstimate(int tech_index, Math::Vector2f const& uv)
 	{
-		PixelData data = getPixelData(pixel);
+		PixelData data = getPixelData(uv);
 		++data.sampleCount[tech_index];
 		int mat_index = matTo1D(tech_index, tech_index);
 		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
@@ -919,7 +967,7 @@ public:
 				for (int i = 0; i < m_numtechs; ++i)
 				{
 					vector[i] = contribVector[i];
-					isZero = isZero & contribVector[i] == 0;
+					isZero = isZero & (contribVector[i] == 0);
 				}
 
 				if (!isZero)
