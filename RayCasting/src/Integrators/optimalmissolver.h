@@ -758,6 +758,8 @@ public:
 
 	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv) = 0;
 
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) = 0;
+
 	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) = 0;
 
 	virtual void loop() = 0;
@@ -782,19 +784,25 @@ public:
 	}
 
 
-	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv)
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv) override
 	{
 		Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
 		m_image(pixel) += balanceEstimate;
 	}
 
-	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv)
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) override
 	{}
 
-	virtual void loop()
+	virtual void loop() override
 	{}
 
-	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations)
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) override
+	{
+		Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
+		m_image(pixel) += balanceEstimate;
+	}
+
+	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
 	{
 		Parallel::ParallelFor(0, m_width * m_height,
 			[&](int pixel)
@@ -805,7 +813,7 @@ public:
 };
 
 template <bool MAJOR>
-class OptimalEstimatorImage: public ImageEstimator<MAJOR>
+class DirectEstimatorImage: public ImageEstimator<MAJOR>
 {
 protected:
 
@@ -866,7 +874,7 @@ protected:
 
 public:
 
-	OptimalEstimatorImage(int N, int width, int height):
+	DirectEstimatorImage(int N, int width, int height):
 		ImageEstimator(N, width, height),
 		msize(N * (N+1) / 2),
 		m_pixel_data_size(msize * sizeof(AtomicFloat) + 3 * m_numtechs * sizeof(AtomicFloat) + m_numtechs * sizeof(AtomicUInt)),
@@ -879,12 +887,12 @@ public:
 		m_over_samples = std::vector<unsigned int>(m_numtechs, 1);
 	}
 
-	void setOverSample(int techIndex, int n)
+	virtual void setOverSample(int techIndex, int n) override
 	{
 		m_over_samples[techIndex] = n;
 	}
 
-	void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv)
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv) override
 	{
 		PixelData data = getPixelData(uv);
 		++data.sampleCount[tech_index];
@@ -912,7 +920,7 @@ public:
 	}
 
 	
-	void addZeroEstimate(int tech_index, Math::Vector2f const& uv)
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) override
 	{
 		PixelData data = getPixelData(uv);
 		++data.sampleCount[tech_index];
@@ -920,7 +928,20 @@ public:
 		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
 	}
 
-	void loop()
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) override
+	{
+		PixelData data = getPixelData(uv);
+		++data.sampleCount[tech_index];
+		int mat_index = matTo1D(tech_index, tech_index);
+		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
+		for (int k = 0; k < 3; ++k)
+		{
+			AtomicFloat* vector = data.contribVector + k * m_numtechs;
+			vector[tech_index] = vector[tech_index] + balanceEstimate[k];
+		}
+	}
+
+	virtual void loop() override
 	{}
 
 	inline void fillMatrix(MatrixT& matrix, PixelData const& data, int iterations)const
@@ -941,7 +962,7 @@ public:
 		}
 	}
 
-	void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations)
+	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
 	{
 		VectorT MVector(m_numtechs);
 		std::copy(m_over_samples.begin(), m_over_samples.end(), MVector.begin());

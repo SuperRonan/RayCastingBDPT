@@ -352,7 +352,7 @@ namespace Integrator
 			if (main_s + main_t > 2)
 			{
 				double vm_ri = 1.0;
-				if (first_t_not_spicky != -1) // A merge is possible on the camera subpath
+				if (first_t_not_spicky != -1 && !(first_t_not_spicky == main_t && main_s == 0)) // A merge is possible on the camera subpath
 				{
 					const Vertex* camera_end = xt;
 					const Vertex* light_end = ys; // the photon is merged with camera_end

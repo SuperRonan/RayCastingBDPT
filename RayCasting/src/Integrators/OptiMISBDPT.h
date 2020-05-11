@@ -38,6 +38,7 @@ namespace Integrator
 					// special cases of connections strategies
 					if (s + t == 1)
 						continue;
+					Solver& solver = solvers[s + t - 2];
 					if (s == 0)
 					{
 						// naive path tracing
@@ -47,8 +48,15 @@ namespace Integrator
 							double pdf_light = scene.pdfSamplingLight(camera_top.hit.geometry);
 							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
 							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf, pdf_light);
-							L *= weight;
-							solvers[s + t - 2].addEstimate(L, weights, s, p);
+							if (weight == -1)
+							{
+								solver.addOneTechniqueEstimate(L, s, p);
+							}
+							else
+							{
+								L *= weight;
+								solver.addEstimate(L, weights, s, p);
+							}
 						}
 					}
 					else
@@ -97,6 +105,10 @@ namespace Integrator
 							camera_connection = scene.m_camera.We(-dir);
 							p = scene.m_camera.raster(-dir);
 							ni = scene.m_camera.resolution;
+							if (!scene.m_camera.validRaster(p))
+							{
+								continue;
+							}
 						}
 						else
 						{
@@ -104,6 +116,9 @@ namespace Integrator
 							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir, false);
 							G *= std::abs(camera_top.hit.primitive_normal * dir);
 						}
+
+						if (G == 0)
+							continue;
 
 						if (s == 1)
 						{
@@ -117,12 +132,19 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
-						double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf);
-						L *= weight;
+						
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
-							solvers[s + t - 2].addEstimate(L, weights, s, p);
+							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf);
+							if (weight == -1)
+							{
+								solver.addOneTechniqueEstimate(L, s, p);
+							}
+							else
+							{
+								solver.addEstimate(L* weight, weights, s, p);
+							}
 						}
 					}
 				}
@@ -134,6 +156,7 @@ namespace Integrator
 		//Computes pdf_light of all technique of the bdpt
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		// returns the sum of all the qi (= ni * pi)
+		// returns -1 if only the actual tech could produce the sample
 		////////////////////////////////////////////////////////////////
 		double computeWeights(
 			double * weights,
@@ -165,6 +188,9 @@ namespace Integrator
 			{
 				ys_pdf_rev_sa = { &ys->rev_pdf, xt->pdf<TransportMode::Importance, true>(*ys, xt->omega_o()) };
 			}
+
+			if (xt->rev_pdf == 0 && (!ys || ys->rev_pdf == 0))
+				return -1;
 
 			if (xtm)
 			{
@@ -236,7 +262,7 @@ namespace Integrator
 
 
 			
-			std::vector<OptimalEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+			std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 			//std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 			solvers.reserve(Parallel::getNumThread());
 			
