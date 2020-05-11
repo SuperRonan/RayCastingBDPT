@@ -210,7 +210,7 @@ namespace Integrator
 			{
 				int len = 2;
 				const Material& material = *hit.geometry->getMaterial();
-				res += beta * material.Le(hit.facing, hit.tex_uv);
+				res += beta * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 				if (material.spicky())
 				{
 					const int N = FAST ? 1 : m_spicky_samples;
@@ -228,7 +228,7 @@ namespace Integrator
 							if (scene.full_intersection(ray, subhit))
 							{ 
 								const Material& submaterial = *subhit.geometry->getMaterial();
-								subres += subbeta * submaterial.Le(subhit.facing, subhit.tex_uv);
+								subres += subbeta * submaterial.Le(subhit.primitive_normal, subhit.tex_uv, subhit.to_view);
 								if (submaterial.spicky())
 								{
 									submaterial.sampleBSDF(subhit, next_dir, sampler, false);

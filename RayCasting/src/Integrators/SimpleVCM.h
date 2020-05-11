@@ -214,7 +214,7 @@ namespace Integrator
 			{
 				if (scene.full_intersection(ray, hit))
 				{
-					res += hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+					res += hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 					if (hit.geometry->getMaterial()->spicky())
 					{
 						DirectionSample ds;
@@ -251,8 +251,8 @@ namespace Integrator
 				Hit light_hit;
 				if (scene.full_intersection(ray, light_hit) && samePoint(light_hit, dist))
 				{
-					RGBColor contribution = bsdf * light_hit.geometry->getMaterial()->Le(light_hit.facing, light_hit.tex_uv) * 
-						std::abs(to_light * hit.primitive_normal) * std::abs(to_light * light_hit.primitive_normal) / dist2;
+					RGBColor contribution = 0;// bsdf* light_hit.geometry->getMaterial()->Le(light_hit.facing, light_hit.tex_uv)*
+						//std::abs(to_light * hit.primitive_normal) * std::abs(to_light * light_hit.primitive_normal) / dist2;
 					double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, to_light) * std::abs(to_light * light_hit.primitive_normal) / dist2;
 					double weight = sls.pdf / (sls.pdf + bsdf_pdf) * 0.5;
 					return contribution / (sls.pdf) * weight;
@@ -287,7 +287,7 @@ namespace Integrator
 					Hit prev_hit = hit;
 					if (scene.full_intersection(ray, hit))
 					{
-						RGBColor contrib = beta * hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+						RGBColor contrib = beta * hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 						
 						double light_pdf = prev_delta ? 0.0 : (path_pdf * scene.pdfSamplingLight(hit.geometry, prev_hit, hit.point));
 						path_pdf *= pdf_solid_angle * std::abs(ray.direction() * hit.primitive_normal) / (hit.z * hit.z);

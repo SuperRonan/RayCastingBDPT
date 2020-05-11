@@ -312,7 +312,6 @@ namespace Integrator
 			light_vertex.beta = 1.0 / sls.pdf;
 
 			//generate a direction
-			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
 			DirectionSample next_dir = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
 
 			Ray ray(sls.vector, next_dir.direction);

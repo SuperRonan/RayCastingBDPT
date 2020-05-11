@@ -35,6 +35,7 @@ namespace Geometry
 
 		/// <summary> The emissive color</summary>
 		RGBColor m_emissiveColor;
+		double m_light_spickyness = 0;
 
 		std::string m_textureFile;
 
@@ -87,12 +88,13 @@ namespace Geometry
 		}
 
 
-		Material(RGBColor const& em = 0, std::string const& path = "") :
+		Material(RGBColor const& em = 0, std::string const& path = "", double s=0.0) :
 			m_emissiveColor(em),
 			m_textureFile(path),
 			m_texture(nullptr),
 			m_spicky(false),
-			m_delta(false)
+			m_delta(false),
+			m_light_spickyness(s)
 		{
 			if (!path.empty())
 				load_texture();
@@ -203,17 +205,18 @@ namespace Geometry
 		}
 
 
-		RGBColor Le(bool facing,  Math::Vector2f const uv)const
+		RGBColor Le(Math::Vector3f const& normal, Math::Vector2f const uv, Math::Vector3f const& dir)const
 		{
-			if (!facing)
-			{
-				return 0;
-			}
 			RGBColor res = getEmissive();
 			if (hasTexture())
 			{
 				res = res * getTexture().pixel(uv);
 			}
+
+			double cosine = normal * dir;
+			if (cosine < 0)	return 0;
+			double scaling = (m_light_spickyness + 1) / Math::twoPi;
+			res *= std::pow(cosine, m_light_spickyness) * scaling * 4;
 			return res;
 		}
 
@@ -238,23 +241,18 @@ namespace Geometry
 		virtual DirectionSample sampleLightDirection(SurfaceSample const& sls, Math::Sampler& sampler)const
 		{
 			DirectionSample res;
-			Math::RandomDirection diffuse_sampler(&sampler, sls.normal, 1.0);
+			Math::RandomDirection diffuse_sampler(&sampler, sls.normal, m_light_spickyness+1);
 			res.direction = diffuse_sampler.generate();
-			res.bsdf = Le(true, sls.uv);
-			res.pdf = res.direction * sls.normal / Math::pi;
-			if (res.pdf < 0)
-			{
-				res.pdf = -res.pdf;
-				res.direction = -res.direction;
-			}
-			//res.weight = 1;
+			res.bsdf = Le(sls.normal, sls.uv, res.direction);
+			res.pdf = std::pow(res.direction * sls.normal, m_light_spickyness+1.0) * ((m_light_spickyness+2.0) / Math::twoPi);
+			assert(res.direction * sls.normal > 0);
 			return res;
 		}
 
 		//assumes dir is normalized
 		virtual double pdfLight(Hit const& hit, Math::Vector3f const& dir)const
 		{
-			return std::max(0.0, hit.primitive_normal * dir) / Math::pi;
+			return std::pow(std::max(dir * hit.primitive_normal, 0.0), m_light_spickyness + 1.0) * ((m_light_spickyness + 2.0) / Math::twoPi);;
 		}
 
 

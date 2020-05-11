@@ -30,7 +30,7 @@ namespace Integrator
 					++len;
 					Material const& material = *hit.geometry->getMaterial();
 					
-					res += T * material.Le(hit.facing, hit.tex_uv);
+					res += T * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 
 					if (!material.spicky())
 					{

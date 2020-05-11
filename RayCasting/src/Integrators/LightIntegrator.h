@@ -38,7 +38,7 @@ namespace Integrator
 
 			if constexpr (LIGHT_VERTEX)
 			{
-				vertex.light = beta * hit.geometry->getMaterial()->Le(vertex_to_camera * hit.primitive_normal > 0, hit.tex_uv);
+				vertex.light = beta * hit.geometry->getMaterial()->Le(vertex_to_camera, hit.tex_uv, hit.primitive_normal);
 			}
 			else
 			{
@@ -74,12 +74,17 @@ namespace Integrator
 				connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
 			}
 
+			if (m_max_len == 2)
+			{
+				return;
+			}
+
 			//first, sample a point a light
 			SurfaceSample light_point;
 			sampleOneLight(scene, sampler, light_point);
 
 
-			RGBColor beta = light_point.geo->getMaterial()->Le(true, light_point.uv) / light_point.pdf;
+			RGBColor beta = 1.0 / light_point.pdf;
 
 			Hit hit;
 			hit.point = light_point.vector;
@@ -89,22 +94,11 @@ namespace Integrator
 
 			//connectVertexToCamera<true>(scene, 1.0 / light_point.pdf, hit, lvs);
 
-			Math::RandomDirection Le_sampler(&sampler, light_point.normal, 1);
-			Math::Vector3f next_dir = Le_sampler.generate();
-			double cosl = light_point.normal * next_dir;
-			if (cosl < 0)
-			{
-				cosl = -cosl;
-				next_dir = -next_dir;
-			}
-			double next_dir_pdf = cosl / Math::pi;
-
-
-			beta = beta * (cosl / next_dir_pdf);
-			if (m_max_len == 2)
-			{
-				return;
-			}
+			DirectionSample ds = hit.geometry->getMaterial()->sampleLightDirection(light_point, sampler);
+						
+			Math::Vector3f next_dir = ds.direction;
+			beta *= ds.bsdf / ds.pdf * std::abs(hit.primitive_normal * ds.direction);
+			
 
 			unsigned int len = 2;
 			while(!beta.isBlack())

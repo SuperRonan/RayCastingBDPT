@@ -208,7 +208,7 @@ namespace Integrator
 							{
 								if (hit.geometry->getMaterial()->is_emissive())
 								{
-									m_emissive[index] += beta * hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+									m_emissive[index] += beta * hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 								}
 								if (!hit.geometry->getMaterial()->delta())
 								{
@@ -292,7 +292,7 @@ namespace Integrator
 			
 			Hit hit;
 			DirectionSample ds = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
-			RGBColor beta = sls.geo->getMaterial()->Le(true, sls.uv) / (sls.pdf * ds.pdf) * std::abs(ds.direction * sls.normal);
+			RGBColor beta = sls.geo->getMaterial()->Le(sls.normal, sls.uv, ds.direction) / (sls.pdf * ds.pdf) * std::abs(ds.direction * sls.normal);
 			Ray ray(sls.vector, ds.direction);
 
 			for (int len = 2; len < m_max_len; ++len)

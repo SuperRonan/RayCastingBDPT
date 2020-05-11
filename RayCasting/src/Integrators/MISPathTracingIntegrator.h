@@ -49,7 +49,7 @@ namespace Integrator
 				Hit light_hit;
 				if (scene.full_intersection(ray, light_hit) && samePoint(light_hit, dist))
 				{
-					RGBColor contribution = bsdf * std::abs(to_light * hit.primitive_normal) * light_hit.geometry->getMaterial()->Le(light_hit.facing, light_hit.tex_uv);
+					RGBColor contribution = bsdf * std::abs(to_light * hit.primitive_normal) * light_hit.geometry->getMaterial()->Le(light_hit.primitive_normal, light_hit.tex_uv, light_hit.to_view);
 					double surface_pdf = light_sample.pdf * dist2 / std::abs(light_hit.primitive_normal * to_light);
 					res += contribution / (surface_pdf + hit.geometry->getMaterial()->pdf(hit, to_light));
 				}
@@ -76,11 +76,11 @@ namespace Integrator
 					++len;
 					if (prev_delta)
 					{
-						res += T * hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+						res += T * hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 					}
 					else
 					{
-						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 
 						double surface_pdf = scene.pdfSamplingLight(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
 

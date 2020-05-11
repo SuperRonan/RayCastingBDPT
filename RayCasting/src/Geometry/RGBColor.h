@@ -315,7 +315,7 @@ namespace Geometry
 		{
 			for (int i = 0; i < 3; ++i)
 			{
-				if (std::isnan(m_color[i]) || std::isinf(m_color[i]))
+				if (std::isnan(m_color[i]) || std::isinf(m_color[i]) || m_color[i] < 0)
 				{
 					return true;
 				}
@@ -337,6 +337,66 @@ namespace Geometry
 			return res;
 		}
 
+
+		// l in [380, 781[
+		static RGBColor fromWaveLength(double l)
+		{
+			double factor;
+			double Red, Green, Blue;
+
+			if ((l >= 380) && (l < 440)) {
+				Red = -(l - 440) / (440 - 380);
+				Green = 0.0;
+				Blue = 1.0;
+			}
+			else if ((l >= 440) && (l < 490)) {
+				Red = 0.0;
+				Green = (l - 440) / (490 - 440);
+				Blue = 1.0;
+			}
+			else if ((l >= 490) && (l < 510)) {
+				Red = 0.0;
+				Green = 1.0;
+				Blue = -(l - 510) / (510 - 490);
+			}
+			else if ((l >= 510) && (l < 580)) {
+				Red = (l - 510) / (580 - 510);
+				Green = 1.0;
+				Blue = 0.0;
+			}
+			else if ((l >= 580) && (l < 645)) {
+				Red = 1.0;
+				Green = -(l - 645) / (645 - 580);
+				Blue = 0.0;
+			}
+			else if ((l >= 645) && (l < 781)) {
+				Red = 1.0;
+				Green = 0.0;
+				Blue = 0.0;
+			}
+			else {
+				Red = 0.0;
+				Green = 0.0;
+				Blue = 0.0;
+			};
+
+			// Let the intensity fall off near the vision limits
+
+			if ((l >= 380) && (l < 420)) {
+				factor = 0.3 + 0.7 * (l - 380) / (420 - 380);
+			}
+			else if ((l >= 420) && (l < 701)) {
+				factor = 1.0;
+			}
+			else if ((l >= 701) && (l < 781)) {
+				factor = 0.3 + 0.7 * (780 - l) / (780 - 700);
+			}
+			else {
+				factor = 0.0;
+			};
+
+			return RGBColor(Red, Green, Blue);
+		}
 
 
 	} ;

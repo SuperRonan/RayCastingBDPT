@@ -31,7 +31,7 @@ namespace Integrator
 					const Material& material = *hit.geometry->getMaterial();
 					if (use_emissive && material.is_emissive())
 					{
-						res += prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf;
+						res += prod_color * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view) / prod_pdf;
 					}
 
 					use_emissive = hit.geometry->getMaterial()->spicky();
@@ -100,7 +100,7 @@ namespace Integrator
 				{
 					const Material& material = *hit.geometry->getMaterial();
 					
-					res += prod_color * material.Le(hit.facing, hit.tex_uv) / prod_pdf;
+					res += prod_color * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view) / prod_pdf;
 					
 
 #ifdef LATE_RUSSIAN

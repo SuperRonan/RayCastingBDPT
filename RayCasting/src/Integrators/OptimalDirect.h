@@ -40,7 +40,7 @@ namespace Integrator
 			{
 				if (hit.geometry->getMaterial()->is_emissive())
 				{
-					return hit.geometry->getMaterial()->Le(hit.facing, hit.tex_uv);
+					return hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 				}
 
 				
@@ -128,7 +128,7 @@ namespace Integrator
 				double cos_light = std::abs(sls.normal * dir);
 				double convert = dist2 == 0 ? 1 : (cos_light / dist2);
 
-				RGBColor f = sls.geo->getMaterial()->Le(sls.normal * dir < 0, sls.uv) * hit.geometry->getMaterial()->BSDF(hit, dir) * std::abs(dir * hit.primitive_normal) * convert;
+				RGBColor f = sls.geo->getMaterial()->Le(sls.normal, sls.uv, -dir) * hit.geometry->getMaterial()->BSDF(hit, dir) * std::abs(dir * hit.primitive_normal) * convert;
 				Hit light_hit;
 				double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, dir) * convert;
 				if (!(scene.full_intersection(Ray(hit.point, dir), light_hit) && samePoint(light_hit, dist)))
@@ -179,7 +179,7 @@ namespace Integrator
 			if (scene.full_intersection(ray, hit))
 			{
 				const Material& material = *hit.geometry->getMaterial();
-				res += beta * material.Le(hit.facing, hit.tex_uv);
+				res += beta * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 
 				res += beta * directLighting(scene, hit, sampler);
 			}

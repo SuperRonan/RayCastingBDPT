@@ -42,7 +42,7 @@ namespace Integrator
 			const RGBColor bsdf = hit.geometry->getMaterial()->BSDF(hit, to_light, hit.to_view);
 			const double cos_on_light = -(sample.normal * to_light);
 			const double cos_theta = std::abs(to_light * hit.normal);
-			const RGBColor Le = sample.geo->getMaterial()->Le(cos_on_light > 0, sample.uv);
+			const RGBColor Le = sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light);
 			const RGBColor contrib = bsdf * Le * std::abs(cos_on_light) * cos_theta / dist2;
 			if (contrib.isBlack() || contrib.anythingWrong())
 				return 0;
