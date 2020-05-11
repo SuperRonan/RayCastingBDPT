@@ -62,7 +62,7 @@ namespace Geometry
 		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false, double *pdf_rev=nullptr)const override
 		{
 			out.direction = hit.primitive_reflected();
-			double cosd = hit.normal * out.direction;
+			double cosd = std::abs(hit.normal * out.direction);
 			out.pdf = 1;
 			out.bsdf = m_specular;
 
