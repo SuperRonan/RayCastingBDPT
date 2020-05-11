@@ -436,7 +436,8 @@ namespace Integrator
 
 			double sum = actual_main_ri * actual_ni;
 
-			sum += 1.0 + sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
+			sum += sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
+			sum += (main_s == 1) ? (s1_pdf / ys->fwd_pdf) : 1.0;
 
 			double weight = (actual_main_ri * actual_ni) / sum;
 			return weight;

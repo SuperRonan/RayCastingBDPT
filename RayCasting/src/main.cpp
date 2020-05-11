@@ -46,7 +46,7 @@
 #include <Integrators/SimpleVCM.h>
 #include <Integrators/UncorellatedBDPT.h>
 #include <Integrators/VCM.h>
-#include <Integrators/OptiVCM.h>
+//#include <Integrators/OptiVCM.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -1398,9 +1398,9 @@ int main(int argc, char** argv)
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
@@ -1429,7 +1429,7 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
 	unsigned int maxLen = 3;
@@ -1448,8 +1448,8 @@ int main(int argc, char** argv)
 	scene.check_capacity();
 
 
-	RenderOption render_option = RenderOption::Pass;
-	RenderMode render_mode = RenderMode::OptiMISBDPT;
+	RenderOption render_option = RenderOption::RealTime;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
