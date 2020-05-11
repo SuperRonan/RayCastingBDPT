@@ -387,7 +387,7 @@ namespace Integrator
 				}
 			}
 
-			for (int i = 0; i < main_s + main_t; ++i)
+			for (int i = 0; i < numTech(main_s + main_t); ++i)
 			{
 				weights[i] = ratios[i] / sum;
 			}
@@ -449,7 +449,7 @@ namespace Integrator
 			ratios[main_s] = ref_ri;
 			sum += ref_ri;
 
-			for (int i = 0; i < main_s + main_t; ++i)
+			for (int i = 0; i < numTech(main_s + main_t); ++i)
 			{
 				weights[i] = ratios[i] / sum;
 			}
