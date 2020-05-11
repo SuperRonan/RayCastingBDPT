@@ -113,7 +113,7 @@ namespace Integrator
 
 
 
-		void VertexConnection(Scene const& scene, Path& cameraSubPath, Path& lightSubPath, Math::Sampler& sampler, RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+		void VertexConnection(Scene const& scene, Math::Vector2f const& uv, Path& cameraSubPath, Path& lightSubPath, Math::Sampler& sampler, double * weights)const
 		{
 			int first_t_not_spicky = -1;
 			double s1_pdf;
@@ -134,6 +134,8 @@ namespace Integrator
 					// special cases of connections strategies
 					if (s + t == 1)
 						continue;
+					auto& solver = solvers[s + t - 2];
+					Math::Vector2f p = uv;
 					if (s == 0)
 					{
 						// naive path tracing
@@ -142,12 +144,14 @@ namespace Integrator
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.hit.facing, camera_top.hit.tex_uv);
 							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
 							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
-							double weight = 0;// VCWeight(cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
-							pixel_res += L * weight;
+							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
+
+							solver.addEstimate(L * weight, weights, 0, p);
 						}
 					}
 					else
 					{
+						double ni = 1;
 						ScopedAssignment<Vertex> resampled_vertex_sa;
 						if (s == 1) {
 							double prev_pdf = lightSubPath[0].fwd_pdf;
@@ -191,6 +195,8 @@ namespace Integrator
 						{
 							//light tracing
 							camera_connection = scene.m_camera.We(-dir);
+							ni = scene.m_camera.resolution;
+							p = scene.m_camera.raster(-dir);
 						}
 						else
 						{
@@ -210,22 +216,12 @@ namespace Integrator
 							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir, true);
 						}
 
-						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						//L *= VCWeight(cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
+						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
+						double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 
 						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
-							if (t == 1)
-							{
-								LightVertex lv;
-								lv.light = L / scene.m_camera.resolution;
-								lv.uv = scene.m_camera.raster(-dir);
-								lt_vertices.push(lv);
-							}
-							else
-							{
-								pixel_res += L;
-							}
+							solver.addEstimate(L * weight, weights, s, p);
 						}
 
 					}
@@ -243,9 +239,8 @@ namespace Integrator
 				std::abs(hit.primitive_normal * d) < 0.3;
 		}
 
-		RGBColor VertexMerging(Scene const& scene, Path& cameraSubPath, Math::Sampler& sampler)const
+		void VertexMerging(Scene const& scene, Math::Vector2f const& uv, Path& cameraSubPath, Math::Sampler& sampler, double * weights)const
 		{
-			RGBColor res = 0;
 			for (int t = 2; t <= cameraSubPath.size(); ++t)
 			{
 				const Vertex& pt = cameraSubPath[t - 1];
@@ -256,6 +251,7 @@ namespace Integrator
 							const int len = photon.len + t - 1;
 							if (len <= m_max_len)
 							{
+								auto& solver = solvers[len - 2];
 								Path& lightSubPath = m_light_paths[photon.pixel];
 								const int s = photon.len - 1;
 								assert(s >= 1);
@@ -267,30 +263,30 @@ namespace Integrator
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
 
 									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
-									const double w = VMWeight(cameraSubPath, lightSubPath, s, t, s1_pdf);
-
-									res += L * k / m_photon_emitted * w;
+									const double w = VMWeight(weights, cameraSubPath, lightSubPath, s, t, s1_pdf);
+									RGBColor BE = L * k / m_photon_emitted * w;
+									
+									solver.addEstimate(BE, weights, VMtechIndex(len), uv);
 								}
 							}
 						}, pt.hit.point);
 					break;
 				}
 			}
-			return res;
 		}
 
-		void computeSample(Scene const& scene, int pix_index, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+		void computeSample(Scene const& scene, int pix_index, double u, double v, Math::Sampler& sampler, double * weights)const
 		{
-			pixel_res = 0;
+			Math::Vector2f uv = { u, v };
 			Ray ray = scene.m_camera.getRay(u, v);
 			Path cameraSubPath;
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			Path& lightSubPath = m_light_paths[pix_index];
 
 
-			VertexConnection(scene, cameraSubPath, lightSubPath, sampler, pixel_res, lt_vertices);
+			VertexConnection(scene, uv, cameraSubPath, lightSubPath, sampler, weights);
 
-			pixel_res += VertexMerging(scene, cameraSubPath, sampler);
+			VertexMerging(scene, uv, cameraSubPath, sampler, weights);
 		}
 
 
@@ -298,12 +294,13 @@ namespace Integrator
 		//Computes te MIS weights for Vertex Connection
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		////////////////////////////////////////////////////////////////
-		double VCWeight(double* buffer,
+		double VCWeight(double* weights,
 			Path& cameras, Path& lights,
 			const int main_s, const int main_t,
 			const int first_t_not_spicky, const int last_s_not_spicky,
 			double s1_pdf, double pdf_sampling_point = -1)const
 		{
+			double*& ratios = weights;
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -342,10 +339,10 @@ namespace Integrator
 			const double actual_ni = main_t == 1 ? cameras[0].hit.camera->resolution : 1;
 			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].fwd_pdf : 1);
 
-
+			ratios[main_s] = actual_main_ri * actual_ni;
 			double sum = actual_main_ri * actual_ni;
 
-			sum += sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
+			sum += ComputeSumRatioVC(cameras, lights, main_s, main_t, s1_pdf, ratios);
 
 
 			// Find the VM pdf
@@ -384,9 +381,19 @@ namespace Integrator
 					vm_ri *= pacc;
 					sum += vm_ri * m_photon_emitted;
 				}
+				else
+				{
+					ratios[VMtechIndex(main_s + main_t - 2)] = 0;
+				}
+			}
+
+			for (int i = 0; i < main_s + main_t; ++i)
+			{
+				weights[i] = ratios[i] / sum;
 			}
 
 			double weight = (actual_main_ri * actual_ni) / sum;
+			assert(std::abs(weights[main_s] - weight) < 1e-6);
 			return weight;
 		}
 
@@ -395,6 +402,7 @@ namespace Integrator
 		//Computes te MIS weights for the Vertex Merging
 		////////////////////////////////////////////////////////////////
 		double VMWeight(
+			double * weights,
 			Path& cameras, Path& lights,
 			const int main_s, const int main_t,
 			double s1_pdf)const
@@ -402,7 +410,7 @@ namespace Integrator
 			assert(lights.size() >= main_s + 1);
 			assert(main_s > 0);
 			assert(main_t >= 2);
-
+			double*& ratios = weights;
 			Vertex* xt = &cameras[main_t - 1];
 			Vertex* ys = &lights[main_s - 1];
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -433,12 +441,21 @@ namespace Integrator
 			const double actual_ni = m_photon_emitted;
 			const double actual_main_ri = photon->fwd_pdf * Math::pi * m_radius2;
 
-
+			ratios[VMtechIndex(main_s + main_t - 2)] = actual_main_ri * actual_ni;
 			double sum = actual_main_ri * actual_ni;
 
-			sum += 1.0 + sumRatioVC(cameras, lights, main_s, main_t, s1_pdf);
+			sum += ComputeSumRatioVC(cameras, lights, main_s, main_t, s1_pdf, ratios);
+			double ref_ri = (main_s == 1) ? (s1_pdf / ys->fwd_pdf) : 1.0;
+			ratios[main_s] = ref_ri;
+			sum += ref_ri;
+
+			for (int i = 0; i < main_s + main_t; ++i)
+			{
+				weights[i] = ratios[i] / sum;
+			}
 
 			double weight = (actual_main_ri * actual_ni) / sum;
+			assert(std::abs(weights[main_s] - weight) < 1e-6);
 			return weight;
 		}
 
@@ -452,17 +469,19 @@ namespace Integrator
 		}
 
 		/////////////////////////////////////////
-		// Technique 0 is the VM
-		// Technique 1 is the NPT
-		// The last technique is the LT
 		// (if the len == 2, VM does not exist)
 		//////////////////////////////////////////
-		unsigned int techIndex(int len, int s)const
+		unsigned int VCtechIndex(int len, int s)const
 		{
-			if (len == 2)	return s;
-			return s = 1;
+			return s;
 		}
 
+
+		unsigned int VMtechIndex(int len)const
+		{
+			assert(len >= 2);
+			return len;
+		}
 
 
 
@@ -476,6 +495,8 @@ namespace Integrator
 #endif
 		}
 
+		mutable std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//mutable std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -498,6 +519,18 @@ namespace Integrator
 
 			std::vector<std::vector<double>> buffers = Parallel::preAllocate(std::vector<double>(numTech(m_max_len)));
 
+			
+			solvers.reserve(m_max_len);
+
+			for (int len = 2; len <= m_max_len; ++len)
+			{
+				int num_tech = numTech(len);
+				solvers.emplace_back(num_tech, visu.width(), visu.height());
+				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
+				if(len >= 2)
+					solvers.back().setOverSample(len, m_photon_emitted); // PM
+			}
+
 			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
 			{
 				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
@@ -519,18 +552,8 @@ namespace Integrator
 							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							RGBColor pixel = 0;
-							LightVertexStack lvs;
+							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, buffer);
 
-							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, pixel, lvs);
-
-							m_frame_buffer(x, y) += pixel;
-							for (LightVertex const& lv : lvs)
-							{
-								int lx = lv.uv[0] * visu.width();
-								int ly = lv.uv[1] * visu.height();
-								m_frame_buffer(lx, ly) += lv.light;
-							}
 						}//pixel x
 					}//pixel y
 
@@ -553,9 +576,29 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / double(passPerPixelCounter + 1));
+					std::cout << "Solving..." << std::endl;
+					for (int len = 2; len <= m_max_len; ++len)
+					{
+						int d = len - 2;
+						std::cout << d << " / " << m_max_len - 2 << std::endl;
+						solvers[d].solve(m_frame_buffer, pass + 1);
+					}
+					showFrame(visu, 1);
+					std::cout << "Solved!" << std::endl;
+					visu.show();
+					Image::ImWrite::write(m_frame_buffer);
 				}
 			}//pass per pixel
+
+			std::cout << "Solving..." << std::endl;
+			for (int len = 2; len <= m_max_len; ++len)
+			{
+				int d = len - 2;
+				std::cout << d << " / " << m_max_len - 2 << std::endl;
+				solvers[d].solve(m_frame_buffer, m_sample_per_pixel);
+			}
+			std::cout << "Solved!" << std::endl;
+			showFrame(visu, 1);
 
 		__render__end__loop__:
 			// stop timer
@@ -571,10 +614,12 @@ namespace Integrator
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0 / (double)m_sample_per_pixel);
+					Image::ImWrite::write(m_frame_buffer);
 				}
 			}
 			m_light_paths_built = false;
+			solvers.clear();
+			solvers.shrink_to_fit();
 		}
 
 
@@ -598,6 +643,19 @@ namespace Integrator
 
 			m_frame_buffer.resize(width, height);
 			m_frame_buffer.fill();
+
+			std::vector<std::vector<double>> buffers = Parallel::preAllocate(std::vector<double>(numTech(m_max_len)));
+
+			solvers.reserve(m_max_len);
+
+			for (int len = 2; len <= m_max_len; ++len)
+			{
+				int num_tech = numTech(len);
+				solvers.emplace_back(num_tech, width, height);
+				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
+				if (len >= 2)
+					solvers.back().setOverSample(len, m_photon_emitted); // PM
+			}
 
 			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 			const size_t npixels = m_frame_buffer.size();
@@ -625,18 +683,9 @@ namespace Integrator
 							double v = ((double)y + yp) / m_frame_buffer.height();
 							double u = ((double)x + xp) / m_frame_buffer.width();
 
-							RGBColor pixel = 0;
-							LightVertexStack lvs;
 
-							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, pixel, lvs);
+							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, buffers[tid].data());
 
-							m_frame_buffer(x, y) += pixel;
-							for (LightVertex const& lv : lvs)
-							{
-								int lx = lv.uv[0] * m_frame_buffer.width();
-								int ly = lv.uv[1] * m_frame_buffer.height();
-								m_frame_buffer(lx, ly) += lv.light;
-							}
 
 							//visu.plot(x, y, pixel);
 						}//pixel x
@@ -665,6 +714,8 @@ namespace Integrator
 						res.image.m_data[i] = m_frame_buffer.m_data[i] / m_sample_per_pixel;
 					}
 			}
+			solvers.clear();
+			solvers.shrink_to_fit();
 		}
 
 

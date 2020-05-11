@@ -244,6 +244,8 @@ namespace Integrator
 #endif
 		}
 
+		std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -262,9 +264,7 @@ namespace Integrator
 
 
 			
-			std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-			//std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-			solvers.reserve(Parallel::getNumThread());
+			solvers.reserve(m_max_len);
 			
 			for (int len = 2; len <= m_max_len; ++len)
 			{

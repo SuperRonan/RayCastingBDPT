@@ -46,7 +46,7 @@
 #include <Integrators/SimpleVCM.h>
 #include <Integrators/UncorellatedBDPT.h>
 #include <Integrators/VCM.h>
-//#include <Integrators/OptiVCM.h>
+#include <Integrators/OptiVCM.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -967,7 +967,7 @@ enum RenderMode : int {
 	rayTracing = 0, box = 1, normal = 2, uv = 3, materialID = 4, zBuffer = 5, AmbientOcclusion = 6,
 	pathTracing = 7, iterativePathTracing = 8, lightTracing = 9, bdpt = 10, MISPathTracing = 11, naivePathTracing = 12,
 	naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, PhotonMapper = 16, ProgressivePhotonMapper = 17, SimpleVCM = 18,
-	UncorellatedBDPT = 19, VCM = 20,
+	UncorellatedBDPT = 19, VCM = 20, OptiVCM = 21,
 };
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
@@ -1045,6 +1045,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	{
 		res[RenderMode::VCM] = new Integrator::VCM(sample_per_pixel, w, h);
 		res[RenderMode::VCM]->setLen(maxLen);
+	}
+
+	{
+		res[RenderMode::OptiVCM] = new Integrator::OptiVCM(sample_per_pixel, w, h);
+		res[RenderMode::OptiVCM]->setLen(maxLen);
 	}
 
 	//{
@@ -1251,6 +1256,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to VCM" << std::endl;
 				render_mode = RenderMode::VCM;
 				break;
+			case SDLK_c:
+				if (render_mode != RenderMode::OptiVCM)
+					std::cout << "switching to Optimal VCM" << std::endl;
+				render_mode = RenderMode::OptiVCM;
+				break;
 			case SDLK_u:
 				if (render_mode != RenderMode::UncorellatedBDPT)
 					std::cout << "switching to UBDPT" << std::endl;
@@ -1394,11 +1404,11 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
@@ -1460,6 +1470,7 @@ int main(int argc, char** argv)
 	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
 	//((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
 	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.0075, 0.25);
+	((Integrator::OptiVCM*)integrators[RenderMode::OptiVCM])->setParams(scene, 0.0075, 0.25);
 
 	std::cout << help_message << std::endl;
 
