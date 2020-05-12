@@ -402,6 +402,7 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, mode ? 1.3 : 1.3);
+		Geometry::Material* dglass = new Geometry::DispertionGlass({ 1, 1, 1}, 1.29, 1.31);
 		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1}, 1);
 
 
@@ -420,7 +421,7 @@ namespace Auto
 		if (true)
 		{
 			double rad = mode ? 0.75 : 0.75;
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, glass);
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, dglass);
 			if (mode)
 			{
 				//sphere.setCenter(Math::Vector3f(0, 0, -scale / 2));
@@ -463,7 +464,85 @@ namespace Auto
 
 
 
+	void initCornellLaserPrism(Geometry::Scene& scene, size_t width, size_t height)
+	{
+		double scale = 5;
+		double light_size = 1;
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+		
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
+		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, 1.3);
+		Geometry::Material* dglass = new Geometry::DispertionGlass({ 1, 1, 1 }, 1.29, 1.31);
+		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1 }, 1);
+
+
+		Geometry::Cornel::init_cornell(scene, nullptr, white, white, nullptr, nullptr, white, scale);
+
+
+		// The laser
+		{
+			Math::Vector3f base = {0, 0.48, 0};
+			Math::Vector3f dir = {0, -1, 0};
+			Math::Vector3f u = { -1, 0, 0 };
+			Math::Vector3f v = { 0, 0, 1 };
+			double radius = 0.001;
+			double length = 0.3;
+			Geometry::Material* light = new Geometry::Material(RGBColor(16, 10, 5) / (radius * radius) * 0.2, "", 100000);//0.78, RGBColor(16, 10, 5)
+			Geometry::Square* square = new Geometry::Square(light, base * scale, u * scale * radius, v * scale * radius);
+			scene.add(square);
+
+			
+			//Geometry::Square* sq1 = new Geometry::Square(mirror, (base + v * radius * 0.5 + dir*length*0.5)*scale, u*radius*scale, dir * length*scale);
+			//scene.add(sq1);
+
+			//Geometry::Square* sq2 = new Geometry::Square(mirror, (base - v * radius * 0.5 + dir * length * 0.5) * scale, u * radius * scale, dir * length * scale);
+			//scene.add(sq2);
+
+			//Geometry::Square* sq3 = new Geometry::Square(mirror, (base + u * radius * 0.5 + dir * length * 0.5) * scale, v * radius * scale, dir * length * scale);
+			//scene.add(sq3);
+
+			//Geometry::Square* sq4 = new Geometry::Square(mirror, (base - u * radius * 0.5 + dir * length * 0.5) * scale, v * radius * scale, dir * length * scale);
+			//scene.add(sq4);
+
+		}
+
+		// The prism
+		{
+			double thickness = 0.1;
+			double c60 = std::cos(Math::pi / 3.0);
+			
+			Math::Vector3f vertices[] = {
+				{thickness, 0.5, 0},
+				{thickness, 0, c60},
+				{thickness, -0.5, 0},
+				{-thickness, 0.5, 0},
+				{-thickness, 0, c60},
+				{-thickness, -0.5, 0},
+			};
+
+			Math::Vector3f base = { 0, 0, 0 };
+			double size = scale * 0.3;
+			Geometry::Square* sq1;
+		}
+
+
+
+
+		// Sets the camera
+		{
+			//Geometry::Camera camera = mode ? Geometry::Camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f) : Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			Geometry::Camera camera = Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			//Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+	}
 
 
 	///////////////////////////////////////////////////

@@ -1361,7 +1361,23 @@ void testPrecision()
 	}
 }
 
+void testWaveLength()
+{
+	Image::Image<RGBColor> img(290, 50);
+	Parallel::ParallelFor(0, img.width(), [&img](const int i)
+		{
+			double l = i + 380;
+			RGBColor c = RGBColor::fromWaveLength(l);
+			for (int j = 0; j < img.height(); ++j)
+			{
+				img(i, j) = c;
+			}
+		});
+	Image::ImWrite::write(img);
 
+	img.fill(img.mean());
+	Image::ImWrite::write(img);
+}
 
 
 
@@ -1375,6 +1391,7 @@ int main(int argc, char** argv)
 
 	int nthread = 4 * 2 * 2;
 	Parallel::setNumThread(nthread);
+
 
 #ifdef _DEBUG
 	int scale = 10;
@@ -1408,9 +1425,10 @@ int main(int argc, char** argv)
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
-	Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	Auto::initCornellLaser(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	
@@ -1442,7 +1460,7 @@ int main(int argc, char** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel;
 
