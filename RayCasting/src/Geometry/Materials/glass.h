@@ -106,6 +106,114 @@ namespace Geometry
 
 	};
 
+	class DispertionGlass : public Material
+	{
+	protected:
+
+		RGBColor m_albedo;
+
+		double m_eta_min, m_eta_max;
+		double wlmin = 380, wlmax = 380 + 290;
+
+	public:
+
+		DispertionGlass(RGBColor const& albedo, double eta1, double eta2, std::string const& texture = "") :
+			Material(0, texture),
+			m_albedo(albedo),
+			m_eta_min(eta1),
+			m_eta_max(eta2)
+		{
+			m_delta = true;
+			m_spicky = true;
+		}
+
+		virtual RGBColor ID_COLOR()const
+		{
+			return { 0.2, 0.8, 0.2 };
+		}
+
+		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE = true, double* pdf_rev = nullptr)const override
+		{
+			bool entering = hit.facing;
+			double nr = 1;
+			double xi = sampler.generateContinuous(0.0, 1.0);
+			double nt = m_eta_min + (m_eta_max - m_eta_min) * xi;
+			double wl = wlmin + (wlmax - wlmin) * xi;
+			
+			if (!entering)	std::swap(nr, nt);
+
+			Math::Vector3f normal = hit.orientedPrimitiveNormal();
+
+			double cos_theta = std::abs(hit.to_view * normal);
+			double sin_theta = std::sqrt(1 - cos_theta * cos_theta);
+			out.bsdf = m_albedo;
+			if (sin_theta == 0)
+			{
+				out.direction = -normal;
+				out.pdf = 1;
+			}
+			else
+			{
+				Math::Vector3f tg = (hit.to_view - normal * cos_theta) / (sin_theta);
+				double eta_ratio = nr / nt;
+				double next_sin_theta = eta_ratio * sin_theta;
+
+				bool reflect = next_sin_theta >= 1;
+				double fresnel_reflectance = 1;
+				double pdf_reflect = 1;
+
+				double next_cos_theta;
+
+				if (!reflect)
+				{
+					next_cos_theta = std::sqrt(1 - next_sin_theta * next_sin_theta);
+					double rs = (nt * cos_theta - nr * next_cos_theta) / (nt * cos_theta + nr * next_cos_theta);
+					double rp = (nr * cos_theta - nt * next_cos_theta) / (nr * cos_theta + nt * next_cos_theta);
+
+					fresnel_reflectance = 0.5 * (rs * rs + rp * rp);
+					pdf_reflect = fresnel_reflectance;
+
+					double xi = sampler.generateContinuous<double>();
+
+					reflect = xi <= pdf_reflect;
+				}
+
+
+				if (reflect)
+				{
+					out.direction = hit.primitive_reflected();
+					out.bsdf *= fresnel_reflectance;
+					out.pdf = pdf_reflect;
+				}
+				else // transmit
+				{
+					out.direction = normal * (-next_cos_theta) + tg * (-next_sin_theta);
+					out.bsdf *= (1 - fresnel_reflectance);
+					if (RADIANCE)
+						out.bsdf *= (eta_ratio * eta_ratio);
+					out.pdf = 1 - pdf_reflect;
+				}
+			}
+
+			out.bsdf *= 1.0 / std::abs(out.direction * normal);
+			RGBColor wl_color = RGBColor::fromWaveLength(wl);
+			out.bsdf *= wl_color * 2.0;
+			if (pdf_rev)
+				*pdf_rev = out.pdf;
+		}
+
+		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
+		{
+			return 0;
+		}
+
+		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
+		{
+			return 0;
+		}
+
+	};
+
 	class GlossyGlass : public Material
 	{
 	protected:
