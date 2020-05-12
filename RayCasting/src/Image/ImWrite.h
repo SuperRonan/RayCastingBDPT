@@ -176,14 +176,20 @@ namespace Image
 		static bool write(Image<Geometry::RGBColor, MAJOR> const& img, std::string path)
 		{
 			bool res;
+			std::string ext = extension(path);
 			std::cout << "Writing " << path << std::endl;
-			if (extension(path) == ".ppm")
+			if (ext == ".ppm")
 			{
 				res = writePPM(path, img);
 			}
-			else if (extension(path) == ".exr")
+			else if (ext == ".exr")
 			{
 				res = writeEXR(path, img);
+			}
+			else if (ext == "")
+			{
+				std::cout << "as exr" << std::endl;
+				res = writeEXR(path + ".exr", img);
 			}
 			else
 			{

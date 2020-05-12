@@ -17,6 +17,8 @@ namespace Image
 			std::string res;
 			for (int i = file.size() - 1; i >= 0; --i)
 			{
+				if (file[i] == '/' || file[i] == '\\')
+					break;
 				res += file[i];
 				if (file[i] == '.')
 				{
