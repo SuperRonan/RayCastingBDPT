@@ -320,7 +320,7 @@ namespace Auto
 			options.print(std::cout);
 
 
-			Parallel::setNumThread(options.nthreads);
+			Parallel::setNumThreads(options.nthreads);
 
 			using SceneInitializer = std::function<void (Geometry::Scene &, size_t, size_t)>;
 

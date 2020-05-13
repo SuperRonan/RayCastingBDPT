@@ -19,12 +19,12 @@ public:
 		
 	}
 
-	static void setNumThread(int n)
+	static void setNumThreads(int n)
 	{
 		omp_set_num_threads(std::max(1, std::min(getCPUThreads(), n)));
 	}
 
-	static int getNumThread()
+	static int getNumThreads()
 	{
 		return omp_get_max_threads();
 	}
@@ -34,7 +34,7 @@ public:
 		return omp_get_num_procs();
 	}
 
-	static int getCurrentNumThread()
+	static int getCurrentNumThreads()
 	{
 		return omp_get_num_threads();
 	}
@@ -42,7 +42,7 @@ public:
 	template <class T>
 	__forceinline static std::vector<T> preAllocate(T const& t=T())
 	{
-		return std::vector<T>(getNumThread(), t);
+		return std::vector<T>(getNumThreads(), t);
 	}
 
 	static int tid()
