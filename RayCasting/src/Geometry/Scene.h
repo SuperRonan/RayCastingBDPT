@@ -2,7 +2,7 @@
 #define _Geometry_Scene_H
 
 #include <windows.h>
-#include <Geometry/Geometry.h>
+#include <Geometry/Shapes/Geometry.h>
 #include <Geometry/PointLight.h>
 #include <Visualizer/Visualizer.h>
 #include <Geometry/Camera.h>
@@ -25,12 +25,12 @@
 #include <System/BoundedStack.h>
 #include <tbb/atomic.h>
 #include "DirectionalLight.h"
-#include <Geometry/Sphere.h>
+#include <Geometry/Shapes/Sphere.h>
 #include <Math/Sampler.h>
 #include <settings.h>
 #include <Geometry/EnvironmentMap.h>
 #include <Geometry/BVH.h>
-#include <Geometry/Disk.h>
+#include <Geometry/Shapes/Disk.h>
 
 
 namespace Geometry

@@ -265,8 +265,9 @@ namespace Integrator
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
 
 									// Check visibility
-									//bool V = visibility(scene, pt.position(), qs.position());
-
+									bool V = visibility(scene, pt.position(), qs.position());
+									if (!V)
+										return;
 
 									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
 									const double w = VMWeight(weights, cameraSubPath, lightSubPath, s, t, s1_pdf);

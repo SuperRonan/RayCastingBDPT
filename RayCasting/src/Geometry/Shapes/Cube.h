@@ -1,8 +1,8 @@
 #ifndef _Geometry_Cube_H
 #define _Geometry_Cube_H
 
-#include <Geometry/Geometry.h>
-#include <Geometry/Square.h>
+#include <Geometry/Shapes/Geometry.h>
+#include <Geometry/Shapes/Square.h>
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795

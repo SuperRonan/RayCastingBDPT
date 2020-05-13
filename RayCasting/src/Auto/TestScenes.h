@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Geometry/Scene.h>
-#include <Geometry/Cube.h>
-#include <Geometry/Disk.h>
+#include <Geometry/Shapes/Cone.h>
+#include <Geometry/Shapes/Cube.h>
+#include <Geometry/Shapes/Sphere.h>
 #include <Geometry/Materials/DeltaMirror.h>
-#include <Geometry/Cornel.h>
-#include <Geometry/Cylinder.h>
+#include <Geometry/Shapes/Cornel.h>
+#include <Geometry/Shapes/Cylinder.h>
 #include <Image/ImWrite.h>
 #include <Geometry/Materials/glass.h>
 #include <Image/ImRead.h>
@@ -530,6 +531,9 @@ namespace Auto
 			Math::Vector3f base = { 0, 0, 0 };
 			double size = scale * 0.3;
 			Geometry::Square* sq1;
+
+			Geometry::Cone* cone = new Geometry::Cone(4, glass);
+			scene.add(cone);
 		}
 
 

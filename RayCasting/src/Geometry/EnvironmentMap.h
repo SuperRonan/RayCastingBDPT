@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Geometry/RGBColor.h>
-#include <Geometry/Sphere.h>
+#include <Geometry/Shapes/Sphere.h>
 #include <Image/Image.h>
 #include <cassert>
 #include <vector>

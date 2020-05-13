@@ -1,10 +1,7 @@
 #ifndef _Geometry_LightSampler_H
 #define _Geometry_LightSampler_H
 
-#include <random>
-#include <Geometry/Triangle.h>
-#include <Geometry/Geometry.h>
-#include <Geometry/PointLight.h>
+
 
 namespace Geometry
 {

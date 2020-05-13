@@ -8,16 +8,10 @@
 #include <Geometry/Materials/Material.h>
 #include <Geometry/PointLight.h>
 #include <Geometry/Camera.h>
-#include <Geometry/Cube.h>
-#include <Geometry/Disk.h>
-#include <Geometry/Cylinder.h>
-#include <Geometry/Cone.h>
 #include <Visualizer/Visualizer.h>
 #include <Geometry/Scene.h>
-#include <Geometry/Cornel.h>
 #include <Geometry/Loader3ds.h>
 #include <Geometry/BoundingBox.h>
-#include <omp.h>
 #include <chrono>
 #include <array>
 #include <tbb/tick_count.h>
@@ -1427,8 +1421,8 @@ int main(int argc, char** argv)
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
-	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
+	//Auto::initComplexCausticCornell(scene, visu.width(), visu.height());
+	Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	

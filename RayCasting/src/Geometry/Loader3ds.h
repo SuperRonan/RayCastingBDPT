@@ -10,7 +10,7 @@
 #include <iterator>
 #include <map>
 #include <Geometry/Materials/Material.h>
-#include <Geometry/Geometry.h>
+#include <Geometry/Shapes/Geometry.h>
 #include <Geometry/Materials/Lambert.h>
 #include <Geometry/Materials/Glossy.h>
 #include <settings.h>

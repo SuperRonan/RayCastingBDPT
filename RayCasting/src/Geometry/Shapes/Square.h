@@ -1,7 +1,7 @@
 #ifndef _Geometry_Square_H
 #define _Geometry_Square_H
 
-#include <Geometry/Geometry.h>
+#include <Geometry/Shapes/Geometry.h>
 #include <algorithm>
 
 namespace Geometry

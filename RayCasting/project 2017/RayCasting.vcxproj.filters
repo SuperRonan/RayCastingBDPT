@@ -37,6 +37,9 @@
     <Filter Include="src\Geometry\Materials">
       <UniqueIdentifier>{c9495ff7-df73-4c27-8bac-ab0271fff8ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Geometry\Shapes">
+      <UniqueIdentifier>{51de49cd-005c-48ca-b2a0-28af5333014c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry\BoundingBox.h">
@@ -46,24 +49,6 @@
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\CastedRay.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Cone.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Cornel.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Cube.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Cylinder.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Disk.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Geometry.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\IntersecitonSet.h">
@@ -91,9 +76,6 @@
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\Scene.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Square.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\Triangle.h">
@@ -187,9 +169,6 @@
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\DirectionalLight.h">
-      <Filter>src\Geometry</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Geometry\Sphere.h">
       <Filter>src\Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\src\Geometry\generic_texture.hpp">
@@ -359,6 +338,30 @@
     </ClInclude>
     <ClInclude Include="..\src\System\Parallel.h">
       <Filter>src\System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Cone.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Cornel.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Cube.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Cylinder.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Disk.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Geometry.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Sphere.h">
+      <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Shapes\Square.h">
+      <Filter>src\Geometry\Shapes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

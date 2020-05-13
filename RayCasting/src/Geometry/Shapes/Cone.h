@@ -1,7 +1,7 @@
 #ifndef _Geometry_Cone_H
 #define _Geometry_Cone_H
 
-#include <Geometry/Geometry.h>
+#include <Geometry/Shapes/Geometry.h>
 
 namespace Geometry
 {

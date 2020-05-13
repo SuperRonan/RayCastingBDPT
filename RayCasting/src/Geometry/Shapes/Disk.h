@@ -1,7 +1,7 @@
 #ifndef _Geometry_Disk_H
 #define _Geometry_Disk_H
 
-#include <Geometry/Geometry.h>
+#include <Geometry/Shapes/Geometry.h>
 #include <Geometry/Primitive.h>
 
 #ifndef M_PI

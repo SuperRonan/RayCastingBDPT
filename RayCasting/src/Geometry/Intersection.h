@@ -3,9 +3,9 @@
 #include <Geometry/Ray.h>
 #include <Geometry/Hit.h>
 #include <cassert>
-#include <Geometry/Sphere.h>
+#include <Geometry/Shapes/Sphere.h>
 #include <Geometry/Triangle.h>
-#include <Geometry/Disk.h>
+#include <Geometry/Shapes/Disk.h>
 
 namespace Geometry
 {
