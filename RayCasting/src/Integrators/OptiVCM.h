@@ -197,6 +197,8 @@ namespace Integrator
 							camera_connection = scene.m_camera.We(-dir);
 							ni = scene.m_camera.resolution;
 							p = scene.m_camera.raster(-dir);
+							if (!scene.m_camera.validRaster(p))
+								continue;
 						}
 						else
 						{
@@ -219,7 +221,7 @@ namespace Integrator
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
 						double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 
-						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
 							solver.addEstimate(L * weight, weights, s, p);
 						}
@@ -262,6 +264,10 @@ namespace Integrator
 									const double k = 1.0 / (Math::pi * m_radius2);
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
 
+									// Check visibility
+									//bool V = visibility(scene, pt.position(), qs.position());
+
+
 									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
 									const double w = VMWeight(weights, cameraSubPath, lightSubPath, s, t, s1_pdf);
 									RGBColor BE = L * k / m_photon_emitted * w;
@@ -300,6 +306,7 @@ namespace Integrator
 			const int first_t_not_spicky, const int last_s_not_spicky,
 			double s1_pdf, double pdf_sampling_point = -1)const
 		{
+			const int len = main_s + main_t;
 			double*& ratios = weights;
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
@@ -346,7 +353,7 @@ namespace Integrator
 
 
 			// Find the VM pdf
-			if (main_s + main_t > 2)
+			if (len > 2)
 			{
 				double vm_ri = 1.0;
 				if (first_t_not_spicky != -1 && !(first_t_not_spicky == main_t && main_s == 0)) // A merge is possible on the camera subpath
@@ -383,11 +390,11 @@ namespace Integrator
 				}
 				else
 				{
-					ratios[VMtechIndex(main_s + main_t - 2)] = 0;
+					ratios[VMtechIndex(len)] = 0;
 				}
 			}
 
-			for (int i = 0; i < numTech(main_s + main_t); ++i)
+			for (int i = 0; i < numTech(len); ++i)
 			{
 				weights[i] = ratios[i] / sum;
 			}
@@ -407,6 +414,7 @@ namespace Integrator
 			const int main_s, const int main_t,
 			double s1_pdf)const
 		{
+			const int len = main_s + main_t;
 			assert(lights.size() >= main_s + 1);
 			assert(main_s > 0);
 			assert(main_t >= 2);
@@ -441,7 +449,7 @@ namespace Integrator
 			const double actual_ni = m_photon_emitted;
 			const double actual_main_ri = photon->fwd_pdf * Math::pi * m_radius2;
 
-			ratios[VMtechIndex(main_s + main_t - 2)] = actual_main_ri * actual_ni;
+			ratios[VMtechIndex(len)] = actual_main_ri * actual_ni;
 			double sum = actual_main_ri * actual_ni;
 
 			sum += ComputeSumRatioVC(cameras, lights, main_s, main_t, s1_pdf, ratios);
@@ -449,13 +457,13 @@ namespace Integrator
 			ratios[main_s] = ref_ri;
 			sum += ref_ri;
 
-			for (int i = 0; i < numTech(main_s + main_t); ++i)
+			for (int i = 0; i < numTech(len); ++i)
 			{
 				weights[i] = ratios[i] / sum;
 			}
 
 			double weight = (actual_main_ri * actual_ni) / sum;
-			assert(std::abs(weights[main_s] - weight) < 1e-6);
+			assert(std::abs(weights[VMtechIndex(len)] - weight) < 1e-6);
 			return weight;
 		}
 
@@ -479,7 +487,7 @@ namespace Integrator
 
 		unsigned int VMtechIndex(int len)const
 		{
-			assert(len >= 2);
+			assert(len > 2);
 			return len;
 		}
 
@@ -497,6 +505,7 @@ namespace Integrator
 
 		mutable std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 		//mutable std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -521,13 +530,13 @@ namespace Integrator
 
 			
 			solvers.reserve(m_max_len);
-
+			m_photon_emitted = m_frame_buffer.size();
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int num_tech = numTech(len);
 				solvers.emplace_back(num_tech, visu.width(), visu.height());
 				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
-				if(len >= 2)
+				if(len > 2)
 					solvers.back().setOverSample(len, m_photon_emitted); // PM
 			}
 

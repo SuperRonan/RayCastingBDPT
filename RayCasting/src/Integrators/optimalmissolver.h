@@ -951,6 +951,7 @@ public:
 			for (int j = 0; j < i; ++j)
 			{
 				Float elem = data.techMatrix[matTo1D(i, j)];
+				if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;
 				matrix(i, j) = elem;
 				matrix(j, i) = elem;
 			}
@@ -987,7 +988,9 @@ public:
 				const AtomicFloat* contribVector = data.contribVector + k * m_numtechs;
 				for (int i = 0; i < m_numtechs; ++i)
 				{
-					vector[i] = contribVector[i];
+					Float elem = contribVector[i];
+					if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;
+					vector[i] = elem;
 					isZero = isZero & (contribVector[i] == 0);
 				}
 
