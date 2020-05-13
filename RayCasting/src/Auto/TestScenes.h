@@ -403,7 +403,6 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, mode ? 1.3 : 1.3);
-		Geometry::Material* dglass = new Geometry::DispertionGlass({ 1, 1, 1}, 1.29, 1.31);
 		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1}, 1);
 
 
@@ -422,7 +421,7 @@ namespace Auto
 		if (true)
 		{
 			double rad = mode ? 0.75 : 0.75;
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, dglass);
+			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, glass);
 			if (mode)
 			{
 				//sphere.setCenter(Math::Vector3f(0, 0, -scale / 2));
@@ -480,7 +479,7 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, 1.3);
-		Geometry::Material* dglass = new Geometry::DispertionGlass({ 1, 1, 1 }, 1.29, 1.31);
+		Geometry::Material* dglass = new Geometry::DispertionGlass({ 0.9, 0.8, 1 }, 1.25, 400, 1.3, 700);
 		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1 }, 1);
 
 
@@ -493,9 +492,9 @@ namespace Auto
 			Math::Vector3f dir = {0, -1, 0};
 			Math::Vector3f u = { -1, 0, 0 };
 			Math::Vector3f v = { 0, 0, 1 };
-			double radius = 0.001;
+			double radius = 0.0001;
 			double length = 0.3;
-			Geometry::Material* light = new Geometry::Material(RGBColor(16, 10, 5) / (radius * radius) * 0.2, "", 100000);//0.78, RGBColor(16, 10, 5)
+			Geometry::Material* light = new Geometry::Material(RGBColor(16, 10, 5) / (radius * radius) * 0.2, "", 1000000);//0.78, RGBColor(16, 10, 5)
 			Geometry::Square* square = new Geometry::Square(light, base * scale, u * scale * radius, v * scale * radius);
 			scene.add(square);
 
@@ -532,7 +531,8 @@ namespace Auto
 			double size = scale * 0.3;
 			Geometry::Square* sq1;
 
-			Geometry::Cone* cone = new Geometry::Cone(4, glass);
+			Geometry::Cone* cone = new Geometry::Cone(4, dglass);
+			cone->rotate(Math::Quaternion<double>(Math::Vector3f(0, 0, 1), Math::piDiv4));
 			scene.add(cone);
 		}
 

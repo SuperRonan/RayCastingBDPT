@@ -35,10 +35,11 @@ namespace Geometry
 		{
 			int center = addVertex(Math::makeVector(0.0f, 0.0f, 0.5f)) ;
 			DiskFabrice disk(nbDiv, material) ;
+			disk.rotate(Math::Quaternion<double>(Math::Vector3f(1, 0, 0), Math::pi));
 			disk.translate(Math::makeVector(0.0f, 0.0f, -0.5f)) ;
-			for(int cpt=0 ; cpt<nbDiv ; cpt++)
+			for(int cpt=1 ; cpt<=nbDiv ; cpt++)
 			{
-				addTriangle(disk.getVertices()[cpt], disk.getVertices()[(cpt+1)%nbDiv], getVertices()[center]) ;
+				addTriangle(disk.getVertices()[(cpt) % nbDiv + 1], disk.getVertices()[cpt], getVertices()[center]) ;
 			}
 			merge(disk) ;
 			//Math::Vector3 * center = new Math::Vector3(0.0, 0.0, 0.5) ;

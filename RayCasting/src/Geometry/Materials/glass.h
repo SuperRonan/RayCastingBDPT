@@ -113,15 +113,17 @@ namespace Geometry
 		RGBColor m_albedo;
 
 		double m_eta_min, m_eta_max;
-		double wlmin = 380, wlmax = 380 + 290;
+		double m_wlmin = 420, m_wlmax = 700;
 
 	public:
 
-		DispertionGlass(RGBColor const& albedo, double eta1, double eta2, std::string const& texture = "") :
+		DispertionGlass(RGBColor const& albedo, double eta1, double wlmin, double eta2, double wlmax, std::string const& texture = "") :
 			Material(0, texture),
 			m_albedo(albedo),
 			m_eta_min(eta1),
-			m_eta_max(eta2)
+			m_eta_max(eta2),
+			m_wlmin(wlmin),
+			m_wlmax(wlmax)
 		{
 			m_delta = true;
 			m_spicky = true;
@@ -138,7 +140,7 @@ namespace Geometry
 			double nr = 1;
 			double xi = sampler.generateContinuous(0.0, 1.0);
 			double nt = m_eta_min + (m_eta_max - m_eta_min) * xi;
-			double wl = wlmin + (wlmax - wlmin) * xi;
+			double wl = m_wlmin + (m_wlmax - m_wlmin) * xi;
 			
 			if (!entering)	std::swap(nr, nt);
 
