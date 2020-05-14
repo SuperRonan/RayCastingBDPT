@@ -319,7 +319,7 @@ namespace Auto
 	}
 
 
-	void initComplexCausticCornell(Geometry::Scene& scene, size_t width, size_t height)
+	void initSDSCornell(Geometry::Scene& scene, size_t width, size_t height)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
 		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
@@ -329,7 +329,7 @@ namespace Auto
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
 		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
 
-		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
+		Geometry::Material* spec = new Geometry::Glossy(1, 10);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.1);
 		Geometry::Material* blurry_glass = new Geometry::GlossyGlass({ 1, 1, 1 }, 1.3, 100);
@@ -369,6 +369,7 @@ namespace Auto
 		}
 		
 		Geometry::Material* cube_mats[] = { glass, glass };
+		Geometry::Material* sphere_mats[] = { orange, mirror };
 		double cube_size = 0.3;
 		Math::Vector3f centers[] = { Math::Vector3f(0.0, 0.2, -0.4 + cube_size/2), Math::Vector3f(0.0, -0.2, -0.4 + cube_size / 2) };
 		double radii[] = { 0.4, 0.4 };
@@ -377,7 +378,7 @@ namespace Auto
 			Geometry::Cube* cube = new Geometry::Cube(cube_mats[i], centers[i] * scale, Math::Vector3f(scale * cube_size, 0, 0), Math::Vector3f(0, scale * cube_size, 0), Math::Vector3f(0, 0, scale * cube_size));
 			scene.add(cube);
 
-			Geometry::Sphere sphere = Geometry::Sphere(centers[i] * scale, cube_size * radii[i] * scale, orange);
+			Geometry::Sphere sphere = Geometry::Sphere(centers[i] * scale, cube_size * radii[i] * scale, sphere_mats[i]);
 			scene.add(sphere);
 		}
 

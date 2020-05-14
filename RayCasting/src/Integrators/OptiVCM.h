@@ -219,10 +219,11 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
-						double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
+						
 
 						if (visibility(scene, light_top.hit.point, camera_top.hit.point))
 						{
+							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 							solver.addEstimate(L * weight, weights, s, p);
 						}
 
@@ -236,7 +237,7 @@ namespace Integrator
 			Math::Vector3f d = hit.point - photon.hit.point;
 			const double dist2 = d.norm2();
 			d /= std::sqrt(dist2);
-			return dist2 < m_radius2 && !photon.hit.geometry->getMaterial()->spicky() &&
+			return dist2 < m_radius2 &&
 				std::abs(hit.primitive_normal * photon.hit.primitive_normal > 0.8) &&
 				std::abs(hit.primitive_normal * d) < 0.3;
 		}
@@ -246,7 +247,7 @@ namespace Integrator
 			for (int t = 2; t <= cameraSubPath.size(); ++t)
 			{
 				const Vertex& pt = cameraSubPath[t - 1];
-				if (!pt.delta)
+				if (!pt.material()->spicky())
 				{
 					m_map.loopThroughPhotons([&](Photon const& photon)
 						{
