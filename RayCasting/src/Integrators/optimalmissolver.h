@@ -963,6 +963,34 @@ public:
 		}
 	}
 
+	virtual void debug(int iterations)
+	{
+		Image::Image<double> img(m_width*m_numtechs, m_height);
+		int resolution = m_width * m_height;
+		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
+		Parallel::ParallelFor(0, resolution, [&](int pixel)
+		{
+			int tid = Parallel::tid();
+			Math::Vector<int, 2> indices = Image::Image<double, MAJOR>::indices(pixel, m_width, m_height);
+			PixelData data = getPixelData(pixel);
+			MatrixT& matrix = matrices[tid];
+			fillMatrix(matrix, data, iterations);
+			for (int i = 0; i < m_numtechs; ++i)
+			{
+				size_t expected = m_over_samples[i];
+				double sum = 0;
+				for (int j = 0; j < m_numtechs; ++j)
+				{
+					sum += matrix(i, j);
+				}
+				sum /= iterations;
+				double diff = (expected - sum) / expected;
+				img(indices[0] * m_numtechs + i, indices[1]) = diff;
+			}
+		});
+		Image::ImWrite::writeEXR(RESULT_FOLDER + "OptiMISDebug" + std::to_string(m_numtechs) + ".exr", img);
+	}
+
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
 	{
 		VectorT MVector(m_numtechs);

@@ -509,6 +509,9 @@ namespace Integrator
 		//mutable std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 
+		
+		const bool DEBUG = true;
+
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
@@ -606,6 +609,8 @@ namespace Integrator
 			{
 				int d = len - 2;
 				std::cout << d << " / " << m_max_len - 2 << std::endl;
+				if(DEBUG)
+					solvers[d].debug(m_sample_per_pixel);
 				solvers[d].solve(m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;

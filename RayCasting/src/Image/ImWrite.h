@@ -22,7 +22,7 @@ namespace Image
 	class ImWrite : public ImageIO
 	{
 
-	protected:
+	public:
 
 		template <bool MAJOR>
 		static bool writeEXR(std::string const& path, Image<Geometry::RGBColor, MAJOR> const& image)
@@ -60,6 +60,38 @@ namespace Image
 
 			for (int j = 0; j < 3; ++j)
 				delete[] channels[j];
+			return true;
+		}
+
+		template <bool MAJOR, typename floot>
+		static bool writeEXR(std::string const& path, Image<floot, MAJOR> const& image)
+		{
+			float* channel = new float[image.size()];
+			std::string cname = "G";
+			OMP_PARALLEL_FOR
+				for (long i = 0; i < image.height(); ++i)
+				{
+					for (long j = 0; j < image.width(); ++j)
+					{
+						channel[i * image.width() + j] = image(j, i);
+					}
+				}
+			Imf::Header header(image.width(), image.height());
+
+			header.channels().insert(cname, Imf::Channel(Imf::FLOAT));
+
+			Imf::OutputFile file(path.c_str(), header);
+
+
+			Imf::FrameBuffer frame_buffer;
+			Imf::Slice slice(Imf::FLOAT, (char*)channel, sizeof(float), sizeof(float) * image.width());
+			frame_buffer.insert(cname, slice);
+
+			file.setFrameBuffer(frame_buffer);
+
+			file.writePixels(image.height());
+
+			delete[] channel;
 			return true;
 		}
 
