@@ -541,7 +541,7 @@ namespace Integrator
 				int num_tech = numTech(len);
 				solvers.emplace_back(num_tech, visu.width(), visu.height());
 				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
-				if(len > 2)
+				if(num_tech > len)
 					solvers.back().setOverSample(len, m_photon_emitted); // PM
 			}
 
@@ -610,7 +610,7 @@ namespace Integrator
 				int d = len - 2;
 				std::cout << d << " / " << m_max_len - 2 << std::endl;
 				if(DEBUG)
-					solvers[d].debug(m_sample_per_pixel);
+					solvers[d].debug(m_sample_per_pixel, 1, 1, 1);
 				solvers[d].solve(m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;

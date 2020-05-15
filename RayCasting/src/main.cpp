@@ -1482,7 +1482,7 @@ int main(int argc, char** argv)
 	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
 	//((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
 	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.0075, 0.25);
-	((Integrator::OptiVCM*)integrators[RenderMode::OptiVCM])->setParams(scene, 0.0075, 0.25);
+	((Integrator::OptiVCM*)integrators[RenderMode::OptiVCM])->setParams(scene, 0.0075, 0.25*0.5);
 
 	std::cout << help_message << std::endl;
 
