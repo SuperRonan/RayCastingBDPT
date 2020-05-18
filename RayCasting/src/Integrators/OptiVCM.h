@@ -373,6 +373,7 @@ namespace Integrator
 					vm_ri *= pacc;
 					assert(vm_ri >= 0);
 					sum += vm_ri * m_photon_emitted;
+					ratios[VMtechIndex(len)] = vm_ri * m_photon_emitted;
 				}
 				else if (first_t_not_spicky == -1 && last_s_not_spicky != -1) // The merge is on the light subpath
 				{
@@ -389,6 +390,7 @@ namespace Integrator
 					double pacc = Math::pi * m_radius2 * camera_end->fwd_pdf;
 					vm_ri *= pacc;
 					sum += vm_ri * m_photon_emitted;
+					ratios[VMtechIndex(len)] = vm_ri * m_photon_emitted;
 				}
 				else
 				{
@@ -510,7 +512,7 @@ namespace Integrator
 
 
 		
-		const bool DEBUG = true;
+		const bool DEBUG = false;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -559,6 +561,7 @@ namespace Integrator
 						{
 							size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), pass);
 							Math::Sampler sampler(seed);
+
 
 							double xp = sampler.generateContinuous<double>();
 							double yp = sampler.generateContinuous<double>();
