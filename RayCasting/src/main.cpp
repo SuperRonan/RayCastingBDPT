@@ -1454,7 +1454,7 @@ int main(int argc, char** argv)
 	unsigned int sample_per_pixel = 16*4;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel;
 

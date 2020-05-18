@@ -765,6 +765,9 @@ public:
 	virtual void loop() = 0;
 
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) = 0;
+
+	virtual void debug(int iterations, bool col_sum, bool matrix, bool vec, bool alpha)const
+	{}
 };
 
 template <bool MAJOR>
@@ -873,6 +876,11 @@ protected:
 		const Math::Vector<int, 2> pixel(uv[0] * m_width, uv[1] * m_height);
 		const int index = PixelTo1D(pixel[0], pixel[1]);
 		return getPixelData(index);
+	}
+
+	std::string debugFolder()const
+	{
+		return RESULT_FOLDER + "debug/";
 	}
 
 	// In Byte
@@ -993,7 +1001,7 @@ public:
 
 	virtual void saveColSum(int iterations)const
 	{
-		Image::Image<double> img(m_width * m_numtechs, m_height);
+		Image::Image<double, MAJOR> img(m_width * m_numtechs, m_height);
 		int resolution = m_width * m_height;
 		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 		Parallel::ParallelFor(0, resolution, [&](int pixel)
@@ -1016,12 +1024,12 @@ public:
 					img(indices[0] * m_numtechs + i, indices[1]) = diff;
 				}
 			});
-		Image::ImWrite::writeEXR(RESULT_FOLDER + "OptiMIScolSum" + std::to_string(m_numtechs) + ".exr", img);
+		Image::ImWrite::writeEXR(debugFolder() + "OptiMIScolSum" + std::to_string(m_numtechs) + ".exr", img);
 	}
 
 	virtual void saveMatrices(int iterations)const
 	{
-		Image::Image<double> img(m_width * m_numtechs, m_height*m_numtechs);
+		Image::Image<double, MAJOR> img(m_width * m_numtechs, m_height*m_numtechs);
 		int resolution = m_width * m_height;
 		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 		Parallel::ParallelFor(0, resolution, [&](int pixel)
@@ -1039,12 +1047,12 @@ public:
 					}
 				}
 			});
-		Image::ImWrite::writeEXR(RESULT_FOLDER + "OptiMISMatrices" + std::to_string(m_numtechs) + ".exr", img);
+		Image::ImWrite::writeEXR(debugFolder() + "OptiMISMatrices" + std::to_string(m_numtechs) + ".exr", img);
 	}
 
 	virtual void saveVectors(int iterations)const
 	{
-		Image::Image<Geometry::RGBColor> img(m_width * m_numtechs, m_height);
+		Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
 		int resolution = m_width * m_height;
 		Parallel::ParallelFor(0, resolution, [&](int pixel)
 			{
@@ -1059,10 +1067,63 @@ public:
 					}
 				}
 			});
-		Image::ImWrite::writeEXR(RESULT_FOLDER + "OptiMISVectors" + std::to_string(m_numtechs) + ".exr", img);
+		Image::ImWrite::writeEXR(debugFolder() + "OptiMISVectors" + std::to_string(m_numtechs) + ".exr", img);
 	}
 
-	virtual void debug(int iterations, bool col_sum, bool matrix, bool vec)const
+	virtual void saveAlphas(int iterations)const
+	{
+		Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
+		VectorT MVector(m_numtechs);
+		std::copy(m_over_samples.begin(), m_over_samples.end(), MVector.begin());
+		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
+		std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
+		int resolution = m_width * m_height;
+		Parallel::ParallelFor(0, resolution, [&](int pixel)
+			{
+				int tid = Parallel::tid();
+				Math::Vector<int, 2> indices = Image::Image<double, MAJOR>::indices(pixel, m_width, m_height);
+				MatrixT& matrix = matrices[tid];
+				VectorT& vector = vectors[tid];
+
+				PixelData data = getPixelData(pixel);
+
+				bool matrix_done = false;
+
+				for (int k = 0; k < 3; ++k)
+				{
+					bool isZero = true;
+					const AtomicFloat* contribVector = data.contribVector + k * m_numtechs;
+					for (int i = 0; i < m_numtechs; ++i)
+					{
+						Float elem = contribVector[i];
+						if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;
+						vector[i] = elem;
+						isZero = isZero & (contribVector[i] == 0);
+					}
+
+					if (!isZero)
+					{
+						if (!matrix_done)
+						{
+							fillMatrix(matrix, data, iterations);
+							matrix = pinv(matrix);
+							matrix_done = true;
+						}
+						// Now vector is alpha
+						vector = matrix * vector;
+						for (int i = 0; i < m_numtechs; ++i)
+						{
+							vector[i] *= m_over_samples[i];
+							img(indices[0] * m_numtechs + i, indices[1])[k] = vector[i];
+						}
+					}
+				}
+				
+			});
+		Image::ImWrite::writeEXR(debugFolder() + "OptiMISAlphas" + std::to_string(m_numtechs) + ".exr", img);
+	}
+
+	virtual void debug(int iterations, bool col_sum, bool matrix, bool vec, bool alpha)const override
 	{
 		if (col_sum)
 			saveColSum(iterations);
@@ -1070,6 +1131,8 @@ public:
 			saveMatrices(iterations);
 		if (vec)
 			saveVectors(iterations);
+		if (alpha)
+			saveAlphas(iterations);
 	}
 
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
