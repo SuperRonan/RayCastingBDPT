@@ -6,7 +6,7 @@
 namespace Geometry
 {
 
-	class Glass : public Material
+	class Dielectric : public Material
 	{
 	protected:
 
@@ -16,7 +16,7 @@ namespace Geometry
 
 	public:
 
-		Glass(RGBColor const& albedo, double eta, std::string const& texture = "") :
+		Dielectric(RGBColor const& albedo, double eta, std::string const& texture = "") :
 			Material(0, texture),
 			m_albedo(albedo),
 			m_eta(eta)
@@ -106,7 +106,7 @@ namespace Geometry
 
 	};
 
-	class DispertionGlass : public Material
+	class DispertionDielectric : public Material
 	{
 	protected:
 
@@ -117,7 +117,7 @@ namespace Geometry
 
 	public:
 
-		DispertionGlass(RGBColor const& albedo, double eta1, double wlmin, double eta2, double wlmax, std::string const& texture = "") :
+		DispertionDielectric(RGBColor const& albedo, double eta1, double wlmin, double eta2, double wlmax, std::string const& texture = "") :
 			Material(0, texture),
 			m_albedo(albedo),
 			m_eta_min(eta1),
@@ -216,7 +216,7 @@ namespace Geometry
 
 	};
 
-	class GlossyGlass : public Material
+	class GlossyDielectric : public Material
 	{
 	protected:
 
@@ -228,7 +228,7 @@ namespace Geometry
 
 	public:
 
-		GlossyGlass(RGBColor const& albedo, double eta, double shininess, std::string const& texture = "") :
+		GlossyDielectric(RGBColor const& albedo, double eta, double shininess, std::string const& texture = "") :
 			Material(0, texture),
 			m_albedo(albedo),
 			m_eta(eta),

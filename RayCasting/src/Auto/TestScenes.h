@@ -8,7 +8,7 @@
 #include <Geometry/Shapes/Cornel.h>
 #include <Geometry/Shapes/Cylinder.h>
 #include <Image/ImWrite.h>
-#include <Geometry/Materials/glass.h>
+#include <Geometry/Materials/Dielectric.h>
 #include <Image/ImRead.h>
 
 namespace Auto
@@ -297,7 +297,7 @@ namespace Auto
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, mode ? 1.3 : 1.3);
+		Geometry::Material* glass = new Geometry::Dielectric({ 1, 1, 1.1 }, mode ? 1.3 : 1.3);
 
 		double scale = 5;
 		Geometry::Cube* box = new Geometry::Cube(glass, 0.f, Math::Vector3f(scale, 0, 0), Math::Vector3f(0, scale, 0), Math::Vector3f(0, 0, scale));
@@ -331,8 +331,8 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Glossy(1, 10);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1 }, 1.1);
-		Geometry::Material* blurry_glass = new Geometry::GlossyGlass({ 1, 1, 1 }, 1.3, 100);
+		Geometry::Material* glass = new Geometry::Dielectric({ 1, 1, 1 }, 1.1);
+		Geometry::Material* blurry_glass = new Geometry::GlossyDielectric({ 1, 1, 1 }, 1.3, 100);
 		Geometry::Material* wax = new Geometry::Lambertian<Geometry::LAMBERT_MODE::TRANSMIT>(0.9);
 
 		double light_size = 0.5;
@@ -403,8 +403,8 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1}, 1.3);
-		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1}, 1.0 / 1.3);
+		Geometry::Material* glass = new Geometry::Dielectric({ 1, 1, 1}, 1.3);
+		Geometry::Material* glass2 = new Geometry::Dielectric({ 1, 1, 1}, 1.0 / 1.3);
 
 
 		if(mode)
@@ -481,9 +481,9 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1 }, 1.3);
-		Geometry::Material* dglass = new Geometry::DispertionGlass({ 0.9, 0.8, 1 }, 1.25, 400, 1.3, 700);
-		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1 }, 1);
+		Geometry::Material* glass = new Geometry::Dielectric({ 1, 1, 1.1 }, 1.3);
+		Geometry::Material* dglass = new Geometry::DispertionDielectric({ 0.9, 0.8, 1 }, 1.25, 400, 1.3, 700);
+		Geometry::Material* glass2 = new Geometry::Dielectric({ 1, 1, 1.1 }, 1);
 
 
 		Geometry::Cornel::init_cornell(scene, nullptr, white, white, nullptr, nullptr, white, scale);

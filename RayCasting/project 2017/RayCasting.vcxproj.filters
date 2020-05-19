@@ -306,9 +306,6 @@
     <ClInclude Include="..\src\Geometry\Materials\DeltaMirror.h">
       <Filter>src\Geometry\Materials</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Geometry\Materials\glass.h">
-      <Filter>src\Geometry\Materials</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Geometry\Materials\Lambert.h">
       <Filter>src\Geometry\Materials</Filter>
     </ClInclude>
@@ -362,6 +359,9 @@
     </ClInclude>
     <ClInclude Include="..\src\Geometry\Shapes\Square.h">
       <Filter>src\Geometry\Shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Geometry\Materials\Dielectric.h">
+      <Filter>src\Geometry\Materials</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -20,6 +20,7 @@
 #include <Geometry/Materials/Lambert.h>
 #include <Geometry/Materials/Glossy.h>
 #include <Geometry/Materials/DeltaMirror.h>
+#include <Geometry/Materials/Dielectric.h>
 #include <Math/Sampler.h>
 #include <System/Parallel.h>
 
@@ -532,7 +533,7 @@ void initDog(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 {
 	Geometry::Loader3ds loader(m_modelDirectory + "\\Dog\\dog.3ds", m_modelDirectory + "\\dog");
 
-	Geometry::Material* glass = new Geometry::Glass({ 1, 0.8, 0.9 }, 1.25);
+	Geometry::Material* glass = new Geometry::Dielectric({ 1, 0.8, 0.9 }, 1.25);
 	Geometry::Material* Lglass = new Geometry::Lambertian<Geometry::TRANSMIT>({ 1, 0.8, 0.9 });
 
 	for (size_t cpt = 0; cpt < loader.getMeshes().size(); ++cpt)

@@ -226,7 +226,7 @@
     <ClInclude Include="..\src\Geometry\Loader3ds.h" />
     <ClInclude Include="..\src\Geometry\Materials\CartoonMaterial.h" />
     <ClInclude Include="..\src\Geometry\Materials\DeltaMirror.h" />
-    <ClInclude Include="..\src\Geometry\Materials\glass.h" />
+    <ClInclude Include="..\src\Geometry\Materials\Dielectric.h" />
     <ClInclude Include="..\src\Geometry\Materials\Lambert.h" />
     <ClInclude Include="..\src\Geometry\Materials\Material.h" />
     <ClInclude Include="..\src\Geometry\Materials\Phong.h" />
