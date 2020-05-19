@@ -542,9 +542,9 @@ namespace Integrator
 			{
 				int num_tech = numTech(len);
 				solvers.emplace_back(num_tech, visu.width(), visu.height());
-				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
+				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size()); // LT
 				if(num_tech > len)
-					solvers.back().setOverSample(len, m_photon_emitted); // PM
+					solvers.back().setSampleForTechnique(len, m_photon_emitted); // PM
 			}
 
 			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
@@ -671,9 +671,9 @@ namespace Integrator
 			{
 				int num_tech = numTech(len);
 				solvers.emplace_back(num_tech, width, height);
-				solvers.back().setOverSample(len - 1, m_frame_buffer.size()); // LT
+				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size()); // LT
 				if (len >= 2)
-					solvers.back().setOverSample(len, m_photon_emitted); // PM
+					solvers.back().setSampleForTechnique(len, m_photon_emitted); // PM
 			}
 
 			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());

@@ -33,7 +33,7 @@ public:
 
 	ImageEstimator(ImageEstimator const& other) = default;
 
-	virtual void setOverSample(int techIndex, int n)
+	virtual void setSampleForTechnique(int techIndex, int n)
 	{}
 
 	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update=false) = 0;
@@ -68,7 +68,8 @@ public:
 		m_image.fill(0);
 	}
 
-	BalanceEstimatorImage(BalanceEstimatorImage const& other)
+	BalanceEstimatorImage(BalanceEstimatorImage const& other):
+		ImageEstimator(other)
 	{
 		m_image = other.m_image;
 	}
@@ -110,11 +111,13 @@ class DirectEstimatorImage: public ImageEstimator<MAJOR>
 {
 protected:
 
+#define ONE_CONTIGUOUS_ARRAY
+
 	using MatrixT = arma::mat;
 	using VectorT = arma::vec;
 	using Float = double;
-	using AtomicUInt = unsigned int;// std::atomic<unsigned int>;
-	using AtomicFloat = Float;// std::atomic<Float>;
+	using StorageUInt = unsigned int;
+	using StorageFloat = Float;
 
 	const int msize;
 
@@ -126,40 +129,40 @@ protected:
 	
 	struct PixelData
 	{
-		AtomicFloat* techMatrix;
+		StorageFloat* techMatrix;
 		// The three channels are one after the other [RRRRRRRR GGGGGGGG BBBBBBBBB]
-		AtomicFloat* contribVector;
-		AtomicUInt* sampleCount;
+		StorageFloat* contribVector;
+		StorageUInt* sampleCount;
 
-		PixelData(AtomicFloat* tm, AtomicFloat* cv, AtomicUInt* sc) :
+		PixelData(StorageFloat* tm, StorageFloat* cv, StorageUInt* sc) :
 			techMatrix(tm),
 			contribVector(cv),
 			sampleCount(sc)
 		{}
+
+		PixelData(const StorageFloat* tm, const StorageFloat* cv, const StorageUInt* sc) :
+			techMatrix((StorageFloat*) tm),
+			contribVector((StorageFloat*) cv),
+			sampleCount((StorageUInt*) sc)
+		{}
 	};
-
-	PixelData getPixelData(int index)
-	{
-		const size_t offset = index * m_pixel_data_size;
-		char* address = (m_data.data() + offset);
-		PixelData res((AtomicFloat*)address, (AtomicFloat*)(address + m_vector_ofsset), (AtomicUInt*)+(address + m_counter_offset));
-		return res;
-	}
-
-	PixelData getPixelData(Math::Vector2f const& uv)
-	{
-		const Math::Vector<int, 2> pixel(uv[0] * m_width, uv[1] * m_height);
-		const int index = PixelTo1D(pixel[0], pixel[1]);
-		return getPixelData(index);
-	}
 
 	PixelData getPixelData(int index)const 
 	{
+#ifdef ONE_CONTIGUOUS_ARRAY
 		const size_t offset = index * m_pixel_data_size;
 		const char* address = (m_data.data() + offset);
-		PixelData res((AtomicFloat*)address, (AtomicFloat*)(address + m_vector_ofsset), (AtomicUInt*)+(address + m_counter_offset));
+		PixelData res((StorageFloat*)address, (StorageFloat*)(address + m_vector_ofsset), (StorageUInt*)+(address + m_counter_offset));
 		return res;
+#else
+		const StorageFloat* matrix = m_matrices.data() + msize * index;
+		const StorageFloat* vector = m_vectors.data() + m_numtechs * 3 * index;
+		const StorageUInt* counts = m_sampleCounts.data() + m_numtechs * index;
+		PixelData res(matrix, vector, counts);
+		return res;
+#endif
 	}
+
 
 	PixelData getPixelData(Math::Vector2f const& uv)const 
 	{
@@ -173,6 +176,7 @@ protected:
 		return RESULT_FOLDER + "debug/";
 	}
 
+#ifdef ONE_CONTIGUOUS_ARRAY
 	// In Byte
 	const unsigned int m_pixel_data_size;
 	const unsigned int m_vector_ofsset;
@@ -180,42 +184,66 @@ protected:
 
 	static_assert(sizeof(char) == 1);
 	std::vector<char> m_data;
+#else
+	std::vector<StorageFloat> m_matrices;
+	std::vector<StorageFloat> m_vectors;
+	std::vector<StorageUInt> m_sampleCounts;
+#endif
 
 	//describes how many times more samples each technique has
-	std::vector<unsigned int> m_over_samples;
+	std::vector<unsigned int> m_sample_per_technique;
 
 	std::mutex m_mutex;
 
 public:
 
+#ifdef ONE_CONTIGUOUS_ARRAY
 	DirectEstimatorImage(int N, int width, int height):
 		ImageEstimator(N, width, height),
 		msize(N * (N+1) / 2),
-		m_pixel_data_size(msize * sizeof(AtomicFloat) + 3 * m_numtechs * sizeof(AtomicFloat) + m_numtechs * sizeof(AtomicUInt)),
-		m_vector_ofsset(msize * sizeof(AtomicFloat)),
-		m_counter_offset(msize * sizeof(AtomicFloat) + 3 * m_numtechs * sizeof(AtomicFloat))
+		m_pixel_data_size(msize * sizeof(StorageFloat) + 3 * m_numtechs * sizeof(StorageFloat) + m_numtechs * sizeof(StorageUInt)),
+		m_vector_ofsset(msize * sizeof(StorageFloat)),
+		m_counter_offset(msize * sizeof(StorageFloat) + 3 * m_numtechs * sizeof(StorageFloat)),
+		m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
 	{
 		int res = width * height;
 		m_data = std::vector<char>(res * m_pixel_data_size, (char)0);
-
-		m_over_samples = std::vector<unsigned int>(m_numtechs, 1);
 	}
 
 	DirectEstimatorImage(DirectEstimatorImage<MAJOR> const& other) :
-		ImageEstimator(other.m_numtechs, other.m_width, other.m_height),
+		ImageEstimator(other),
 		msize(other.msize),
 		m_pixel_data_size(other.m_pixel_data_size),
 		m_vector_ofsset(other.m_vector_ofsset),
-		m_counter_offset(other.m_counter_offset)
+		m_counter_offset(other.m_counter_offset),
+		m_data(other.m_data),
+		m_sample_per_technique(other.m_sample_per_technique)
+	{}
+#else
+	DirectEstimatorImage(int N, int width, int height) :
+		ImageEstimator(N, width, height),
+		msize(N* (N + 1) / 2),
+		m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
 	{
-		int res = m_width * m_height;
-		m_data = std::vector<char>(res * m_pixel_data_size, (char)0);
-		m_over_samples = other.m_over_samples;
+		int res = width * height;
+		m_matrices = std::vector<StorageFloat>(res * msize, (StorageFloat)0.0);
+		m_vectors = std::vector<StorageFloat>(res * m_numtechs * 3, (StorageFloat)0.0);
+		m_sampleCounts = std::vector<StorageUInt>(res * m_numtechs, (StorageUInt)0);
 	}
 
-	virtual void setOverSample(int techIndex, int n) override
+	DirectEstimatorImage(DirectEstimatorImage<MAJOR> const& other) :
+		ImageEstimator(other),
+		msize(other.msize),
+		m_matrices(other.m_matrices),
+		m_vectors(other.m_vectors),
+		m_sampleCounts(other.m_sampleCounts),
+		m_sample_per_technique(other.m_sample_per_technique)
+	{}
+#endif
+
+	virtual void setSampleForTechnique(int techIndex, int n) override
 	{
-		m_over_samples[techIndex] = n;
+		m_sample_per_technique[techIndex] = n;
 	}
 
 	void checkSample(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index)
@@ -250,7 +278,7 @@ public:
 		{
 			for (int k = 0; k < 3; ++k)
 			{
-				AtomicFloat* vector = data.contribVector + k * m_numtechs;
+				StorageFloat* vector = data.contribVector + k * m_numtechs;
 				for (int i = 0; i < m_numtechs; ++i)
 				{
 					double tmp = balanceWeights[i] * balanceEstimate[k];
@@ -285,7 +313,7 @@ public:
 		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
 		for (int k = 0; k < 3; ++k)
 		{
-			AtomicFloat* vector = data.contribVector + k * m_numtechs;
+			StorageFloat* vector = data.contribVector + k * m_numtechs;
 			vector[tech_index] = vector[tech_index] + balanceEstimate[k];
 		}
 		if (thread_safe_update)
@@ -308,7 +336,7 @@ public:
 			}
 			matrix(i, i) = data.techMatrix[matTo1D(i, i)];
 			// Unsampled samples
-			size_t expected = m_over_samples[i] * iterations;
+			size_t expected = m_sample_per_technique[i] * iterations;
 			size_t actually = data.sampleCount[i];
 			matrix(i, i) += (Float)(expected - actually);
 		}
@@ -328,7 +356,7 @@ public:
 				fillMatrix(matrix, data, iterations);
 				for (int i = 0; i < m_numtechs; ++i)
 				{
-					size_t expected = m_over_samples[i];
+					size_t expected = m_sample_per_technique[i];
 					double sum = 0;
 					for (int j = 0; j < m_numtechs; ++j)
 					{
@@ -389,7 +417,7 @@ public:
 	{
 		Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
 		VectorT MVector(m_numtechs);
-		std::copy(m_over_samples.begin(), m_over_samples.end(), MVector.begin());
+		std::copy(m_sample_per_technique.begin(), m_sample_per_technique.end(), MVector.begin());
 		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 		std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
 		int resolution = m_width * m_height;
@@ -407,7 +435,7 @@ public:
 				for (int k = 0; k < 3; ++k)
 				{
 					bool isZero = true;
-					const AtomicFloat* contribVector = data.contribVector + k * m_numtechs;
+					const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
 					for (int i = 0; i < m_numtechs; ++i)
 					{
 						Float elem = contribVector[i];
@@ -428,7 +456,7 @@ public:
 						vector = matrix * vector;
 						for (int i = 0; i < m_numtechs; ++i)
 						{
-							vector[i] *= m_over_samples[i];
+							vector[i] *= m_sample_per_technique[i];
 							img(indices[0] * m_numtechs + i, indices[1])[k] = vector[i];
 						}
 					}
@@ -453,7 +481,7 @@ public:
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
 	{
 		VectorT MVector(m_numtechs);
-		std::copy(m_over_samples.begin(), m_over_samples.end(), MVector.begin());
+		std::copy(m_sample_per_technique.begin(), m_sample_per_technique.end(), MVector.begin());
 		std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 		std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
 		int resolution = m_width * m_height;
@@ -472,7 +500,7 @@ public:
 			for (int k = 0; k < 3; ++k)
 			{
 				bool isZero = true;
-				const AtomicFloat* contribVector = data.contribVector + k * m_numtechs;
+				const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
 				for (int i = 0; i < m_numtechs; ++i)
 				{
 					Float elem = contribVector[i];
@@ -499,4 +527,6 @@ public:
 			res[pixel] += color;
 		});
 	}
+
+#undef ONE_CONTIGUOUS_ARRAY
 };

@@ -270,7 +270,7 @@ namespace Integrator
 			{
 				int num_tech = len;
 				solvers.emplace_back(num_tech, visu.width(), visu.height());
-				solvers.back().setOverSample(len - 1, m_frame_buffer.size());
+				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size());
 			}
 			std::vector<std::vector<double>> weights_buffer = Parallel::preAllocate(std::vector<double>(m_max_len));
 
