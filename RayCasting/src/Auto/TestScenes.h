@@ -403,8 +403,8 @@ namespace Auto
 
 		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
-		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1.1}, mode ? 1.3 : 1.3);
-		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1.1}, 1);
+		Geometry::Material* glass = new Geometry::Glass({ 1, 1, 1}, 1.3);
+		Geometry::Material* glass2 = new Geometry::Glass({ 1, 1, 1}, 1.0 / 1.3);
 
 
 		if(mode)
@@ -421,20 +421,22 @@ namespace Auto
 
 		if (true)
 		{
-			double rad = mode ? 0.75 : 0.75;
+			double rad = 0.75;
 			Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0, glass);
 			if (mode)
 			{
 				//sphere.setCenter(Math::Vector3f(0, 0, -scale / 2));
 			}
 			scene.add(sphere);
+
+			if (false)
+			{
+				Geometry::Sphere sphere = Geometry::Sphere(0.0, rad * scale / 5.0 * 0.9, glass2);
+				scene.add(sphere);
+			}
 		}
 
-		if (false)
-		{
-			Geometry::Sphere sphere = Geometry::Sphere(0.0, 0.25 * scale / 5.0, glass);
-			scene.add(sphere);
-		}
+	
 
 		//tall block
 		if(false)
