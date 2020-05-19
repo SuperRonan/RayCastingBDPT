@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <cassert>
 #include <Math\Vector.h>
+#include <mutex>
 
 #define PRINT(var) std::cout << #var << ": " << var << std::endl;
 
@@ -30,14 +31,16 @@ public:
 		m_height(height)
 	{}
 
+	ImageEstimator(ImageEstimator const& other) = default;
+
 	virtual void setOverSample(int techIndex, int n)
 	{}
 
-	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv) = 0;
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update=false) = 0;
 
-	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) = 0;
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
 
-	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) = 0;
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
 
 	virtual void loop() = 0;
 
@@ -54,6 +57,8 @@ protected:
 
 	Image::Image<Geometry::RGBColor, MAJOR> m_image;
 
+	std::mutex m_mutex;
+
 public:
 
 	BalanceEstimatorImage(int N, int width, int height) :
@@ -63,23 +68,31 @@ public:
 		m_image.fill(0);
 	}
 
-
-	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv) override
+	BalanceEstimatorImage(BalanceEstimatorImage const& other)
 	{
-		Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
-		m_image(pixel) += balanceEstimate;
+		m_image = other.m_image;
 	}
 
-	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) override
+
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+	{
+		addOneTechniqueEstimate(balanceEstimate, tech_index, uv, thread_safe_update);
+	}
+
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 	{}
 
 	virtual void loop() override
 	{}
 
-	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) override
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 	{
 		Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
+		if (thread_safe_update)
+			m_mutex.lock();
 		m_image(pixel) += balanceEstimate;
+		if (thread_safe_update)
+			m_mutex.unlock();
 	}
 
 	virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
@@ -171,6 +184,7 @@ protected:
 	//describes how many times more samples each technique has
 	std::vector<unsigned int> m_over_samples;
 
+	std::mutex m_mutex;
 
 public:
 
@@ -185,6 +199,18 @@ public:
 		m_data = std::vector<char>(res * m_pixel_data_size, (char)0);
 
 		m_over_samples = std::vector<unsigned int>(m_numtechs, 1);
+	}
+
+	DirectEstimatorImage(DirectEstimatorImage<MAJOR> const& other) :
+		ImageEstimator(other.m_numtechs, other.m_width, other.m_height),
+		msize(other.msize),
+		m_pixel_data_size(other.m_pixel_data_size),
+		m_vector_ofsset(other.m_vector_ofsset),
+		m_counter_offset(other.m_counter_offset)
+	{
+		int res = m_width * m_height;
+		m_data = std::vector<char>(res * m_pixel_data_size, (char)0);
+		m_over_samples = other.m_over_samples;
 	}
 
 	virtual void setOverSample(int techIndex, int n) override
@@ -205,9 +231,11 @@ public:
 		}
 	}
 
-	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv) override
+	virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update=false) override
 	{
 		PixelData data = getPixelData(uv);
+		if (thread_safe_update)
+			m_mutex.lock();
 		++data.sampleCount[tech_index];
 		for (int i = 0; i < m_numtechs; ++i)
 		{
@@ -230,28 +258,38 @@ public:
 				}
 			}
 		}
+		if (thread_safe_update)
+			m_mutex.unlock();
 	}
 
 	
-	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv) override
+	virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 	{
 		PixelData data = getPixelData(uv);
-		++data.sampleCount[tech_index];
 		int mat_index = matTo1D(tech_index, tech_index);
+		if (thread_safe_update)
+			m_mutex.lock();
+		++data.sampleCount[tech_index];
 		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
+		if (thread_safe_update)
+			m_mutex.unlock();
 	}
 
-	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv) override
+	virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 	{
 		PixelData data = getPixelData(uv);
-		++data.sampleCount[tech_index];
 		int mat_index = matTo1D(tech_index, tech_index);
+		if (thread_safe_update)
+			m_mutex.lock();
+		++data.sampleCount[tech_index];
 		data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
 		for (int k = 0; k < 3; ++k)
 		{
 			AtomicFloat* vector = data.contribVector + k * m_numtechs;
 			vector[tech_index] = vector[tech_index] + balanceEstimate[k];
 		}
+		if (thread_safe_update)
+			m_mutex.unlock();
 	}
 
 	virtual void loop() override
