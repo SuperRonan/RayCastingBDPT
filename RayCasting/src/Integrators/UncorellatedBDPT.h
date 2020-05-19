@@ -14,462 +14,161 @@ namespace Integrator
 	{
 	protected:
 
-		using CameraType = Camera;
-
-		unsigned int max_camera_len, max_light_len;
-
-		enum TransportMode { Importance, Radiance };
-
-		struct Vertex
-		{
-			enum Type { Camera, Light, Surface } type;
-
-			// in this integrator, beta is the raw throughput (not the estimated)
-			RGBColor beta;
-
-			//maybe use something lighter than a full hit?
-			Hit hit;
-
-			//wether the bsdf of this has a delta distribution, which would make it unconnectable
-			bool delta;
-
-		protected:
-			double pdf_importance, pdf_radiance;
-
-
-		public:
-
-			Vertex(Type t, RGBColor b, Hit const& h, bool d) :
-				type(t),
-				beta(b),
-				hit(h),
-				delta(d)
-			{
-
-			}
-
-
-			Vertex()
-			{}
-
-			template <TransportMode MODE>
-			double pdfForward()const
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					return pdf_importance;
-				else
-					return pdf_radiance;
-			}
-
-			template <TransportMode MODE>
-			double pdfReverse()const
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					return pdf_radiance;
-				else
-					return pdf_importance;
-			}
-
-			template <TransportMode MODE>
-			double& pdfForward()
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					return pdf_importance;
-				else
-					return pdf_radiance;
-			}
-
-			template <TransportMode MODE>
-			double& pdfReverse()
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					return pdf_radiance;
-				else
-					return pdf_importance;
-			}
-
-			template <TransportMode MODE>
-			void setPdfForward(double pdf)
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					pdf_importance = pdf;
-				else
-					pdf_radiance = pdf;
-			}
-
-			template <TransportMode MODE>
-			void setPdfReverse(double pdf)
-			{
-				if constexpr (MODE == TransportMode::Importance)
-					pdf_radiance = pdf;
-				else
-					pdf_importance = pdf;
-			}
-
-			//////////////////////////////////
-			// returns the probability of sampling the direction from this to next, knowing this has been sampled from prev
-			// the probability returned is in area density
-			// the function should handle most cases (all for now)
-			// delta_works: if true, the pdf returned by the delta pdf will be assumed to be 1, 
-			// delta works should be true when the connection has beed sampled by the bsdf (like during the random walk), for deterministic connection, it should be false
-			//////////////////////////////////
-			template <TransportMode MODE, bool DENSITY_AREA = true>
-			double pdf(Geometry::Camera const& camera, Vertex const& next, const Vertex* prev, bool delta_works)const
-			{
-				double pdf_solid_angle;
-				Math::Vector3f to_vertex = next.hit.point - hit.point;
-				const double dist2 = to_vertex.norm2();
-				const double dist = std::sqrt(dist2);
-				to_vertex /= dist;
-				if (type == Type::Camera)
-				{
-					pdf_solid_angle = camera.pdfWeSolidAngle(to_vertex);
-				}
-				else if (type == Type::Light)
-				{
-					pdf_solid_angle = (hit.primitive_normal * to_vertex) / Math::pi;
-					if (pdf_solid_angle < 0)
-						pdf_solid_angle = 0;
-				}
-				else if (prev == nullptr)
-				{
-					Math::Vector3f normal = hit.primitive_normal * (hit.facing ? 1 : -1);
-					pdf_solid_angle = (normal * to_vertex) / Math::pi;
-					if (pdf_solid_angle < 0)
-						pdf_solid_angle = 0;
-				}
-				else
-				{
-					if (hit.geometry->getMaterial()->delta() && delta_works)
-						pdf_solid_angle = 1;
-					else
-						pdf_solid_angle = hit.geometry->getMaterial()->pdf(hit, to_vertex, (prev->hit.point - hit.point).normalized(), MODE == TransportMode::Radiance);
-				}
-				if constexpr (DENSITY_AREA)
-				{
-					double res = pdf_solid_angle / dist2;
-
-					if (next.type != Type::Camera)
-					{
-						res *= std::abs(next.hit.primitive_normal * to_vertex);
-					}
-					return res;
-				}
-				else
-				{
-					return pdf_solid_angle;
-				}
-			}
-
-		};
-
-		using VertexStack = StackN<Vertex>;
-
-
-
-		///////////////////////////////////////////////
-		//Takes a random walk through the scene (draws a path and record it in res)
-		// -Starts at ray
-		// -beta is the throughput of the path
-		// -pdf is the solid angle probability of sampling ray.dir
-		// -type: true >> importance transport aka camera subpath / false >> luminance transport aka light subpath
-		///////////////////////////////////////////////
-		template <TransportMode MODE>
-		__forceinline unsigned int randomWalk(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray ray, RGBColor beta, const double pdf, const unsigned int max_len, double & Pp)const
-		{
-			Hit hit;
-			double pdf_solid_angle = pdf;
-			Vertex* prev = &res.top();
-			double cos_prev = std::abs(prev->hit.primitive_normal * ray.direction());
-			int nv = 0;
-			for (nv = 0; nv < max_len; ++nv)
-			{
-				if (scene.full_intersection(ray, hit))
-				{
-					const double dist = hit.z;
-					const double dist2 = dist * dist;
-
-					res.grow();
-					Vertex& vertex = res.top();
-					const double cos_vertex = std::abs(hit.primitive_normal * ray.direction());
-					vertex = Vertex(Vertex::Type::Surface, beta * cos_vertex / dist2, hit, hit.geometry->getMaterial()->delta());
-					vertex.setPdfForward<MODE>(pdf_solid_angle * cos_vertex / dist2);
-					Pp *= vertex.pdfForward<MODE>();
-
-					//sample next direction
-
-					DirectionSample next_dir;
-					double pdf_rev;
-					vertex.hit.geometry->getMaterial()->sampleBSDF(vertex.hit, next_dir, sampler, MODE == TransportMode::Radiance, &pdf_rev);
-
-					//prev->setPdfReverse<MODE>(vertex.hit.geometry->getMaterial()->pdf(vertex.hit, -ray.direction(), next_dir.direction) * cos_prev / dist2);
-					prev->pdfReverse<MODE>() = pdf_rev * cos_prev / dist2;
-
-					//update info for the next loop
-					ray = Ray(hit.point, next_dir.direction);
-					prev = &vertex;
-
-					cos_prev = std::abs(next_dir.direction * hit.primitive_normal);
-					beta = prev->beta * next_dir.bsdf * cos_prev;
-					if (beta.isBlack())
-						break;
-					//beta = beta / next_dir.pdf;
-					pdf_solid_angle = next_dir.pdf;
-				}
-				else
-					break;
-			}
-			return nv;
-		}
-
-		unsigned int traceCameraSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, Ray const& ray, int expected_len, double & Pt)const
-		{
-			res.grow();
-			Vertex& camera_vertex = res.top();
-			camera_vertex.beta = 1;
-			camera_vertex.delta = false;
-			camera_vertex.type = Vertex::Type::Camera;
-			camera_vertex.setPdfForward<TransportMode::Importance>(1);
-			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
-			camera_vertex.hit.point = scene.m_camera.getPosition();
-			Pt = 1;
-			camera_vertex.setPdfReverse<TransportMode::Importance>(0);
-			if (expected_len == 1)
-				return 1;
-			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, scene.m_camera.We<true>(ray.direction()), scene.m_camera.pdfWeSolidAngle<true>(ray.direction()), expected_len - 1, Pt);
-
-			
-			return nv + 1;
-		}
-
-		unsigned int traceLightSubPath(Scene const& scene, Math::Sampler& sampler, VertexStack& res, int expected_len, double & Ps)const
-		{
-			if (expected_len == 0)
-				return 0;
-			res.grow();
-			Vertex& light_vertex = res.top();
-			light_vertex.delta = false;
-			light_vertex.type = Vertex::Type::Light;
-
-			SurfaceSample sls;
-			sampleOneLight(scene, sampler, sls);
-
-			light_vertex.hit.geometry = sls.geo;
-			light_vertex.hit.normal = light_vertex.hit.primitive_normal = sls.normal;
-			light_vertex.hit.tex_uv = sls.uv;
-			light_vertex.hit.point = sls.vector;
-			Ps = sls.pdf;
-			light_vertex.setPdfForward<TransportMode::Radiance>(sls.pdf);
-			light_vertex.beta = 1.0;// / sls.pdf;
-
-			//generate a direction
-			Math::RandomDirection Le_sampler(&sampler, sls.normal, 1);
-			DirectionSample next_dir = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
-
-			Ray ray(sls.vector, next_dir.direction);
-
-			RGBColor beta = next_dir.bsdf * std::abs(next_dir.direction * sls.normal);// / (sls.pdf * next_dir.pdf);
-			if (expected_len == 1)
-				return 1;
-			int nv = randomWalk<TransportMode::Radiance>(scene, sampler, res, ray, beta, (next_dir.pdf), expected_len - 1, Ps);
-
-			return 1 + nv;
-		}
-
-
 		template <class Solver>
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver>& solvers, double* pdfs)const
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver>& solvers, double* weights)const
 		{
-			VertexStack cameraSubPath, LightSubPath;
+			Path cameraSubPath, LightSubPath;
 
 			Ray ray = scene.m_camera.getRay(u, v);
 
-			int t_min = (useLT ? 1 : 2);
-			for (int t = t_min; t <= max_camera_len; ++t)
+			
+			double s1_pdf;
+			for (int t = 1; t <= m_max_len; ++t)
 			{
-				for (int s = 0; s <= max_light_len; ++s)
+				for (int s = 0; s <= m_max_len-1; ++s)
 				{
 					if (s + t > m_max_len)
 					{
 						break;
 					}
+					// The balance estimate
+					RGBColor L = 0;
+					Math::Vector2f p = { u, v };
+					// special cases of connections strategies
 					if (s + t == 1)
 						continue;
-					double Ps = 1, Pt = 1;
-					double s1_pdf;
-					cameraSubPath.reset();
-					LightSubPath.reset();
-					traceCameraSubPath(scene, sampler, cameraSubPath, ray, t, Pt);
-					traceLightSubPath(scene, sampler, LightSubPath, s, Ps);
 
-					assert(cameraSubPath.size() <= t);
-					assert(LightSubPath.size() <= s);
+					traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 
-					Math::Vector2f p = { u, v };
-					const int depth = s + t - 2;
-					bool zero = false;
-					double sumqi = 0;
-					//the contribution (not estimated)
-					RGBColor L = 0;
-					//handle unsampled samples
-					if (s > LightSubPath.size() || t > cameraSubPath.size())
+					Vertex& camera_top = cameraSubPath[t - 1];
+					traceLightSubPath(scene, sampler, LightSubPath);
+
+					Solver& solver = solvers[s + t - 2];
+					if (s == 0)
 					{
-						zero = true;
-						if (t == 1)
+						// naive path tracing
+						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
-							continue;
-						}
-					}
-					if (!zero)
-					{
-						Vertex* camera_top;
-						camera_top = cameraSubPath.begin() + (t - 1);
-						
-						if (s + t > m_max_len)
-						{
-							break;
-						}
-
-						// special cases of connections strategies
-						if (s + t == 1)
-							continue;
-						if (s == 0)
-						{
-							// naive path tracing
-							if (camera_top->hit.geometry->getMaterial()->is_emissive())
+							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
+							double pdf_light = scene.pdfSamplingLight(camera_top.hit.geometry);
+							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
+							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf, pdf_light);
+							if (weight == -1)
 							{
-								L = camera_top->beta * camera_top->hit.geometry->getMaterial()->Le(camera_top->hit.primitive_normal, camera_top->hit.tex_uv, camera_top->hit.to_view);
-								double pdf = scene.pdfSamplingLight(camera_top->hit.geometry);
-								s1_pdf = scene.pdfSamplingLight(camera_top->hit.geometry, cameraSubPath[t - 2].hit, camera_top->hit.point);
-								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, s1_pdf, pdf);
+								solver.addOneTechniqueEstimate(L, s, p);
 							}
 							else
 							{
-								zero = true;
+								L *= weight;
+								solver.addEstimate(L, weights, s, p);
+							}
+						}
+					}
+					else
+					{
+						ScopedAssignment<Vertex> resampled_vertex_sa;
+						if (s == 1) {
+							double prev_pdf = LightSubPath[0].fwd_pdf;
+							SurfaceSample sls;
+							sampleOneLight(scene, camera_top.hit, sampler, sls);
+							s1_pdf = sls.pdf;
+							Vertex light_resampled;
+							light_resampled.delta = false;
+							light_resampled.type = Vertex::Type::Light;
+							light_resampled.hit.geometry = sls.geo;
+							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
+							light_resampled.hit.tex_uv = sls.uv;
+							light_resampled.hit.point = sls.vector;
+
+							light_resampled.fwd_pdf = prev_pdf;
+							light_resampled.beta = 1.0 / sls.pdf;
+							resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
+						}
+						else if (s == 2)
+						{
+							// BTW this assumes that the connecting loops are in the order t then s
+							s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);
+						}
+
+						Vertex& light_top = LightSubPath[s - 1];
+
+						if (camera_top.delta || light_top.delta)
+							continue;
+
+						Math::Vector3f dir = camera_top.hit.point - light_top.hit.point;
+						const double dist2 = dir.norm2();
+						const double dist = sqrt(dist2);
+						dir /= dist;
+
+						double G = std::abs(dir * light_top.hit.primitive_normal) / dist2;
+
+						RGBColor camera_connection, light_connection;
+						double ni = 1;
+						if (t == 1)
+						{
+							//light tracing
+							camera_connection = scene.m_camera.We(-dir);
+							p = scene.m_camera.raster(-dir);
+							ni = scene.m_camera.resolution;
+							if (!scene.m_camera.validRaster(p))
+							{
+								continue;
 							}
 						}
 						else
 						{
-							ScopedAssignment<Vertex> resampled_vertex_sa;
-							if (s == 1) {
-								double prev_pdf = LightSubPath[0].pdfForward<TransportMode::Radiance>();
-								SurfaceSample sls;
-								sampleOneLight(scene, camera_top->hit, sampler, sls);
-								Vertex light_resampled;
-								light_resampled.delta = false;
-								light_resampled.type = Vertex::Type::Light;
-								light_resampled.hit.geometry = sls.geo;
-								light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
-								light_resampled.hit.tex_uv = sls.uv;
-								light_resampled.hit.point = sls.vector;
+							//general case
+							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir, false);
+							G *= std::abs(camera_top.hit.primitive_normal * dir);
+						}
 
-								s1_pdf = sls.pdf;
-								light_resampled.setPdfForward<TransportMode::Radiance>(prev_pdf);
-								light_resampled.beta = 1.0;
-								resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
-							}
-							else if (s >= 2)
+						if (G == 0)
+							continue;
+
+						if (s == 1)
+						{
+							//direct lighting estimation
+							light_connection = light_top.hit.geometry->getMaterial()->Le(light_top.pNormal(), light_top.hit.tex_uv, dir);
+						}
+						else
+						{
+							//general case
+							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir, true);
+						}
+
+						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
+
+
+						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						{
+							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf);
+							if (weight == -1)
 							{
-								// BTW this assumes that the connecting loops are in the order t then s
-								s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);
-							}
-
-							Vertex* light_top = LightSubPath.begin() + s - 1;
-							if (camera_top->delta || light_top->delta)
-							{
-								zero = true;
-							}
-
-							Math::Vector3f dir = camera_top->hit.point - light_top->hit.point;
-							const double dist2 = dir.norm2();
-							const double dist = sqrt(dist2);
-							dir /= dist;
-
-							double G = std::abs(dir * light_top->hit.primitive_normal) / dist2;
-
-							RGBColor camera_connection, light_connection;
-
-							if (t == 1)
-							{
-								//light tracing
-								camera_connection = scene.m_camera.We(-dir);
-								p = scene.m_camera.raster(-dir);
-								if (!scene.m_camera.validRaster(p))
-								{
-									zero = true;
-									p = { -1, -1 };
-									continue;
-								}
+								solver.addOneTechniqueEstimate(L, s, p);
 							}
 							else
 							{
-								//general case
-								camera_connection = camera_top->hit.geometry->getMaterial()->BSDF(camera_top->hit, -dir, false);
-								G *= std::abs(camera_top->hit.primitive_normal * dir);
-							}
-
-							if (s == 1)
-							{
-								//direct lighting estimation
-								light_connection = light_top->hit.geometry->getMaterial()->Le(light_top->hit.primitive_normal, light_top->hit.tex_uv, dir);
-							}
-							else
-							{
-								//general case
-								light_connection = light_top->hit.geometry->getMaterial()->BSDF(light_top->hit, dir, true);
-							}
-
-							if (G == 0)
-							{
-								zero = true;
-							}
-							else
-							{
-								L = camera_top->beta * camera_connection * G * light_connection * light_top->beta;
-								sumqi = computepdfs(pdfs, cameraSubPath, LightSubPath, scene.m_camera, s, t, Pt, Ps, s1_pdf);
-							}
-
-
-							if (!zero)
-							{
-								//test the visibility
-								if (!visibility(scene, light_top->hit.point, camera_top->hit.point))
-								{
-									zero = true;
-								}
+								solver.addEstimate(L * weight, weights, s, p);
 							}
 						}
 					}
-
-					Solver& solver = solvers[depth];
-					if (zero)
-					{
-						solver.AddZeroEstimate(p, s);
-					}
-					else
-					{
-						solver.AddEstimate(p, L, pdfs, sumqi, s);
-					}
-					int _ = 0;
-				} // for s
-			} // for t
+				}
+			}
 		}
 
 
 		////////////////////////////////////////////////////////////////
-		//Computes pdf of all technique of the bdpt
+		//Computes pdf_light of all technique of the bdpt
 		// - the last parameter if the probability of sampling the last point on the camera sub path if s == 0 (pure path tracing), else it is not necessary 
 		// returns the sum of all the qi (= ni * pi)
+		// returns -1 if only the actual tech could produce the sample
 		////////////////////////////////////////////////////////////////
-		double computepdfs(
-			double* pdfs,
-			VertexStack& cameras, VertexStack& lights,
-			const Camera& camera,
+		double computeWeights(
+			double* weights,
+			Path& cameras, Path& lights,
 			const int main_s, const int main_t,
-			const double Pt, const double Ps,
 			double s1_pdf, double pdf_sampling_point = -1)const
 		{
-			//return 1.0 / double(main_t + main_s);
 			Vertex* xt = cameras.begin() + (main_t - 1);
 			Vertex* ys = main_s == 0 ? nullptr : lights.begin() + (main_s - 1);
 			Vertex* xtm = main_t == 1 ? nullptr : cameras.begin() + (main_t - 2);
@@ -480,100 +179,56 @@ namespace Integrator
 			ScopedAssignment<double> xtm_pdf_rev_sa;
 			ScopedAssignment<double> ysm_pdf_rev_sa;
 
-			xt_pdf_rev_sa = { &xt->pdfReverse<TransportMode::Importance>(),[&]() {
+			xt_pdf_rev_sa = { &xt->rev_pdf,[&]() {
 				if (main_t == 1)
 					return 0.0;
-				if (ys)
-					return ys->pdf<TransportMode::Radiance, true>(camera, *xt, ysm, false);
+				else if (ys)
+					return ys->pdf<TransportMode::Radiance, true>(*xt, ys->omega_o());
 				else
 					return pdf_sampling_point;
 			}() };
+			assert(xt->rev_pdf >= 0);
 
 			if (ys)
 			{
-				ys_pdf_rev_sa = { &ys->pdfReverse<TransportMode::Radiance>(), xt->pdf<TransportMode::Importance, true>(camera, *ys, xtm, false) };
+				ys_pdf_rev_sa = { &ys->rev_pdf, xt->pdf<TransportMode::Importance, true>(*ys, xt->omega_o()) };
 			}
+
+			if (xt->rev_pdf == 0 && (!ys || ys->rev_pdf == 0))
+				return -1;
 
 			if (xtm)
 			{
-				xtm_pdf_rev_sa = { &xtm->pdfReverse<TransportMode::Importance>(), xt->pdf<TransportMode::Importance, true>(camera, *xtm, ys, false) };
+				xtm_pdf_rev_sa = { &xtm->rev_pdf, xt->pdf<TransportMode::Importance, true>(*xtm, xt->dir_to_vertex(ys)) };
 			}
 
 			if (ysm)
 			{
-				ysm_pdf_rev_sa = { &ysm->pdfReverse<TransportMode::Radiance>(), ys->pdf<TransportMode::Radiance, true>(camera, *ysm, xt, false) };
+				ysm_pdf_rev_sa = { &ysm->rev_pdf, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
 
-			const double main_p = Ps * Pt;
-			const double actual_main_p = (main_s == 1 ? Pt * s1_pdf : main_p);
-			pdfs[main_s] = actual_main_p;
+			double*& ratios = weights;
 
-			double sum_qi = actual_main_p * (main_t == 1 ? camera.resolution : 1);
+			const double actual_ni = main_t == 1 ? cameras[0].camera().resolution : 1;
+			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].fwd_pdf : 1);
+			ratios[main_s] = actual_main_ri * actual_ni;
 
+			double sum = actual_main_ri * actual_ni;
 
-			//expand the camera sub path
+			sum += ComputeSumRatioVC(cameras, lights, main_s, main_t, s1_pdf, ratios);
+
+			for (int i = 0; i < main_s + main_t; ++i)
 			{
-				double Ph = main_p;
-				for (int s = main_s; s >= 1; --s)
-				{
-					const Vertex& camera_end = lights[s - 1];
-					const Vertex* light_end = s == 1 ? nullptr : &lights[s - 2];
-					Ph *= camera_end.pdfReverse<TransportMode::Radiance>() / camera_end.pdfForward<TransportMode::Radiance>();
-
-					const double actual_Ph = s == 2 ?
-						Ph * s1_pdf / light_end->pdfForward<TransportMode::Radiance>() : Ph;
-
-					if (!(camera_end.delta || (light_end && light_end->delta)))
-					{
-						sum_qi += actual_Ph;
-						pdfs[s - 1] = actual_Ph;
-					}
-					else
-					{
-						pdfs[s - 1] = 0;
-					}
-				}
+				weights[i] = ratios[i] / sum;
 			}
 
-			//expand the light subpath
-			{
-				double Ph = main_p;
-				int s = main_s + 1;
-				int t_min = (useLT ? 2 : 3);
-				for (int t = main_t; t >= t_min; --t)
-				{
-					const Vertex& light_end = cameras[t - 1];
-					const Vertex& camera_end = cameras[t - 2];
-					Ph *= light_end.pdfReverse<TransportMode::Importance>() / light_end.pdfForward<TransportMode::Importance>();
-
-					double actual_Ph = Ph;
-					if (main_s == 0 && t == main_t)
-						actual_Ph = Pt * s1_pdf / light_end.pdfForward<TransportMode::Importance>();
-
-					if (!(light_end.delta || camera_end.delta))
-					{
-						sum_qi += (actual_Ph * (t == 2 ? camera.resolution : 1));
-						pdfs[s] = actual_Ph;
-					}
-					else
-					{
-						pdfs[s] = 0;
-					}
-					++s;
-				}
-			}
-
-			return sum_qi;
+			return weights[main_s];
 		}
 
 	public:
 
-		const bool useLT = true;
-
 		UncorellatedBDPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
-			BidirectionalBase(sample_per_pixel, width, height),
-			max_camera_len(1),
-			max_light_len(1)
+			BidirectionalBase(sample_per_pixel, width, height)
 		{
 
 		}
@@ -582,8 +237,6 @@ namespace Integrator
 		virtual void setLen(unsigned int d)override
 		{
 			Integrator::setLen(d);
-			max_camera_len = d;
-			max_light_len = d - 1;
 		}
 
 
@@ -596,6 +249,8 @@ namespace Integrator
 #endif
 		}
 
+		std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
@@ -613,18 +268,16 @@ namespace Integrator
 			m_frame_buffer.fill();
 
 
-			std::vector<OptimalSolverImage> solvers;
-			//std::vector<OptimalSolverImagePBRT> solvers;
-			//std::vector<BalanceSolverImage> solvers;
 
-			solvers.reserve(m_max_len - 1);
+			solvers.reserve(m_max_len);
+
 			for (int len = 2; len <= m_max_len; ++len)
 			{
-				int num_tech = useLT ? len : len - 1;
-				solvers.emplace_back(num_tech, visu.width(), visu.height(), m_sample_per_pixel, useLT);
+				int num_tech = len;
+				solvers.emplace_back(num_tech, visu.width(), visu.height());
+				solvers.back().setOverSample(len - 1, m_frame_buffer.size());
 			}
-			std::cout << omp_get_num_threads() << " threads" << std::endl;
-			std::vector<std::vector<double>> pdfs_buffers(omp_get_num_threads() + 16, std::vector<double>(m_max_len, 0.0));
+			std::vector<std::vector<double>> weights_buffer = Parallel::preAllocate(std::vector<double>(m_max_len));
 
 
 			visu.clean();
@@ -641,8 +294,8 @@ namespace Integrator
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
-						int tid = omp_get_thread_num();
-						double* pdfs_buffer = pdfs_buffers[tid].data();
+						int tid = Parallel::tid();
+						double* buffer = weights_buffer[tid].data();
 
 						for (size_t x = 0; x < visu.width(); x++)
 						{
@@ -655,7 +308,7 @@ namespace Integrator
 							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							computeSample(scene, u, v, sampler, solvers, pdfs_buffer);
+							computeSample(scene, u, v, sampler, solvers, buffer);
 
 
 						}//pixel x
@@ -682,7 +335,7 @@ namespace Integrator
 					{
 						int d = len - 2;
 						std::cout << d << " / " << m_max_len - 2 << std::endl;
-						solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
+						solvers[d].solve(m_frame_buffer, pass + 1);
 					}
 					showFrame(visu, 1);
 					std::cout << "Solved!" << std::endl;
@@ -696,7 +349,7 @@ namespace Integrator
 			{
 				int d = len - 2;
 				std::cout << d << " / " << m_max_len - 2 << std::endl;
-				solvers[d].DevelopFilm(&m_frame_buffer, m_sample_per_pixel);
+				solvers[d].solve(m_frame_buffer, m_sample_per_pixel);
 			}
 			std::cout << "Solved!" << std::endl;
 			showFrame(visu, 1);
