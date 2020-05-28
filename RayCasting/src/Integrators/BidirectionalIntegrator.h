@@ -109,10 +109,11 @@ namespace Integrator
 						}
 
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-						L *= VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf);
+						
 
-						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (!L.isBlack() && scene.visibility(light_top.hit.point, camera_top.hit.point))
 						{
+							L *= VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf);
 							if (t == 1)
 							{
 								LightVertex lv;

@@ -47,7 +47,7 @@ namespace Integrator
 
 			vertex.light = vertex.light * G * We;
 
-			if (vertex.light.isBlack() || !cameraVisibility(scene, hit.point))
+			if (vertex.light.isBlack() || !scene.cameraVisibility(hit.point))
 			{
 				return false;
 			}

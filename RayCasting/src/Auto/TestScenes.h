@@ -369,7 +369,7 @@ namespace Auto
 		}
 		
 		Geometry::Material* cube_mats[] = { glass, glass };
-		Geometry::Material* sphere_mats[] = { orange, mirror };
+		Geometry::Material* sphere_mats[] = { orange, orange };
 		double cube_size = 0.3;
 		Math::Vector3f centers[] = { Math::Vector3f(0.0, 0.2, -0.4 + cube_size/2), Math::Vector3f(0.0, -0.2, -0.4 + cube_size / 2) };
 		double radii[] = { 0.4, 0.4 };

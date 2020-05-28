@@ -508,7 +508,6 @@ public:
 					vector[i] = elem;
 					isZero = isZero & (contribVector[i] == 0);
 				}
-
 				if (!isZero)
 				{
 					if (!matrix_done)

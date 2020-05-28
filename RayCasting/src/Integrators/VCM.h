@@ -213,7 +213,7 @@ namespace Integrator
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
 						
 
-						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (!L.isBlack() && scene.visibility(light_top.hit.point, camera_top.hit.point))
 						{
 							L *= VCWeight(cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 							if (t == 1)

@@ -262,8 +262,24 @@ namespace Geometry
 			return true;
 		}
 
+		bool cameraVisibility(Math::Vector3f const& point)const
+		{
+			Math::Vector3f dir = m_camera.m_position - point;
+			Ray ray(point, dir);
+			return !intersectionCloser(ray, dir.norm());
+		}
 
+		bool visibility(Math::Vector3f const& p, Math::Vector3f const& q)const
+		{
+			Math::Vector3f dir = p - q;
+			Ray ray(q, dir);
+			return !intersectionCloser(ray, dir.norm() - 0.000001); // not stonks
+		}
 
+		bool cameraSeesEnvMap(Math::Vector3f const& dir)const
+		{
+			return noIntersection(Ray(m_camera.m_position, dir));
+		}
 
 		bool empty()const
 		{

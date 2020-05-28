@@ -139,7 +139,7 @@ namespace Integrator
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
 
 
-						if (!L.isBlack() && visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (!L.isBlack() && scene.visibility(light_top.hit.point, camera_top.hit.point))
 						{
 							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf);
 							if (weight == -1)

@@ -221,7 +221,7 @@ namespace Integrator
 						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta / ni;
 						
 
-						if (visibility(scene, light_top.hit.point, camera_top.hit.point))
+						if (scene.visibility(light_top.hit.point, camera_top.hit.point))
 						{
 							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
 							solver.addEstimate(L * weight, weights, s, p);
@@ -266,7 +266,7 @@ namespace Integrator
 									RGBColor L = qs_plus.beta * pt.hit.geometry->getMaterial()->BSDF(pt.hit, qs_plus.hit.to_view, pt.hit.to_view) * pt.beta;
 
 									// Check visibility
-									bool V = visibility(scene, pt.position(), qs.position());
+									bool V = scene.visibility(pt.position(), qs.position());
 									if (!V)
 										return;
 
@@ -512,7 +512,7 @@ namespace Integrator
 
 
 		
-		const bool DEBUG = false;
+		const bool DEBUG = true;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{

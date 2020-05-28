@@ -23,28 +23,6 @@ namespace Integrator
 
 		using LightVertexStack = StackN<LightVertex>;
 
-
-		__forceinline bool cameraVisibility(Scene const& scene, Math::Vector3f const& point)const
-		{
-			Math::Vector3f dir = scene.m_camera.m_position - point;
-			Ray ray(point, dir);
-			return !scene.intersectionCloser(ray, dir.norm());
-		}
-
-
-		__forceinline bool visibility(Scene const& scene, Math::Vector3f const& p, Math::Vector3f const& q)const
-		{
-			Math::Vector3f dir = p - q;
-			Ray ray(q, dir);
-			//I really don't like it
-			return !scene.intersectionCloser(ray, dir.norm() - 0.0001);
-		}
-
-		__forceinline bool cameraSeeSkybox(Scene const& scene, Math::Vector3f const& dir)const
-		{
-			return scene.noIntersection(Ray(scene.m_camera.m_position, dir));
-		}
-
 		static void samplePointDisk(Math::Vector3f const& center, double radius, double radius2, Math::Vector3f const& normal, Math::Sampler& sampler, Math::Vector3f& res, double& pdf)
 		{
 			Math::Vector3f tg = Math::Vector3f(1, 0, 0);
