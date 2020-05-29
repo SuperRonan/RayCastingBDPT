@@ -1387,7 +1387,6 @@ int main(int argc, char** argv)
 	int nthread = 4 * 2 * 2;
 	Parallel::setNumThreads(nthread);
 
-
 #ifdef _DEBUG
 	int scale = 10;
 #else

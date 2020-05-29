@@ -40,6 +40,9 @@
     <Filter Include="src\Geometry\Shapes">
       <UniqueIdentifier>{51de49cd-005c-48ca-b2a0-28af5333014c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\MIS">
+      <UniqueIdentifier>{816e5cf4-d242-47ca-9b9b-8a66d1aed299}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry\BoundingBox.h">
@@ -279,9 +282,6 @@
     <ClInclude Include="..\src\Integrators\OptiMISBDPT.h">
       <Filter>src\Integrators</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Integrators\optimalmissolver.h">
-      <Filter>src\Integrators</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Integrators\BlackHolePath.h">
       <Filter>src\Integrators</Filter>
     </ClInclude>
@@ -362,6 +362,9 @@
     </ClInclude>
     <ClInclude Include="..\src\Geometry\Materials\Dielectric.h">
       <Filter>src\Geometry\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\MIS\ImageEstimators.h">
+      <Filter>src\MIS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -4,7 +4,7 @@
 #include <System/ScopedAssignment.h>
 #include <armadillo>
 #include <atomic>
-#include <Integrators/optimalmissolver.h>
+#include <MIS/ImageEstimators.h>
 
 namespace Integrator
 {
@@ -244,8 +244,8 @@ namespace Integrator
 #endif
 		}
 
-		std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-		//std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 		const bool DEBUG = false;
 

@@ -7,6 +7,7 @@
 #include <utils.h>
 #include <System/ScopedAssignment.h>
 #include <System/Parallel.h>
+#include <MIS/ImageEstimators.h>
 
 namespace Integrator
 {
@@ -507,8 +508,8 @@ namespace Integrator
 #endif
 		}
 
-		mutable std::vector<DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-		//mutable std::vector<BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		mutable std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//mutable std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 
 		

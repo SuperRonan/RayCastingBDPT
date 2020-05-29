@@ -113,6 +113,8 @@
       <OpenMPSupport>false</OpenMPSupport>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <OpenMP>GenerateParallelCode</OpenMP>
+      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
+      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -189,6 +191,8 @@
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <OpenMP>GenerateParallelCode</OpenMP>
+      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
+      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -271,7 +275,6 @@
     <ClInclude Include="..\src\Integrators\LightIntegratorBase.h" />
     <ClInclude Include="..\src\Integrators\MISPathTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\OptimalDirect.h" />
-    <ClInclude Include="..\src\Integrators\optimalmissolver.h" />
     <ClInclude Include="..\src\Integrators\OptiMISBDPT.h" />
     <ClInclude Include="..\src\Integrators\OptiVCM.h" />
     <ClInclude Include="..\src\Integrators\PathTracingIntegrator.h" />
@@ -299,6 +302,7 @@
     <ClInclude Include="..\src\Math\SolidAngleSampler.h" />
     <ClInclude Include="..\src\Math\Vector.h" />
     <ClInclude Include="..\src\Math\Vectorf.h" />
+    <ClInclude Include="..\src\MIS\ImageEstimators.h" />
     <ClInclude Include="..\src\settings.h" />
     <ClInclude Include="..\src\Set\set_operators.h" />
     <ClInclude Include="..\src\SpecificVisual.h" />
