@@ -728,10 +728,10 @@ namespace Auto
 
 		double scale = 1.0;
 
-		std::vector<RGBColor> sphere_colors = { {1.0, 0.1, 0.1}, {0.2, 1, 0.4}, {1, 0.15, 1}, {0.1, 0.3, 1} };
-		std::vector<double> colors_multipliers = { 10, 4, 3, 2.8 };
+		std::vector<RGBColor> colors = { {1.0, 0.1, 0.1}, {0.2, 1, 0.4}, {1, 0.15, 1}, {0.1, 0.3, 1} };
+		std::vector<double> colors_multipliers = { 2, 2, 2, 2 };
 
-		std::vector<double> sphere_sizes = { 0.1, 0.4, 1, 2 };
+		std::vector<double> sizes = { 0.1, 0.4, 1, 2 };
 
 		std::vector<double> shininesses = { 1, 10, 100, 1000 };
 
@@ -748,17 +748,17 @@ namespace Auto
 			Math::Vector3f d = { 0, -scale * 7, 0 };
 			Math::Vector3f base = { scale * 18, 0, -5 * scale };
 			base -= d * 1.5;
-			for (int i = 0; i < sphere_sizes.size(); ++i)
+			for (int i = 0; i < sizes.size(); ++i)
 			{
-				Geometry::Material* mat = new Geometry::Material(sphere_colors[i] * colors_multipliers[i] * 5 * scale / (sphere_sizes[i]));
+				Geometry::Material* mat = new Geometry::Material(colors[i] * colors_multipliers[i] * 5 * scale / (sizes[i] * sizes[i]));
 				if (true)//spheres
 				{
-					Geometry::Sphere sphere = Geometry::Sphere(base + d * i, sphere_sizes[i], mat);
+					Geometry::Sphere sphere = Geometry::Sphere(base + d * i, sizes[i], mat);
 					scene.add(sphere);
 				}
 				else
 				{
-					Geometry::Square* square = new Geometry::Square(mat, base + d * i, Math::Vector3f(1, 0, -0.5).normalized() * sphere_sizes[i], Math::Vector3f(0, 1, 0) * sphere_sizes[i]);
+					Geometry::Square* square = new Geometry::Square(mat, base + d * i, Math::Vector3f(1, 0, -0.5).normalized() * sizes[i], Math::Vector3f(0, 1, 0) * sizes[i]);
 					scene.add(square);
 				}
 			}
