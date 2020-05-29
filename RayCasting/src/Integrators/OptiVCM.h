@@ -153,8 +153,8 @@ namespace Integrator
 					{
 						double ni = 1;
 						ScopedAssignment<Vertex> resampled_vertex_sa;
-						if (s == 1) {
-							double prev_pdf = lightSubPath[0].fwd_pdf;
+						if (s == 1) 
+						{
 							SurfaceSample sls;
 							sampleOneLight(scene, camera_top.hit, sampler, sls);
 							s1_pdf = sls.pdf;
@@ -165,8 +165,8 @@ namespace Integrator
 							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
 							light_resampled.hit.tex_uv = sls.uv;
 							light_resampled.hit.point = sls.vector;
-
-							light_resampled.fwd_pdf = prev_pdf;
+							double Le_pdf = scene.pdfSamplingLight(sls.geo);
+							light_resampled.fwd_pdf = Le_pdf;
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = { lightSubPath.begin(), light_resampled };
 						}

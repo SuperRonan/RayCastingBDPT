@@ -447,7 +447,7 @@ namespace Integrator
 			{
 				ysm_pdf_rev_sa = { &ysm->rev_pdf, ys->pdf<TransportMode::Radiance, true>(*ysm, ys->dir_to_vertex(xt)) };
 			}
-
+			
 			const double actual_ni = main_t == 1 ? cameras[0].camera().resolution : 1;
 			const double actual_main_ri = (main_s == 1 ? s1_pdf / lights[0].fwd_pdf : 1);
 

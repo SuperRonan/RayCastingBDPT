@@ -62,8 +62,8 @@ namespace Integrator
 					else
 					{
 						ScopedAssignment<Vertex> resampled_vertex_sa;
-						if (s == 1) {
-							double prev_pdf = LightSubPath[0].fwd_pdf;
+						if (s == 1) 
+						{
 							SurfaceSample sls;
 							sampleOneLight(scene, camera_top.hit, sampler, sls);
 							s1_pdf = sls.pdf;
@@ -74,12 +74,12 @@ namespace Integrator
 							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
 							light_resampled.hit.tex_uv = sls.uv;
 							light_resampled.hit.point = sls.vector;
-
-							light_resampled.fwd_pdf = prev_pdf;
+							double Le_pdf = scene.pdfSamplingLight(sls.geo);
+							light_resampled.fwd_pdf = Le_pdf;
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
 						}
-						else if (s >= 2)
+						else if (s == 2)
 						{
 							// BTW this assumes that the connecting loops are in the order t then s
 							s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);

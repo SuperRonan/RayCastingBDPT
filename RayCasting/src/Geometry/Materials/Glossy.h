@@ -17,7 +17,7 @@ namespace Geometry
 
 		static bool is_spicky(double s)
 		{
-			return s > 5;
+			return s > 50;
 		}
 
 	public:

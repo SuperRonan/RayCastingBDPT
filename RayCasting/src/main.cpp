@@ -1421,7 +1421,8 @@ int main(int argc, char** argv)
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
-	Auto::initVeach(scene, visu.width(), visu.height());
+	//Auto::initVeach(scene, visu.width(), visu.height());
+	Auto::initVeach(scene, visu.width(), visu.height(), 5);
 	//Auto::initSDSCornell(scene, visu.width(), visu.height());
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());

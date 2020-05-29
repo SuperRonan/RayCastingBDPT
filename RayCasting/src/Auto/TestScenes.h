@@ -758,7 +758,7 @@ namespace Auto
 				}
 				else
 				{
-					Geometry::Square* square = new Geometry::Square(mat, base + d * i, Math::Vector3f(1, 0, -0.5) * sphere_sizes[i], Math::Vector3f(0, 1, 0) * sphere_sizes[i]);
+					Geometry::Square* square = new Geometry::Square(mat, base + d * i, Math::Vector3f(1, 0, -0.5).normalized() * sphere_sizes[i], Math::Vector3f(0, 1, 0) * sphere_sizes[i]);
 					scene.add(square);
 				}
 			}
