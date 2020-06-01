@@ -2,7 +2,6 @@
 
 #include <Integrators/BidirectionalBase.h>
 #include <System/ScopedAssignment.h>
-#include <armadillo>
 #include <atomic>
 #include <MIS/ImageEstimators.h>
 

@@ -6,6 +6,7 @@
 #include <cassert>
 #include <Math\Vector.h>
 #include <mutex>
+#include <Eigen/Dense>
 
 #define PRINT(var) std::cout << #var << ": " << var << std::endl;
 
@@ -115,10 +116,12 @@ namespace MIS
 	protected:
 
 #define ONE_CONTIGUOUS_ARRAY
-
-		using MatrixT = arma::mat;
-		using VectorT = arma::vec;
+#define ENABLE_DEBUG
 		using Float = double;
+		using solvingFloat = Float;
+		using MatrixT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, Eigen::Dynamic>;
+		using VectorT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, 1>;
+		
 		using StorageUInt = unsigned int;
 		using StorageFloat = Float;
 
@@ -345,6 +348,8 @@ namespace MIS
 			}
 		}
 
+#ifdef ENABLE_DEBUG
+
 		virtual void saveColSum(int iterations)const
 		{
 			Image::Image<double, MAJOR> img(m_width * m_numtechs, m_height);
@@ -419,10 +424,12 @@ namespace MIS
 		virtual void saveAlphas(int iterations)const
 		{
 			Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
+			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
 			VectorT MVector(m_numtechs);
-			std::copy(m_sample_per_technique.begin(), m_sample_per_technique.end(), MVector.begin());
+			for (int i = 0; i < m_numtechs; ++i)	MVector(i) = m_sample_per_technique[i];
 			std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 			std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
+			std::vector<Solver> solvers = Parallel::preAllocate(Solver(m_numtechs, m_numtechs));
 			int resolution = m_width * m_height;
 			Parallel::ParallelFor(0, resolution, [&](int pixel)
 				{
@@ -430,6 +437,7 @@ namespace MIS
 					Math::Vector<int, 2> indices = Image::Image<double, MAJOR>::indices(pixel, m_width, m_height);
 					MatrixT& matrix = matrices[tid];
 					VectorT& vector = vectors[tid];
+					Solver& solver = solvers[tid];
 
 					PixelData data = getPixelData(pixel);
 
@@ -452,11 +460,11 @@ namespace MIS
 							if (!matrix_done)
 							{
 								fillMatrix(matrix, data, iterations);
-								matrix = pinv(matrix);
+								solver = matrix.colPivHouseholderQr();
 								matrix_done = true;
 							}
 							// Now vector is alpha
-							vector = matrix * vector;
+							vector = solver.solve(vector);
 							for (int i = 0; i < m_numtechs; ++i)
 							{
 								vector[i] *= m_sample_per_technique[i];
@@ -480,19 +488,23 @@ namespace MIS
 			if (alpha)
 				saveAlphas(iterations);
 		}
+#endif
 
 		virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
 		{
+			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
 			VectorT MVector(m_numtechs);
-			std::copy(m_sample_per_technique.begin(), m_sample_per_technique.end(), MVector.begin());
+			for (int i = 0; i < m_numtechs; ++i)	MVector(i) = m_sample_per_technique[i];
 			std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
 			std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
+			std::vector<Solver> solvers = Parallel::preAllocate(Solver(m_numtechs, m_numtechs));
 			int resolution = m_width * m_height;
 			Parallel::ParallelFor(0, resolution, [&](int pixel)
 				{
 					int tid = Parallel::tid();
 					MatrixT& matrix = matrices[tid];
 					VectorT& vector = vectors[tid];
+					Solver& solver = solvers[tid];
 
 					Geometry::RGBColor color = 0;
 
@@ -516,13 +528,13 @@ namespace MIS
 							if (!matrix_done)
 							{
 								fillMatrix(matrix, data, iterations);
-								matrix = pinv(matrix);
+								solver = matrix.colPivHouseholderQr();
 								matrix_done = true;
 							}
 							// Now vector is alpha
-							vector = matrix * vector;
+							vector = solver.solve(vector);
 
-							double estimate = arma::dot(vector, MVector);
+							solvingFloat estimate = vector.dot(MVector);
 							color[k] = estimate;
 						}
 					}
@@ -531,6 +543,7 @@ namespace MIS
 		}
 
 #undef ONE_CONTIGUOUS_ARRAY
+#undef ENABLE_DEBUG
 	};
 
 } // namespace MIS

@@ -5,7 +5,6 @@
 #include <Geometry/RGBColor.h>
 #include <Image/MultiSample.h>
 #include <Image/ImWrite.h>
-#include <armadillo>
 
 
 namespace Integrator
@@ -53,120 +52,7 @@ namespace Integrator
 
 		RGBColor directLighting(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
 		{
-			double mat[3] = { 0, 0, 0 };
-			RGBColor vec[2] = { 0, 0 };
-
-			const int bsdf_samples = std::max(1u, m_direct_samples / 2);
-			const int surface_samples = std::max(1u, m_direct_samples / 2);
-
-			const auto updateSystem = [&](double p0, double p1, RGBColor const& f)
-			{
-				double q0 = bsdf_samples * p0;
-				double q1 = surface_samples * p1;
-				double sum_pdf = p0 + p1;
-				double sum_q = q0 + q1;
-				double S = 1.0 / (sum_q);
-				double w0 = p0 * S;
-				double w1 = p1 * S;
-
-				//RGBColor balance_estimate = estimated_f * (tech == 0 ? w0 : w1);
-
-				mat[0] += w0 * w0;
-				mat[1] += w0 * w1;
-				mat[2] += w1 * w1;
-
-				for (int k = 0; k < 3; ++k)
-				{
-					vec[0][k] += f[k] * w0 * S;
-					vec[1][k] += f[k] * w1 * S;
-				}
-			};
-
-			Material const& material = *hit.geometry->getMaterial();
-
-			RGBColor res;
-
-			
-
-			//tech 0: BSDF
-			for (int j = 0; j < bsdf_samples; ++j)
-			{
-				Hit light_hit;
-				DirectionSample dir;
-				material.sampleBSDF(hit, dir, sampler);
-
-				RGBColor f = L(scene, Ray(hit.point, dir.direction), sampler, light_hit) * dir.bsdf * std::abs(dir.direction * hit.primitive_normal);
-
-				double dist2 = light_hit.z * light_hit.z;
-				double cos_light = light_hit.valid() ? std::abs(dir.direction * light_hit.primitive_normal) : 1;
-
-				double convert = (cos_light / dist2);
-				double bsdf_pdf = convert * dir.pdf;
-
-				f *= convert;
-
-				double surface_pdf = 0;
-				if (light_hit.valid() && light_hit.geometry->getMaterial()->is_emissive())
-				{
-					surface_pdf = scene.pdfSamplingLight(light_hit.geometry);
-				}
-
-				res += f / bsdf_pdf * 0.5 / bsdf_samples;
-
-				updateSystem(bsdf_pdf, surface_pdf, f);
-			}
-
-			//tech 1: Sampling the light
-			for (int j = 0; j < surface_samples; ++j)
-			{
-				SurfaceSample sls;
-				sampleOneLight(scene, sampler, sls, j);
-				Math::Vector3f dir = sls.vector - hit.point;
-				const double dist2 = dir.norm2();
-				const double dist = std::sqrt(dist2);
-				dir /= dist;
-				double cos_light = std::abs(sls.normal * dir);
-				double convert = dist2 == 0 ? 1 : (cos_light / dist2);
-
-				RGBColor f = sls.geo->getMaterial()->Le(sls.normal, sls.uv, -dir) * hit.geometry->getMaterial()->BSDF(hit, dir) * std::abs(dir * hit.primitive_normal) * convert;
-				Hit light_hit;
-				double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, dir) * convert;
-				if (!(scene.full_intersection(Ray(hit.point, dir), light_hit) && samePoint(light_hit, dist)))
-				{
-					f = 0;
-					bsdf_pdf = 0;
-				}
-
-				res += f / sls.pdf * 0.5 / surface_samples;
-
-				updateSystem(bsdf_pdf, sls.pdf, f);
-			}
-			return res;
-
-			//solve the system
-			arma::mat22 armat;
-			armat(0, 0) = mat[0];
-			armat(0, 1) = mat[1];
-			armat(1, 0) = mat[1];
-			armat(1, 1) = mat[2];
-			for (int i = 0; i < 3; ++i)
-				if (std::isnan(mat[i]) || std::isinf(mat[i]))
-					__debugbreak();
-			const auto mat_inv = arma::pinv(armat);
-			
-			
-			for (int k = 0; k < 3; ++k)
-			{
-				arma::vec2 contrib_vec;
-				contrib_vec[0] = vec[0][k];
-				contrib_vec[1] = vec[1][k];
-				
-				contrib_vec = mat_inv * contrib_vec;
-
-				res[k] = arma::sum(contrib_vec);
-			}
-			
-			return res;
+			return 0;
 		}
 
 
