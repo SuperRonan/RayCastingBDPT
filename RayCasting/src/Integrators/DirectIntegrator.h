@@ -5,6 +5,7 @@
 #include <settings.h>
 #include <utils.h>
 #include <Image/ImWrite.h>
+#include <System/ProgressReporter.h>
 
 namespace Integrator
 {
@@ -38,27 +39,13 @@ namespace Integrator
 			resizeFrameBuffer(visu.width(), visu.height());
 			m_frame_buffer.fill(Image::MultiSample<RGBColor>());
 
-			// 1 - Rendering time
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
-			double pixelArea = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
-			const size_t number_of_pixels = m_frame_buffer.size();
-			const size_t sample_pass = number_of_pixels;
-			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
-			{
-				
-				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
-						
 
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
+			{
 				OMP_PARALLEL_FOR
 				for (long y = 0; y < m_frame_buffer.height(); y++)
 				{
@@ -90,14 +77,10 @@ namespace Integrator
 					}//pixel x
 				}//pixel y
 				//the pass has been computed
-				++pass;
+				reporter.report(pass+1, -1);
 
 				scene.update_lights_offset(m_direct_samples);
 				kbr = visu.update();
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (Integrator::m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
@@ -110,11 +93,8 @@ namespace Integrator
 					
 			}//pass per pixel
 		__render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout << "time: " << elapsedTime << "s. " << ::std::endl;
 
+			reporter.finish();
 			scene.reset_surface_lights();
 			
 			while (kbr != Visualizer::Visualizer::KeyboardRequest::done)
@@ -134,29 +114,10 @@ namespace Integrator
 		{
 			resizeFrameBuffer(width, height);
 			m_frame_buffer.fill(Image::MultiSample<RGBColor>());
-
-			// 1 - Rendering time
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
-			double pixelArea = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
-
-			
-
-			const size_t number_of_pixels = m_frame_buffer.size();
-			const size_t sample_pass = number_of_pixels;
-			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-
-				std::cout << '\r' + progession_bar(pass, m_sample_per_pixel, 100) << std::flush;
-						
-
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
@@ -184,23 +145,17 @@ namespace Integrator
 						}//pixel x
 					}//pixel y
 					//the pass has been computed
-				++pass;
 
 				scene.update_lights_offset(m_direct_samples);
-					
+				reporter.report(pass+1, -1);
 			}//pass per pixel
-			std::cout << '\r' + progession_bar(100, 100, 100) << std::endl;
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			
-
+			reporter.finish();
 			scene.reset_surface_lights();
 
 			//fill the result
 			{
 				res = Auto::RenderResult();
-				res.time = elapsedTime;
+				res.time = reporter.time();
 				res.image.resize(width, height);
 			    OMP_PARALLEL_FOR
 					for (long i = 0; i < m_frame_buffer.size(); ++i)

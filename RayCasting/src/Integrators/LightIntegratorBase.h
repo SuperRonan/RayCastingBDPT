@@ -32,26 +32,16 @@ namespace Integrator
 		{
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
 			visu.clean();
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 			const size_t npixels = m_frame_buffer.size();
 			const size_t sample_pass = npixels;
 			size_t total = 0;
-
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-				::std::cout << "Pass: " << pass << "/" << m_sample_per_pixel << ::std::endl;
-
 				OMP_PARALLEL_FOR
 					for (long sample = 0; sample < sample_pass; ++sample)
 					{
@@ -73,15 +63,11 @@ namespace Integrator
 				total += sample_pass;
 
 				showFrame(visu, total);
+				reporter.report(pass + 1, -1);
 
 				scene.update_lights_offset(1);
 
 				kbr = visu.update();
-
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
@@ -95,10 +81,8 @@ namespace Integrator
 			}
 
 		__render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout<<"time: "<<elapsedTime<<"s. "<<::std::endl ;
+
+			reporter.finish();
 
 			scene.reset_surface_lights();
 
@@ -121,22 +105,15 @@ namespace Integrator
 
 		virtual void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult& res)final override
 		{
-
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			m_frame_buffer.resize(width, height);
 			m_frame_buffer.fill();
 
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
 			const size_t npixels = m_frame_buffer.size();
 			const size_t sample_pass = npixels;
 			size_t total = 0;
+
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
 
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
@@ -160,20 +137,17 @@ namespace Integrator
 						}
 					}
 				total += sample_pass;
-
+				reporter.report(pass + 1, -1);
 				scene.update_lights_offset(1);
 
 			}
-			std::cout << '\r' + progession_bar(100, 100, 100) << std::endl;
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-
+			
+			reporter.finish();
 			scene.reset_surface_lights();
 
 			//fill the result
 			{
-				res.time = elapsedTime;
+				res.time = reporter.time();
 				res.image.resize(width, height);
 				OMP_PARALLEL_FOR
 					for (long i = 0; i < m_frame_buffer.size(); ++i)
@@ -196,9 +170,9 @@ namespace Integrator
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
 			visu.clean();
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
+
 			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels / 2;
+			const size_t sample_pass = npixels;
 
 			OMP_PARALLEL_FOR
 				for (long sample = 0; sample < sample_pass; ++sample)

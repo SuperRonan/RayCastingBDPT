@@ -519,23 +519,14 @@ namespace Integrator
 		{
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
+			ProgressReporter reporter;
+			std::cout << "allocating..." << std::endl;
+			reporter.start(m_max_len-1);
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
 			visu.clean();
- 
-			size_t total = 0;
-			size_t pass = 0;
 
 			std::vector<std::vector<double>> buffers = Parallel::preAllocate(std::vector<double>(numTech(m_max_len)));
-
 			
 			solvers.reserve(m_max_len);
 			m_photon_emitted = m_frame_buffer.size();
@@ -546,13 +537,14 @@ namespace Integrator
 				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size()); // LT
 				if(num_tech > len)
 					solvers.back().setSampleForTechnique(len, m_photon_emitted); // PM
+				reporter.report(len - 1);
 			}
-
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			reporter.finish();
+			std::cout << "Sampling..." << std::endl;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
-				buildLightPaths(scene, visu.width(), visu.height(), passPerPixelCounter);
-				const size_t sample_pass = m_frame_buffer.size();
+				buildLightPaths(scene, visu.width(), visu.height(), pass);
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
@@ -574,19 +566,10 @@ namespace Integrator
 
 						}//pixel x
 					}//pixel y
-
 					//the pass has been computed
-				total += sample_pass;
-				++pass;
-
-				showFrame(visu, pass);
-
+				reporter.report(pass + 1, -1);
 				scene.update_lights_offset(1);
 				kbr = visu.update();
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (Integrator::m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
@@ -594,12 +577,13 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
+					reporter.start(m_max_len - 1);
 					std::cout << "Solving..." << std::endl;
 					for (int len = 2; len <= m_max_len; ++len)
 					{
 						int d = len - 2;
-						std::cout << d << " / " << m_max_len - 2 << std::endl;
 						solvers[d].solve(m_frame_buffer, pass + 1);
+						reporter.report(len - 1);
 					}
 					showFrame(visu, 1);
 					std::cout << "Solved!" << std::endl;
@@ -607,25 +591,21 @@ namespace Integrator
 					Image::ImWrite::write(m_frame_buffer);
 				}
 			}//pass per pixel
-
+			reporter.finish();
 			std::cout << "Solving..." << std::endl;
+			reporter.start(m_max_len - 1);
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int d = len - 2;
-				std::cout << d << " / " << m_max_len - 2 << std::endl;
 				if(DEBUG)
 					solvers[d].debug(m_sample_per_pixel, 1, 1, 1, 1);
 				solvers[d].solve(m_frame_buffer, m_sample_per_pixel);
+				reporter.report(len - 1);
 			}
-			std::cout << "Solved!" << std::endl;
+			reporter.finish();
 			showFrame(visu, 1);
 
 		__render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout << "time: " << elapsedTime << "s. " << ::std::endl;
-
 			scene.reset_surface_lights();
 
 			while (kbr != Visualizer::Visualizer::KeyboardRequest::done)
@@ -653,14 +633,6 @@ namespace Integrator
 
 		void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult& res)final override
 		{
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			m_frame_buffer.resize(width, height);
 			m_frame_buffer.fill();
 
@@ -684,9 +656,6 @@ namespace Integrator
 			size_t pass = 0;
 			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
 			{
-
-				std::cout << '\r' + progession_bar(pass, m_sample_per_pixel, 100) << std::flush;
-
 				const size_t sample_pass = m_frame_buffer.size();
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
@@ -716,17 +685,11 @@ namespace Integrator
 				scene.update_lights_offset(1);
 
 			}//pass per pixel
-
-			std::cout << '\r' + progession_bar(100, 100, 100) << std::endl;
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-
 			scene.reset_surface_lights();
 
 			//fill the result
 			{
-				res.time = elapsedTime;
+				res.time = 0;
 				res.image.resize(width, height);
 				OMP_PARALLEL_FOR
 					for (long i = 0; i < m_frame_buffer.size(); ++i)

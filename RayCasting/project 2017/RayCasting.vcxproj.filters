@@ -366,6 +366,9 @@
     <ClInclude Include="..\src\MIS\ImageEstimators.h">
       <Filter>src\MIS</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\System\ProgressReporter.h">
+      <Filter>src\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

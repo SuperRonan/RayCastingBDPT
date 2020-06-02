@@ -180,8 +180,8 @@ namespace Geometry
 		/// <param name="i1">The index of the first vertex.</param>
 		/// <param name="i2">The index of the second vertex.</param>
 		/// <param name="i3">The index of the third vertex.</param>
-		/// <param name="t1">The index of the first texture coordinates.</param>
-		/// <param name="t2">The index of the second texture coordinates.</param>
+		/// <param name="m_begin">The index of the first texture coordinates.</param>
+		/// <param name="m_current">The index of the second texture coordinates.</param>
 		/// <param name="t3">The index of the third texture coordinates.</param>
 		/// <param name="material">The material.</param>
 		/// <param name="normals">The vertices normals if any, nullptr means that normals must be  set to the face normal.</param>

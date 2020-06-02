@@ -312,6 +312,7 @@
     <ClInclude Include="..\src\System\BoundedStack.h" />
     <ClInclude Include="..\src\System\Merger.h" />
     <ClInclude Include="..\src\System\Parallel.h" />
+    <ClInclude Include="..\src\System\ProgressReporter.h" />
     <ClInclude Include="..\src\System\ScopedAssignment.h" />
     <ClInclude Include="..\src\utils.h" />
     <ClInclude Include="..\src\Visualizer\namespaceDoc.h" />

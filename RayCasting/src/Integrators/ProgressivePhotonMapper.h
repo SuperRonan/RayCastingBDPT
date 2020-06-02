@@ -319,33 +319,20 @@ namespace Integrator
 			m_frame.fill(0);
 			m_emissive.fill(0);
 
-			// 1 - Rendering time
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
 
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
-			const size_t number_of_pixels = m_frame.size();
-			const size_t sample_pass = number_of_pixels;
-			size_t pass = 0;
+
 			m_map.init();
 			buildMap(scene, m_frame.size() * 0);
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-				//m_frame.fill(0);
-				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
-
-				
-
 				OMP_PARALLEL_FOR
 					for (int p = 0; p < m_number_of_photons; ++p)
 					{
-						Math::Sampler sampler(p + m_number_of_photons * passPerPixelCounter);
-						sendPhoton(scene, sampler, p + passPerPixelCounter * m_number_of_photons);
+						Math::Sampler sampler(p + m_number_of_photons * pass);
+						sendPhoton(scene, sampler, p + pass * m_number_of_photons);
 					}
 
 				OMP_PARALLEL_FOR
@@ -363,19 +350,15 @@ namespace Integrator
 						//imp.M = 0;
 						//imp.setMTau(0);
 
-						m_frame[i] = imp.beta() * imp.Ntau() / (Math::pi * imp.m_radius2 * m_number_of_photons) + m_emissive[i] * (passPerPixelCounter + 1);
+						m_frame[i] = imp.beta() * imp.Ntau() / (Math::pi * imp.m_radius2 * m_number_of_photons) + m_emissive[i] * (pass + 1);
 					}
 				}
 				
-				showFrame(visu, passPerPixelCounter+1);
-				++pass;
-
+				showFrame(visu, pass+1);
+				
+				reporter.report(pass + 1, -1);
 				scene.update_lights_offset(1);
 				kbr = visu.update();
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (Integrator::m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
@@ -383,17 +366,14 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame, 1.0 / (double)passPerPixelCounter);
+					Image::ImWrite::write(m_frame, 1.0 / (double)pass);
 				}
 				
 
 			}//pass per pixel
 		__render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout << "time: " << elapsedTime << "s. " << ::std::endl;
-
+			
+			reporter.finish();
 			scene.reset_surface_lights();
 
 			while (kbr != Visualizer::Visualizer::KeyboardRequest::done)

@@ -161,27 +161,13 @@ namespace Integrator
 		{
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
 			visu.clean();
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
-			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels;
-			size_t total = 0;
-			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
-
-				const size_t sample_pass = m_frame_buffer.size();
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
 					{
@@ -212,20 +198,13 @@ namespace Integrator
 							}
 						}//pixel x
 					}//pixel y
-
 					//the pass has been computed
-				total += sample_pass;
-				++pass;
-
 				showFrame(visu, pass);
+				reporter.report(pass + 1, -1);
 
 				scene.update_lights_offset(1);
 				kbr = visu.update();
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (Integrator::m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
-
+				
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
 					goto __render__end__loop__;
@@ -237,11 +216,7 @@ namespace Integrator
 			}//pass per pixel
 
 __render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout << "time: " << elapsedTime << "s. " << ::std::endl;
-
+			reporter.finish();
 			scene.reset_surface_lights();
 
 			while (kbr != Visualizer::Visualizer::KeyboardRequest::done)
@@ -266,27 +241,12 @@ __render__end__loop__:
 
 		void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult& res)final override
 		{
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			m_frame_buffer.resize(width, height);
 			m_frame_buffer.fill();
-
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
-			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels;
-			size_t total = 0;
-			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-				
-				std::cout << '\r' + progession_bar(pass, m_sample_per_pixel, 100) << std::flush;
-
 				const size_t sample_pass = m_frame_buffer.size();
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame_buffer.height(); y++)
@@ -315,27 +275,18 @@ __render__end__loop__:
 								int ly = lv.uv[1] * m_frame_buffer.height();
 								m_frame_buffer(lx, ly) += lv.light;
 							}
-									
-							//visu.plot(x, y, pixel);
 						}//pixel x
 					}//pixel y
 					//the pass has been computed
-				total += sample_pass;
-				++pass;
 				scene.update_lights_offset(1);
-						
+				reporter.report(pass + 1, pass - 1);
 			}//pass per pixel
 
-			std::cout << '\r' + progession_bar(100, 100, 100) << std::endl;
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			
 			scene.reset_surface_lights();
-
+			reporter.finish();
 			//fill the result
 			{
-				res.time = elapsedTime;
+				res.time = reporter.time();
 				res.image.resize(width, height);
 				OMP_PARALLEL_FOR
 					for (long i = 0; i < m_frame_buffer.size(); ++i)
@@ -353,10 +304,6 @@ __render__end__loop__:
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
 			visu.clean();
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
-			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels;
-			size_t total = 0;
 			OMP_PARALLEL_FOR
 				for (long y = 0; y < m_frame_buffer.height(); y++)
 				{
@@ -386,7 +333,6 @@ __render__end__loop__:
 					}//pixel x
 				}//pixel y
 				//the pass has been computed
-			total = npixels;
 			showFrame(visu, 1);
 
 			visu.update();

@@ -278,30 +278,16 @@ namespace Integrator
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
-
 			resizeFrameBuffer(visu.width(), visu.height());
 			m_frame.fill(Image::MultiSample<RGBColor>());
 
-			// 1 - Rendering time
-			LARGE_INTEGER frequency;        // ticks per second
-			LARGE_INTEGER t1, t2;           // ticks
-			double elapsedTime;
-			// get ticks per second
-			QueryPerformanceFrequency(&frequency);
-			// start timer
-			QueryPerformanceCounter(&t1);
-
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
-			const size_t number_of_pixels = m_frame.size();
-			const size_t sample_pass = number_of_pixels;
-			size_t pass = 0;
-			for (size_t passPerPixelCounter = 0; passPerPixelCounter < m_sample_per_pixel; ++passPerPixelCounter)
+			ProgressReporter reporter;
+			reporter.start(m_sample_per_pixel);
+			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
-
-				::std::cout << "Pass: " << pass << "/" << Integrator::m_sample_per_pixel << ::std::endl;
-
 				m_map.dumpPhotons();
-				buildMap(scene, m_frame.size() * passPerPixelCounter);
+				buildMap(scene, m_frame.size() * pass);
 
 				OMP_PARALLEL_FOR
 					for (long y = 0; y < m_frame.height(); y++)
@@ -334,14 +320,10 @@ namespace Integrator
 						}//pixel x
 					}//pixel y
 					//the pass has been computed
-				++pass;
+				reporter.report(pass + 1, -1);
 
 				scene.update_lights_offset(1);
 				kbr = visu.update();
-				QueryPerformanceCounter(&t2);
-				elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-				double remainingTime = (elapsedTime / pass) * (Integrator::m_sample_per_pixel - pass);
-				::std::cout << "time: " << elapsedTime << "s. " << ", remaining time: " << remainingTime << "s. " << ", total time: " << elapsedTime + remainingTime << ::std::endl;
 
 				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
 				{
@@ -354,10 +336,7 @@ namespace Integrator
 
 			}//pass per pixel
 		__render__end__loop__:
-			// stop timer
-			QueryPerformanceCounter(&t2);
-			elapsedTime = (double)(t2.QuadPart - t1.QuadPart) / (double)frequency.QuadPart;
-			::std::cout << "time: " << elapsedTime << "s. " << ::std::endl;
+			reporter.finish();
 
 			scene.reset_surface_lights();
 

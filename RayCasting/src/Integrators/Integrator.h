@@ -8,6 +8,7 @@
 #include <Image/Image.h>
 #include <settings.h>
 #include <Auto/RenderResult.h>
+#include <System/ProgressReporter.h>
 
 namespace Integrator
 {
@@ -59,8 +60,6 @@ namespace Integrator
 		virtual void debug(Scene const&, Visualizer::Visualizer &) = 0;
 
 		virtual void render(Scene const&, size_t width, size_t height, Auto::RenderResult & res) = 0;
-
-
 
 
 		__forceinline static bool samePoint(Hit const& hit, double dist, const GeometryBase* geo)
