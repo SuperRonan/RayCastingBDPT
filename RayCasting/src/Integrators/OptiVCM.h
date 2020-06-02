@@ -513,7 +513,7 @@ namespace Integrator
 
 
 		
-		const bool DEBUG = true;
+		const bool DEBUG = false;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{

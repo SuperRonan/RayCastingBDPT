@@ -11,8 +11,7 @@ namespace Integrator
 	{
 	protected:
 
-		template <class Solver>
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, std::vector<Solver> & solvers, double * weights)const
+		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, double * weights)const
 		{
 			Path cameraSubPath, LightSubPath;
 
@@ -37,7 +36,7 @@ namespace Integrator
 					// special cases of connections strategies
 					if (s + t == 1)
 						continue;
-					Solver& solver = solvers[s + t - 2];
+					auto& solver = solvers[s + t - 2];
 					if (s == 0)
 					{
 						// naive path tracing
@@ -243,8 +242,8 @@ namespace Integrator
 #endif
 		}
 
-		std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-		//std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		mutable std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		//mutable std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
 
 		const bool DEBUG = false;
 
@@ -304,7 +303,7 @@ namespace Integrator
 							double v = ((double)y + yp) / visu.height();
 							double u = ((double)x + xp) / visu.width();
 
-							computeSample(scene, u, v, sampler, solvers, buffer);
+							computeSample(scene, u, v, sampler, buffer);
 
 							
 						}//pixel x
@@ -370,6 +369,7 @@ namespace Integrator
 				}
 			}
 
+			solvers.clear();
 			
 		}
 
