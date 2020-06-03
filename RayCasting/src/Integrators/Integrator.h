@@ -76,54 +76,5 @@ namespace Integrator
 			return abs(dist - hit.z) < 0.00000001;
 		}
 
-		//clever version
-		bool sampleOneLight(Scene const& scene, Hit const& hit, Math::Sampler& sampler, SurfaceSample& res, int index=0)const
-		{
-			//select one light
-			const GeometryBase* light;
-			double pdf;
-
-
-			if (!scene.sampleOneLight(sampler, pdf, light))
-			{
-				return false;
-			}
-
-			/*
-			if (light == hit.geometry)
-			{
-				return false;
-			}
-			*/
-
-			//select a point on this light
-			light->sampleLight(res, hit, sampler, index);
-			//light->sampleLight(res, sampler);
-			res.pdf *= pdf;
-
-			return true;
-		}
-
-
-		//old version
-		bool sampleOneLight(Scene const& scene, Math::Sampler& sampler, SurfaceSample& res, int index=0)const
-		{
-			if (scene.m_surface_lights.empty())
-			{
-				return false;
-			}
-
-			//select one light
-			const GeometryBase* light;
-			double pdf;
-			scene.sampleOneLight(sampler, pdf, light);
-
-			//select a point on this light
-			light->sampleLight(res, sampler, index);
-			res.pdf *= pdf;
-
-			return true;
-		}
-
 	};
 }

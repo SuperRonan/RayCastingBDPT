@@ -139,7 +139,7 @@ namespace Integrator
 				{
 					Math::Sampler sampler(sample + offset);
 					SurfaceSample sls;
-					sampleOneLight(scene, sampler, sls);
+					scene.sampleLe(sampler, sls);
 					double prod_pdf = sls.pdf;
 					
 					Photonf light_photon = Photonf(sls.geo, sls.primitive, sls.vector, 1, 1);
@@ -163,7 +163,7 @@ namespace Integrator
 							if (len == 2)
 							{
 								prev_photon = m_map.addPhoton(light_photon);
-								pt_pdf = scene.pdfSamplingLight(hit.geometry, prev_hit, hit.point);
+								pt_pdf = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
 							}
 							else
 							{
@@ -239,7 +239,7 @@ namespace Integrator
 			if (hit.geometry->getMaterial()->delta())
 				return 0;
 			SurfaceSample sls;
-			sampleOneLight(scene, sampler, sls);
+			scene.sampleLi(sampler, sls, hit);
 			Vector3f to_light = (sls.vector - hit.point);
 			const double dist2 = to_light.norm2();
 			const double dist = std::sqrt(dist2);
@@ -289,7 +289,7 @@ namespace Integrator
 					{
 						RGBColor contrib = beta * hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 						
-						double light_pdf = prev_delta ? 0.0 : (path_pdf * scene.pdfSamplingLight(hit.geometry, prev_hit, hit.point));
+						double light_pdf = prev_delta ? 0.0 : (path_pdf * scene.pdfSampleLi(hit.geometry, prev_hit, hit.point));
 						path_pdf *= pdf_solid_angle * std::abs(ray.direction() * hit.primitive_normal) / (hit.z * hit.z);
 						double weight = path_pdf / (path_pdf + light_pdf) * 0.5;
 						npt_res += contrib * weight;
@@ -345,7 +345,7 @@ namespace Integrator
 
 							const double pdf_dir_sa = current_hit.geometry->getMaterial()->pdf(current_hit, dir, prev_wi);
 							const double pdf_dir = pdf_dir_sa * cos_light / dist2;
-							const double pdf_light = scene.pdfSamplingLight(light_photon->m_geometry, current_hit, light_photon->point());
+							const double pdf_light = scene.pdfSampleLi(light_photon->m_geometry, current_hit, light_photon->point());
 
 							const double epdf_pt = path_pdf * pdf_light;
 							const double epdf_npt = path_pdf * pdf_dir;

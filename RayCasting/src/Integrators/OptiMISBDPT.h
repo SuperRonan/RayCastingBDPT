@@ -43,8 +43,8 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
-							double pdf_light = scene.pdfSamplingLight(camera_top.hit.geometry);
-							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
+							double pdf_light = scene.pdfSampleLe(camera_top.hit.geometry);
+							s1_pdf = scene.pdfSampleLi(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
 							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf, pdf_light);
 							if (weight == -1)
 							{
@@ -63,7 +63,7 @@ namespace Integrator
 						if (s == 1) 
 						{
 							SurfaceSample sls;
-							sampleOneLight(scene, camera_top.hit, sampler, sls);
+							scene.sampleLi(sampler, sls, camera_top.hit);
 							s1_pdf = sls.pdf;
 							Vertex light_resampled;
 							light_resampled.delta = false;
@@ -72,7 +72,7 @@ namespace Integrator
 							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
 							light_resampled.hit.tex_uv = sls.uv;
 							light_resampled.hit.point = sls.vector;
-							double Le_pdf = scene.pdfSamplingLight(sls.geo);
+							double Le_pdf = scene.pdfSampleLe(sls.geo);
 							light_resampled.fwd_pdf = Le_pdf;
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
@@ -80,7 +80,7 @@ namespace Integrator
 						else if (s == 2)
 						{
 							// BTW this assumes that the connecting loops are in the order t then s
-							s1_pdf = scene.pdfSamplingLight(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);
+							s1_pdf = scene.pdfSampleLi(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point);
 						}
 
 						Vertex& light_top = LightSubPath[s - 1];

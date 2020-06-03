@@ -287,7 +287,7 @@ namespace Integrator
 		void sendPhoton(Scene const& scene, Math::Sampler& sampler, int offset)
 		{
 			SurfaceSample sls;
-			sampleOneLight(scene, sampler, sls, offset);
+			scene.sampleLe(sampler, sls, offset);
 
 			
 			Hit hit;

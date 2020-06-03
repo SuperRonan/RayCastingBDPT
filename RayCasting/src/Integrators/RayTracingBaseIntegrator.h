@@ -33,8 +33,8 @@ namespace Integrator
 		RGBColor addOneDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
 		{
 			Geometry::SurfaceSample sample;
-			sampleOneLight(scene, hit, sampler, sample); // Clever
-			//sampleOneLight(scene, sampler, sample); // Uniform
+			scene.sampleLi(sampler, sample, hit);
+			//scene.sampleLe(sampler, sample);
 			Math::Vector3f to_light = sample.vector - hit.point;
 			const double dist2 = to_light.norm2();
 			const double dist = std::sqrt(dist2);

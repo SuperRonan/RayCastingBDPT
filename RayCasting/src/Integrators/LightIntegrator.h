@@ -63,7 +63,7 @@ namespace Integrator
 				SurfaceSample light_point;
 				Hit camera_hit;
 				camera_hit.point = scene.m_camera.m_position;
-				sampleOneLight(scene, camera_hit, sampler, light_point);
+				scene.sampleLi(sampler, light_point, camera_hit);
 				//sampleOneLight(scene, sampler, light_point);
 				Hit hit;
 				hit.point = light_point.vector;
@@ -81,7 +81,7 @@ namespace Integrator
 
 			//first, sample a point a light
 			SurfaceSample light_point;
-			sampleOneLight(scene, sampler, light_point);
+			scene.sampleLe(sampler, light_point);
 
 
 			RGBColor beta = 1.0 / light_point.pdf;

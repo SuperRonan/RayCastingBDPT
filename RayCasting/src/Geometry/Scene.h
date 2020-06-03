@@ -724,6 +724,20 @@ namespace Geometry
 
 		double pdfSamplingLight(const GeometryBase* geo)const
 		{
+			1.0 / double(m_surface_lights.size());
+		}
+
+		void sampleLe(Math::Sampler& sampler, SurfaceSample& sample, int offset=0)const
+		{
+			assert(!m_surface_lights.empty());
+			double pdf;
+			sampleOneLight(sampler, pdf, sample.geo);
+			sample.geo->sampleLight(sample, sampler, offset);
+			sample.pdf *= pdf;
+		}
+
+		double pdfSampleLe(const GeometryBase* geo)const
+		{
 			//= probability of sampling this geonetry * probability of sampling a point on this geometry
 			double pdf_geo = 1.0 / double(m_surface_lights.size());
 			double pdf_point = geo->pdfSamplingPoint();
@@ -731,7 +745,16 @@ namespace Geometry
 			return pdf_geo * pdf_point;
 		}
 
-		double pdfSamplingLight(const GeometryBase* geo, Hit const& hit, Math::Vector3f const& point)const
+		void sampleLi(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, int offset = 0)const
+		{
+			assert(!m_surface_lights.empty());
+			double pdf;
+			sampleOneLight(sampler, pdf, sample.geo);
+			sample.geo->sampleLight(sample, ref, sampler, offset);
+			sample.pdf *= pdf;
+		}
+
+		double pdfSampleLi(const GeometryBase* geo, Hit const& hit, Math::Vector3f const& point)const
 		{
 			double pdf_geo = 1.0 / double(m_surface_lights.size());
 			double pdf_point = geo->pdfSamplingPoint(hit, point);

@@ -279,7 +279,7 @@ namespace Integrator
 			light_vertex.type = Vertex::Type::Light;
 
 			SurfaceSample sls;
-			sampleOneLight(scene, sampler, sls);
+			scene.sampleLe(sampler, sls);
 
 			light_vertex.hit.geometry = sls.geo;
 			light_vertex.hit.normal = light_vertex.hit.primitive_normal = sls.normal;

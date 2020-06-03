@@ -143,8 +143,8 @@ namespace Integrator
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
-							double pdf = scene.pdfSamplingLight(camera_top.hit.geometry);
-							s1_pdf = scene.pdfSamplingLight(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
+							double pdf = scene.pdfSampleLe(camera_top.hit.geometry);
+							s1_pdf = scene.pdfSampleLi(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
 							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
 
 							solver.addEstimate(L * weight, weights, 0, p);
@@ -157,7 +157,7 @@ namespace Integrator
 						if (s == 1) 
 						{
 							SurfaceSample sls;
-							sampleOneLight(scene, camera_top.hit, sampler, sls);
+							scene.sampleLi(sampler, sls, camera_top.hit);
 							s1_pdf = sls.pdf;
 							Vertex light_resampled;
 							light_resampled.delta = false;
@@ -166,14 +166,14 @@ namespace Integrator
 							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
 							light_resampled.hit.tex_uv = sls.uv;
 							light_resampled.hit.point = sls.vector;
-							double Le_pdf = scene.pdfSamplingLight(sls.geo);
+							double Le_pdf = scene.pdfSampleLe(sls.geo);
 							light_resampled.fwd_pdf = Le_pdf;
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = { lightSubPath.begin(), light_resampled };
 						}
 						else if (s == 2) // BTW this assumes that the connecting loops are in the order t then s
 						{
-							s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, lightSubPath[1].hit, lightSubPath[0].hit.point);
+							s1_pdf = scene.pdfSampleLi(lightSubPath[0].hit.geometry, lightSubPath[1].hit, lightSubPath[0].hit.point);
 						}
 
 						Vertex& light_top = lightSubPath[s - 1];
@@ -271,7 +271,7 @@ namespace Integrator
 									if (!V)
 										return;
 
-									const double s1_pdf = scene.pdfSamplingLight(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
+									const double s1_pdf = scene.pdfSampleLi(lightSubPath[0].hit.geometry, s == 1 ? pt.hit : lightSubPath[1].hit, lightSubPath[0].hit.point);
 									const double w = VMWeight(weights, cameraSubPath, lightSubPath, s, t, s1_pdf);
 									RGBColor BE = L * k / m_photon_emitted * w;
 									

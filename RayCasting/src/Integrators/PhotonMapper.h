@@ -150,7 +150,7 @@ namespace Integrator
 				{
 					Math::Sampler sampler(sample+offset);
 					SurfaceSample sls;
-					sampleOneLight(scene, sampler, sls);
+					scene.sampleLe(sampler, sls);
 					
 					DirectionSample dirSample = sls.geo->getMaterial()->sampleLightDirection(sls, sampler);
 					Hit hit;
