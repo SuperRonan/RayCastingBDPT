@@ -14,6 +14,20 @@ namespace Integrator
 			RayTracingBaseIntegrator(sample_per_pixel, width, height)
 		{}
 
+		RGBColor addRISDirectIllumination(Scene const& scene, Hit const& ref, Math::Sampler& sampler)const
+		{
+			SurfaceSample sls;
+			RGBColor estimate;
+			scene.sampleLiRIS(sampler, sls, ref, &estimate);
+			if (estimate.isBlack())
+				return estimate;
+			Hit light_hit;
+			const Math::Vector3f to_light = sls.vector - ref.point;
+			Ray ray(ref.point, to_light);
+			bool V = true;// (scene.full_intersection(ray, light_hit) && std::abs(light_hit.z - to_light.norm()) < 0.00001);
+			return estimate * V;
+		}
+
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
@@ -34,10 +48,12 @@ namespace Integrator
 						res += prod_color * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view) / prod_pdf;
 					}
 
-					use_emissive = hit.geometry->getMaterial()->spicky();
+					//use_emissive = hit.geometry->getMaterial()->spicky();
+					use_emissive = hit.geometry->getMaterial()->delta();
 					if (!use_emissive && len < m_max_len)
 					{
-						res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
+						//res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
+						res += prod_color * addRISDirectIllumination(scene, hit, sampler) / prod_pdf;
 					}
 
 

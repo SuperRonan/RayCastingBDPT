@@ -31,6 +31,7 @@
 #include <Geometry/EnvironmentMap.h>
 #include <Geometry/BVH.h>
 #include <Geometry/Shapes/Disk.h>
+#include <System/Parallel.h>
 
 
 namespace Geometry
@@ -567,6 +568,22 @@ namespace Geometry
 		}
 
 
+	protected:
+
+		struct RISCandidate
+		{
+			double w;
+			SurfaceSample sample;
+			RGBColor f;
+		};
+
+		mutable std::vector<std::vector<RISCandidate>> m_candidates_buffers;
+	public:	
+		void preAllocate()
+		{
+			m_candidates_buffers = Parallel::preAllocate(std::vector<RISCandidate>(m_surface_lights.size()));
+		}
+
 
 		
 		/*
@@ -759,6 +776,53 @@ namespace Geometry
 			double pdf_geo = 1.0 / double(m_surface_lights.size());
 			double pdf_point = geo->pdfSamplingPoint(hit, point);
 			return pdf_geo * pdf_point;
+		}
+
+		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * estimate=nullptr, int offset = 0)const
+		{
+			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
+			double sum = 0;
+			for (int i = 0; i < candidates.size(); ++i)
+			{
+				const GeometryBase* geo = m_surface_lights[i];
+				geo->sampleLight(candidates[i].sample, ref, sampler, offset);
+				candidates[i].sample.pdf /= candidates.size();
+				Math::Vector3f to_light = candidates[i].sample.vector - ref.point;
+				const double dist2 = to_light.norm2();
+				to_light /= std::sqrt(dist2);
+				double G = std::abs((candidates[i].sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
+				RGBColor L = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, to_light) * 
+								ref.geometry->getMaterial()->BSDF(ref, to_light, false) * G;
+				candidates[i].w = L.grey() / candidates[i].sample.pdf;
+				candidates[i].f = L;
+				sum += candidates[i].w;
+			}
+			if (sum == 0)
+			{
+				if (estimate) *estimate = 0;
+				return;
+			}
+			std::cout << "ieurf" << std::endl;
+			double xi = sampler.generateContinuous<double>(0, sum);
+			double partial_sum = 0;
+			for (int i = 0; i < candidates.size(); ++i)
+			{
+				double new_sum = partial_sum + candidates[i].w;
+				if (xi >= partial_sum && xi < new_sum)
+				{
+					sample = candidates[i].sample;
+					double p_of_y_knowing_x = candidates[i].w / sum;
+					double p_target = candidates[i].f.grey();
+					assert(p_target > 0);
+					if (estimate)
+					{
+						*estimate = candidates[i].f / p_target * sum / candidates.size();
+					}
+					return;
+				}
+				partial_sum = new_sum;
+			}
+			assert(false);
 		}
 
 		double pdfSkybox()const

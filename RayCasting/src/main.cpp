@@ -1374,10 +1374,97 @@ void testWaveLength()
 	Image::ImWrite::write(img);
 }
 
+void testRIS(size_t seed=0)
+{
+	Math::Sampler sampler(seed);
+	struct Sample
+	{
+		double x, pdf;
+		Sample(double x, double pdf) : x(x), pdf(pdf) {};
+		Sample() = default;
+		operator double() { return x; };
+	};
+	struct Candidate
+	{
+		double pdf, target, f;
+		double x;
+		Candidate(double x, double p, double t, double f) :pdf(p), target(t), f(f), x(x) {};
+		Candidate() = default;
+		double w()const { return target / pdf; };
+	};
+	const int M = 2;
+	std::vector<Candidate> candidates(M);
 
+	const auto function = [](double x) {return x; };
+	const auto sourcePdf = [](double x) {return 1; };
+	const auto targetPdf = [](double x) {return x; };
+	const auto sampleSource = [&](Math::Sampler& sampler) {double x = sampler.generateContinuous<double>(); return Sample(x, sourcePdf(x)); };
+	const auto sampleRIS = [&](Math::Sampler& sampler)
+	{
+		double sum = 0;
+		for (int i = 0; i < M; ++i)
+		{
+			Sample x = sampleSource(sampler);
+			candidates[i] = Candidate(x, x.pdf, targetPdf(x), function(x));
+			sum += candidates[i].w();
+		}
+
+		double xi = sampler.generateContinuous<double>(0, sum);
+		double partial_sum = 0;
+		Sample res(0, 0);
+		for (int i = 0; i < M; ++i)
+		{
+			if (xi >= partial_sum && xi < (candidates[i].w() + partial_sum))
+			{
+				res = Sample(candidates[i].x, candidates[i].target * M / sum);
+			}
+			partial_sum += candidates[i].w();
+		}
+		return res;
+	};
+	const auto RISAnalyticPdf = [&M](double x)
+	{
+		if (M == 2)
+		{
+			return 2 * x * (log((x + 1) / x));
+		}
+		
+		assert(false);
+	};
+	const auto RISEstimatedPdf = [&](double x, Math::Sampler & sampler)
+	{
+		double x_w = targetPdf(x) / sourcePdf(x);
+		double sum = x_w;
+		for (int i = 1; i < M; ++i)
+		{
+			Sample x = sampleSource(sampler);
+			sum += targetPdf(x) / x.pdf;
+		}
+		return targetPdf(x) * M / sum;
+	};
+	int K = 128;
+	int N = 128;
+	double final_estimate=0;
+	for (int k = 0; k < K; ++k)
+	{
+		double integral = 0;
+		for (int i = 0; i < N; ++i)
+		{
+			Sample x = sampleRIS(sampler);
+			double ris_analytic_pdf = RISAnalyticPdf(x);
+			//std::cout << "RIS pdf: " << x.pdf << ", RIS Analytic pdf: " << ris_analytic_pdf << std::endl;
+			integral += function(x) / x.pdf;
+		}
+		std::cout << "integral: " << integral / N << std::endl;
+		final_estimate += integral;
+	}
+	std::cout << "Final Integral estimate: " << final_estimate / (N * K) << std::endl;
+}
 
 int main(int argc, char** argv)
 {
+	testRIS();
+	return 0;
 	Parallel::init();
 	if (argc > 1)
 	{
@@ -1386,6 +1473,7 @@ int main(int argc, char** argv)
 
 	int nthread = 4 * 2 * 2;
 	Parallel::setNumThreads(nthread);
+
 
 #ifdef _DEBUG
 	int scale = 10;
@@ -1444,6 +1532,7 @@ int main(int argc, char** argv)
 	std::cout << "Building the acceleration structure" << std::endl;
 	tic();
 	scene.preCompute(8, 1, 1);
+	scene.preAllocate();
 	std::cout << "Done! ";
 	toc();
 	
@@ -1452,7 +1541,7 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
 	unsigned int maxLen = 5;
