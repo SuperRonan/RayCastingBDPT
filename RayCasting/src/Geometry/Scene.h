@@ -36,18 +36,7 @@
 
 namespace Geometry
 {
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	/// \class	Scene
-	///
-	/// \brief	An instance of a geometric scene that can be rendered using ray casting. A set of methods
-	/// 		allowing to add geometry, lights and a camera are provided. Scene rendering is achieved by
-	/// 		calling the Scene::compute method.
-	///			A scene doesnt implement any acceleration stuctures, exept for testing the intersection between
-	///			the ray and a geomtry's bounding box
-	///
-	/// \author	F. Lamarche, Université de Rennes 1 and Ronan Cailleau
-	/// \date	03/12/2013
-	////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	class Scene
 	{
 	public:
@@ -60,10 +49,10 @@ namespace Geometry
 		std::vector<Disk> m_disks;
 		
 		/// \brief	The lights.
-		std::vector<PointLight> m_lights;
-		/// \brief	The camera.
+		//std::vector<PointLight> m_lights;
+
 		Camera m_camera;
-		/// \brief The scene bounding box
+
 		BoundingBox m_sceneBoundingBox;
 
 		
@@ -160,7 +149,8 @@ namespace Geometry
 
 		void add(const PointLight & light)
 		{
-			m_lights.push_back(light) ;
+			std::cerr << "Warning, Point lights are not currently supported!" << std::endl;
+			//m_lights.push_back(light) ;
 		}
 
 
@@ -780,18 +770,21 @@ namespace Geometry
 
 		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * estimate=nullptr, int offset = 0)const
 		{
-			//sampleLi(sampler, sample, ref, offset);
-			//if (estimate)
-			//{
-			//	Math::Vector3f to_light = sample.vector - ref.point;
-			//	double dist2 = to_light.norm2();
-			//	to_light /= std::sqrt(dist2);
-			//	double G = std::abs((to_light * ref.primitive_normal) * (to_light * sample.normal)) / dist2;
-			//	*estimate = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
-			//		sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G / sample.pdf;
-			//}
-			//return;
-
+			if (m_surface_lights.size() == 1)
+			{
+				sampleLi(sampler, sample, ref, offset);
+				if (estimate)
+				{
+					Math::Vector3f to_light = sample.vector - ref.point;
+					double dist2 = to_light.norm2();
+					to_light /= std::sqrt(dist2);
+					double G = std::abs((to_light * ref.primitive_normal) * (to_light * sample.normal)) / dist2;
+					*estimate = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
+						sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G / sample.pdf;
+					if (estimate->anythingWrong())	*estimate = 0;
+				}
+				return;
+			}
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			double sum = 0;
 			for (int i = 0; i < candidates.size(); ++i)
@@ -803,11 +796,10 @@ namespace Geometry
 				const double dist2 = to_light.norm2();
 				to_light /= std::sqrt(dist2);
 				double G = std::abs((candidates[i].sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
-				RGBColor Le = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, -to_light);
-				RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
-				if (bsdf.grey() < 1e-100) bsdf = 0; // I don't like this, but is creates nan
-				RGBColor L = Le * bsdf * G;
-				if (L.anythingWrong() || L.isBlack()) 
+				const RGBColor Le = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, -to_light);
+				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+				const RGBColor L = Le * bsdf * G;
+				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
 				{
 					candidates[i].w = 0;
 					candidates[i].p_target = 0;

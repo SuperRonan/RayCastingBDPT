@@ -115,6 +115,7 @@
       <OpenMP>GenerateParallelCode</OpenMP>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
