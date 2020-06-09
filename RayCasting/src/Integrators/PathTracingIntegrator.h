@@ -24,7 +24,7 @@ namespace Integrator
 			Hit light_hit;
 			const Math::Vector3f to_light = sls.vector - ref.point;
 			Ray ray(ref.point, to_light);
-			bool V = true;// (scene.full_intersection(ray, light_hit) && std::abs(light_hit.z - to_light.norm()) < 0.00001);
+			bool V = (scene.full_intersection(ray, light_hit) && std::abs(light_hit.z - to_light.norm()) < 0.00001);
 			return estimate * V;
 		}
 

@@ -572,9 +572,9 @@ namespace Geometry
 
 		struct RISCandidate
 		{
-			double w;
+			double w, p_target;
 			SurfaceSample sample;
-			RGBColor f;
+			RGBColor estimate;
 		};
 
 		mutable std::vector<std::vector<RISCandidate>> m_candidates_buffers;
@@ -780,6 +780,18 @@ namespace Geometry
 
 		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * estimate=nullptr, int offset = 0)const
 		{
+			//sampleLi(sampler, sample, ref, offset);
+			//if (estimate)
+			//{
+			//	Math::Vector3f to_light = sample.vector - ref.point;
+			//	double dist2 = to_light.norm2();
+			//	to_light /= std::sqrt(dist2);
+			//	double G = std::abs((to_light * ref.primitive_normal) * (to_light * sample.normal)) / dist2;
+			//	*estimate = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
+			//		sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G / sample.pdf;
+			//}
+			//return;
+
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			double sum = 0;
 			for (int i = 0; i < candidates.size(); ++i)
@@ -791,10 +803,26 @@ namespace Geometry
 				const double dist2 = to_light.norm2();
 				to_light /= std::sqrt(dist2);
 				double G = std::abs((candidates[i].sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
-				RGBColor L = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, to_light) * 
-								ref.geometry->getMaterial()->BSDF(ref, to_light, false) * G;
-				candidates[i].w = L.grey() / candidates[i].sample.pdf;
-				candidates[i].f = L;
+				RGBColor Le = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, -to_light);
+				RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+				if (bsdf.grey() < 1e-100) bsdf = 0; // I don't like this, but is creates nan
+				RGBColor L = Le * bsdf * G;
+				if (L.anythingWrong() || L.isBlack()) 
+				{
+					candidates[i].w = 0;
+					candidates[i].p_target = 0;
+					candidates[i].estimate = 0;
+				}
+				else
+				{
+					candidates[i].w = L.grey() / candidates[i].sample.pdf;
+					candidates[i].p_target = L.grey();
+					candidates[i].estimate = L / candidates[i].p_target;
+				}
+				if (candidates[i].estimate.anythingWrong())
+				{
+					std::cout << bsdf << std::endl;
+				}
 				sum += candidates[i].w;
 			}
 			if (sum == 0)
@@ -802,7 +830,6 @@ namespace Geometry
 				if (estimate) *estimate = 0;
 				return;
 			}
-			std::cout << "ieurf" << std::endl;
 			double xi = sampler.generateContinuous<double>(0, sum);
 			double partial_sum = 0;
 			for (int i = 0; i < candidates.size(); ++i)
@@ -812,12 +839,10 @@ namespace Geometry
 				{
 					sample = candidates[i].sample;
 					double p_of_y_knowing_x = candidates[i].w / sum;
-					double p_target = candidates[i].f.grey();
+					double p_target = candidates[i].p_target;
 					assert(p_target > 0);
 					if (estimate)
-					{
-						*estimate = candidates[i].f / p_target * sum / candidates.size();
-					}
+						*estimate = candidates[i].estimate * sum / candidates.size();
 					return;
 				}
 				partial_sum = new_sum;

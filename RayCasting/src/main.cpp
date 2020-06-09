@@ -1463,8 +1463,6 @@ void testRIS(size_t seed=0)
 
 int main(int argc, char** argv)
 {
-	testRIS();
-	return 0;
 	Parallel::init();
 	if (argc > 1)
 	{
