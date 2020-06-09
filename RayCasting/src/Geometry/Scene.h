@@ -568,10 +568,14 @@ namespace Geometry
 		};
 
 		mutable std::vector<std::vector<RISCandidate>> m_candidates_buffers;
+
+		int m_ris_number_of_candidates;
+
 	public:	
 		void preAllocate()
 		{
-			m_candidates_buffers = Parallel::preAllocate(std::vector<RISCandidate>(m_surface_lights.size()));
+			m_ris_number_of_candidates = 4;
+			m_candidates_buffers = Parallel::preAllocate(std::vector<RISCandidate>(m_ris_number_of_candidates));
 		}
 
 
@@ -770,7 +774,7 @@ namespace Geometry
 
 		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * estimate=nullptr, int offset = 0)const
 		{
-			if (m_surface_lights.size() == 1)
+			if (m_ris_number_of_candidates == 1)
 			{
 				sampleLi(sampler, sample, ref, offset);
 				if (estimate)
@@ -787,11 +791,12 @@ namespace Geometry
 			}
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			double sum = 0;
-			for (int i = 0; i < candidates.size(); ++i)
+			for (int i = 0; i < m_ris_number_of_candidates; ++i)
 			{
-				const GeometryBase* geo = m_surface_lights[i];
+				int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+				const GeometryBase* geo = m_surface_lights[light_index];
 				geo->sampleLight(candidates[i].sample, ref, sampler, offset);
-				candidates[i].sample.pdf /= candidates.size();
+				candidates[i].sample.pdf /= m_surface_lights.size();
 				Math::Vector3f to_light = candidates[i].sample.vector - ref.point;
 				const double dist2 = to_light.norm2();
 				to_light /= std::sqrt(dist2);

@@ -86,7 +86,7 @@ namespace Math
 		template <class floot=double>
 		floot generateStratified(unsigned int i, unsigned int div)
 		{
-			double xi = generateContinuous<floot>();
+			floot xi = generateContinuous<floot>();
 			return (i + xi) / floot(div);
 		}
 
