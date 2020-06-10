@@ -772,6 +772,8 @@ namespace Geometry
 			return pdf_geo * pdf_point;
 		}
 
+		int m_ris_estimate_N = 4;
+
 		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * Contribution=nullptr)const
 		{
 			if (m_ris_number_of_candidates == 1) // M = 1 -> classic sampleLi
@@ -842,6 +844,16 @@ namespace Geometry
 					double p_of_y_knowing_x = candidates[i].w / sum;
 					double p_target = candidates[i].p_target;
 					sample.pdf = p_target * m_ris_number_of_candidates / sum;
+					if(false) 
+					{
+						Hit sample_hit;
+						sample_hit.point = sample.vector;
+						sample_hit.geometry = sample.geo;
+						sample.primitive = sample.primitive;
+						sample_hit.normal = sample_hit.primitive_normal = sample.normal;
+						sample_hit.tex_uv = sample.uv;
+						sample.pdf = pdfRISEstimate(ref, sample_hit, sampler, candidates[i].estimate);
+					}
 					assert(p_target > 0);
 					if (Contribution)
 						*Contribution = candidates[i].estimate;
@@ -852,8 +864,14 @@ namespace Geometry
 			assert(false);
 		}
 
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution)const
 		{
+			return pdfRISEstimate(ref, sample, sampler, contribution, m_ris_estimate_N);
+		}
+
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, int N)const
+		{
+			if (N == 0)	return 0;
 			if (m_ris_number_of_candidates == 1)
 				return pdfSampleLi(sample.geometry, ref, sample.point);
 			
@@ -863,39 +881,42 @@ namespace Geometry
 			if (p_target == 0)
 				return 0;
 			double w = p_target / p_source;
-			
+			double res = 0;
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
-			double sum = w;
-			for (int i = 1; i < m_ris_number_of_candidates; ++i) // 1 less
+			for (int n = 0; n < N; ++n)
 			{
-				RISCandidate& candidate = candidates[i];
-				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
-				//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
-				const GeometryBase* geo = m_surface_lights[light_index];
-				geo->sampleLight(candidate.sample, ref, sampler);
-				candidate.sample.pdf /= m_surface_lights.size();
-				Math::Vector3f to_light = candidate.sample.vector - ref.point;
-				const double dist2 = to_light.norm2();
-				to_light /= std::sqrt(dist2);
-				double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
-				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
-				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
-				const RGBColor L = Le * bsdf * G;
-				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
+				double sum = w;
+				for (int i = 1; i < m_ris_number_of_candidates; ++i) // 1 less
 				{
-					candidate.w = 0;
-					candidate.p_target = 0;
+					RISCandidate& candidate = candidates[i];
+					int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+					//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+					const GeometryBase* geo = m_surface_lights[light_index];
+					geo->sampleLight(candidate.sample, ref, sampler);
+					candidate.sample.pdf /= m_surface_lights.size();
+					Math::Vector3f to_light = candidate.sample.vector - ref.point;
+					const double dist2 = to_light.norm2();
+					to_light /= std::sqrt(dist2);
+					double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
+					const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
+					const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+					const RGBColor L = Le * bsdf * G;
+					if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
+					{
+						candidate.w = 0;
+						candidate.p_target = 0;
+					}
+					else
+					{
+						candidate.w = L.grey() / candidate.sample.pdf;
+						candidate.p_target = L.grey();
+					}
+					sum += candidate.w;
 				}
-				else
-				{
-					candidate.w = L.grey() / candidate.sample.pdf;
-					candidate.p_target = L.grey();
-				}
-				sum += candidate.w;
+				double pdf = m_ris_number_of_candidates * p_target / sum;
+				res += pdf;
 			}
-
-			double pdf = m_ris_number_of_candidates * p_target / sum;
-			return pdf;
+			return res / N;
 		}
 
 		double pdfSkybox()const
