@@ -163,7 +163,6 @@ namespace Integrator
 
 			m_frame_buffer.resize(visu.width(), visu.height());
 			m_frame_buffer.fill();
-			visu.clean();
 			ProgressReporter reporter;
 			reporter.start(m_sample_per_pixel);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
@@ -199,7 +198,7 @@ namespace Integrator
 						}//pixel x
 					}//pixel y
 					//the pass has been computed
-				showFrame(visu, pass);
+				showFrame(visu, pass+1);
 				reporter.report(pass + 1, -1);
 
 				scene.update_lights_offset(1);
@@ -211,7 +210,7 @@ namespace Integrator
 				}
 				else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
 				{
-					Image::ImWrite::write(m_frame_buffer, 1.0/ double(m_sample_per_pixel));
+					Image::ImWrite::write(m_frame_buffer, 1.0/ double(pass+1));
 				}
 			}//pass per pixel
 
