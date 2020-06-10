@@ -574,7 +574,7 @@ namespace Geometry
 	public:	
 		void preAllocate()
 		{
-			m_ris_number_of_candidates = 4;
+			m_ris_number_of_candidates = m_surface_lights.size();
 			m_candidates_buffers = Parallel::preAllocate(std::vector<RISCandidate>(m_ris_number_of_candidates));
 		}
 
@@ -772,59 +772,63 @@ namespace Geometry
 			return pdf_geo * pdf_point;
 		}
 
-		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * estimate=nullptr, int offset = 0)const
+		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * Contribution=nullptr)const
 		{
-			if (m_ris_number_of_candidates == 1)
+			if (m_ris_number_of_candidates == 1) // M = 1 -> classic sampleLi
 			{
-				sampleLi(sampler, sample, ref, offset);
-				if (estimate)
+				sampleLi(sampler, sample, ref);
+				if (Contribution)
 				{
 					Math::Vector3f to_light = sample.vector - ref.point;
 					double dist2 = to_light.norm2();
 					to_light /= std::sqrt(dist2);
 					double G = std::abs((to_light * ref.primitive_normal) * (to_light * sample.normal)) / dist2;
-					*estimate = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
-						sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G / sample.pdf;
-					if (estimate->anythingWrong())	*estimate = 0;
+					*Contribution = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
+						sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G;
+					if (Contribution->anythingWrong())	*Contribution = 0;
 				}
 				return;
 			}
+
+			// Draw the set of candidates
+			
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			double sum = 0;
 			for (int i = 0; i < m_ris_number_of_candidates; ++i)
 			{
-				int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+				RISCandidate& candidate = candidates[i];
+				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+				//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
 				const GeometryBase* geo = m_surface_lights[light_index];
-				geo->sampleLight(candidates[i].sample, ref, sampler, offset);
-				candidates[i].sample.pdf /= m_surface_lights.size();
-				Math::Vector3f to_light = candidates[i].sample.vector - ref.point;
+				geo->sampleLight(candidate.sample, ref, sampler);
+				candidate.sample.pdf /= m_surface_lights.size();
+				Math::Vector3f to_light = candidate.sample.vector - ref.point;
 				const double dist2 = to_light.norm2();
 				to_light /= std::sqrt(dist2);
-				double G = std::abs((candidates[i].sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
-				const RGBColor Le = candidates[i].sample.geo->getMaterial()->Le(candidates[i].sample.normal, candidates[i].sample.uv, -to_light);
+				double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
+				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
 				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
 				const RGBColor L = Le * bsdf * G;
 				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
 				{
-					candidates[i].w = 0;
-					candidates[i].p_target = 0;
-					candidates[i].estimate = 0;
+					candidate.w = 0;
+					candidate.p_target = 0;
+					candidate.estimate = 0;
 				}
 				else
 				{
-					candidates[i].w = L.grey() / candidates[i].sample.pdf;
-					candidates[i].p_target = L.grey();
-					candidates[i].estimate = L / candidates[i].p_target;
+					candidate.w = L.grey() / candidate.sample.pdf;
+					candidate.p_target = L.grey();
+					candidate.estimate = L;
 				}
-				if (candidates[i].estimate.anythingWrong())
-				{
-					std::cout << bsdf << std::endl;
-				}
-				sum += candidates[i].w;
+				sum += candidate.w;
 			}
+
+			// Select one of the candidates by using their weight w as probability
+
 			if (sum == 0)
 			{
-				if (estimate) *estimate = 0;
+				if (Contribution) *Contribution = 0;
 				return;
 			}
 			double xi = sampler.generateContinuous<double>(0, sum);
@@ -837,14 +841,61 @@ namespace Geometry
 					sample = candidates[i].sample;
 					double p_of_y_knowing_x = candidates[i].w / sum;
 					double p_target = candidates[i].p_target;
+					sample.pdf = p_target * m_ris_number_of_candidates / sum;
 					assert(p_target > 0);
-					if (estimate)
-						*estimate = candidates[i].estimate * sum / candidates.size();
+					if (Contribution)
+						*Contribution = candidates[i].estimate;
 					return;
 				}
 				partial_sum = new_sum;
 			}
 			assert(false);
+		}
+
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution)const
+		{
+			if (m_ris_number_of_candidates == 1)
+				return pdfSampleLi(sample.geometry, ref, sample.point);
+			
+			double p_target, p_source;
+			p_source = pdfSampleLi(sample.geometry, ref, sample.point);
+			p_target = contribution.grey();
+			if (p_target == 0)
+				return 0;
+			double w = p_target / p_source;
+			
+			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
+			double sum = w;
+			for (int i = 1; i < m_ris_number_of_candidates; ++i) // 1 less
+			{
+				RISCandidate& candidate = candidates[i];
+				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+				//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+				const GeometryBase* geo = m_surface_lights[light_index];
+				geo->sampleLight(candidate.sample, ref, sampler);
+				candidate.sample.pdf /= m_surface_lights.size();
+				Math::Vector3f to_light = candidate.sample.vector - ref.point;
+				const double dist2 = to_light.norm2();
+				to_light /= std::sqrt(dist2);
+				double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
+				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
+				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+				const RGBColor L = Le * bsdf * G;
+				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
+				{
+					candidate.w = 0;
+					candidate.p_target = 0;
+				}
+				else
+				{
+					candidate.w = L.grey() / candidate.sample.pdf;
+					candidate.p_target = L.grey();
+				}
+				sum += candidate.w;
+			}
+
+			double pdf = m_ris_number_of_candidates * p_target / sum;
+			return pdf;
 		}
 
 		double pdfSkybox()const

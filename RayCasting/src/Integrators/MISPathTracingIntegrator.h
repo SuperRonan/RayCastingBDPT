@@ -57,6 +57,31 @@ namespace Integrator
 			return res;
 		}
 
+		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
+		{
+			RGBColor res = 0;
+
+			//sample the surface
+			SurfaceSample light_sample;
+			RGBColor contribution;
+			scene.sampleLiRIS(sampler, light_sample, hit, &contribution);
+			if (contribution.isBlack())
+				return contribution;
+			Math::Vector3f to_light = (light_sample.vector - hit.point);
+			const double dist2 = to_light.norm2();
+			const double dist = sqrt(dist2);
+			to_light /= dist;
+			Ray ray(hit.point, to_light);
+			Hit light_hit;
+			if (scene.full_intersection(ray, light_hit) && samePoint(light_hit, dist))
+			{
+				const double surface_pdf = light_sample.pdf * dist2 / std::abs(light_hit.primitive_normal * to_light);
+				const double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, to_light);
+				res += contribution / (surface_pdf + bsdf_pdf);
+			}
+			return res;
+		}
+
 		
 
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
@@ -82,7 +107,8 @@ namespace Integrator
 					{
 						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 
-						double surface_pdf = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						//double surface_pdf = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						double surface_pdf = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
 
 						res += T * contribution / (dir_pdf + surface_pdf) * dir_pdf;
 						//res += T * contribution;

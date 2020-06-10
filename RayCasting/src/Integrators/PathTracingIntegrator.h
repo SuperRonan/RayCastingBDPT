@@ -17,15 +17,15 @@ namespace Integrator
 		RGBColor addRISDirectIllumination(Scene const& scene, Hit const& ref, Math::Sampler& sampler)const
 		{
 			SurfaceSample sls;
-			RGBColor estimate;
-			scene.sampleLiRIS(sampler, sls, ref, &estimate);
-			if (estimate.isBlack())
-				return estimate;
+			RGBColor contribution;
+			scene.sampleLiRIS(sampler, sls, ref, &contribution);
+			if (contribution.isBlack())
+				return contribution;
 			Hit light_hit;
 			const Math::Vector3f to_light = sls.vector - ref.point;
 			Ray ray(ref.point, to_light);
 			bool V = (scene.full_intersection(ray, light_hit) && std::abs(light_hit.z - to_light.norm()) < 0.00001);
-			return estimate * V;
+			return contribution * V / sls.pdf;
 		}
 
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
