@@ -5,6 +5,7 @@
 
 namespace Integrator
 {
+	template <bool USE_RIS=false>
 	class IterativePathTracingIntegrator final: public RayTracingBaseIntegrator
 	{
 
@@ -52,8 +53,10 @@ namespace Integrator
 					use_emissive = hit.geometry->getMaterial()->delta();
 					if (!use_emissive && len < m_max_len)
 					{
-						//res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
-						res += prod_color * addRISDirectIllumination(scene, hit, sampler) / prod_pdf;
+						if constexpr (USE_RIS)
+							res += prod_color * addRISDirectIllumination(scene, hit, sampler) / prod_pdf;
+						else
+							res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
 					}
 
 

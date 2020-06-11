@@ -382,7 +382,7 @@ namespace Auto
 			
 			Integrator::NaivePathTracingIntegrator npti(options.sample_per_pixel * options.naive_times, options.width, options.height);
 			Integrator::IterativePathTracingIntegrator ipti(options.sample_per_pixel, options.width, options.height);
-			Integrator::MISPathTracingIntegrator mispti(options.sample_per_pixel, options.width, options.height);
+			Integrator::MISPT mispti(options.sample_per_pixel, options.width, options.height);
 			Integrator::LightIntegrator lti(options.sample_per_pixel, options.width, options.height);
 			Integrator::BidirectionalIntegrator bdpti(options.sample_per_pixel, options.width, options.height);
 			//Integrator::NaiveBidirectionalIntegrator nbdpti(options.sample_per_pixel, options.width, options.height);

@@ -960,10 +960,15 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 enum RenderMode : int {
 	rayTracing = 0, box = 1, normal = 2, uv = 3, materialID = 4, zBuffer = 5, AmbientOcclusion = 6,
-	pathTracing = 7, iterativePathTracing = 8, lightTracing = 9, bdpt = 10, MISPathTracing = 11, naivePathTracing = 12,
-	naiveBDPT = 13, OptiMISBDPT = 14, OptimalDirect = 15, PhotonMapper = 16, ProgressivePhotonMapper = 17, SimpleVCM = 18,
-	UncorellatedBDPT = 19, VCM = 20, OptiVCM = 21,
-};
+	naivePathTracing = 10, 
+	PathTracing = 20, RISPathTracing = 21,
+	MISPT = 30, RISinMISPT = 31,
+	lightTracing = 40, 
+	bdpt = 50, naiveBDPT = 51, OptiMISBDPT = 52, UncorellatedBDPT = 53,
+	OptimalDirect = 60, 
+	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
+	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
+	};
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
 {
@@ -987,15 +992,27 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	}
 
 	{
-		res[RenderMode::iterativePathTracing] = new Integrator::IterativePathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::iterativePathTracing]->setLen(maxLen);
-		res[RenderMode::iterativePathTracing]->m_alpha = alpha;
+		res[RenderMode::PathTracing] = new Integrator::IterativePathTracingIntegrator<false>(sample_per_pixel, w, h);
+		res[RenderMode::PathTracing]->setLen(maxLen);
+		res[RenderMode::PathTracing]->m_alpha = alpha;
 	}
 
 	{
-		res[RenderMode::MISPathTracing] = new Integrator::MISPathTracingIntegrator(sample_per_pixel, w, h);
-		res[RenderMode::MISPathTracing]->setLen(maxLen);
-		res[RenderMode::MISPathTracing]->m_alpha = alpha;
+		res[RenderMode::RISPathTracing] = new Integrator::IterativePathTracingIntegrator<true>(sample_per_pixel, w, h);
+		res[RenderMode::RISPathTracing]->setLen(maxLen);
+		res[RenderMode::RISPathTracing]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::MISPT] = new Integrator::MISPT<false>(sample_per_pixel, w, h);
+		res[RenderMode::MISPT]->setLen(maxLen);
+		res[RenderMode::MISPT]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::RISinMISPT] = new Integrator::MISPT<true>(sample_per_pixel, w, h);
+		res[RenderMode::RISinMISPT]->setLen(maxLen);
+		res[RenderMode::RISinMISPT]->m_alpha = alpha;
 	}
 
 	{
@@ -1207,14 +1224,28 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 				render_mode = RenderMode::naivePathTracing;
 				break;
 			case SDLK_y:
-				if (render_mode != RenderMode::iterativePathTracing)
-					std::cout << "switching to iterative Path Tracing" << std::endl;
-				render_mode = RenderMode::iterativePathTracing;
+				if (render_mode == RenderMode::PathTracing)
+				{
+					std::cout << "switching to RIS PT" << std::endl;
+					render_mode = RenderMode::RISPathTracing;
+				}
+				else
+				{
+					std::cout << "switching to PT" << std::endl;
+					render_mode = RenderMode::PathTracing;
+				}
 				break;
 			case SDLK_g:
-				if (render_mode != RenderMode::MISPathTracing)
-					std::cout << "switching to MIS Path Tracing" << std::endl;
-				render_mode = RenderMode::MISPathTracing;
+				if (render_mode == RenderMode::MISPT)
+				{
+					std::cout << "switching to RIS MIS PT" << std::endl;
+					render_mode = RenderMode::RISinMISPT;
+				}
+				else
+				{
+					std::cout << "switching to MIS PT" << std::endl;
+					render_mode = RenderMode::MISPT;
+				}
 				break;
 			case SDLK_l:
 				if (render_mode != RenderMode::lightTracing)

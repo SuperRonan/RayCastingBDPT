@@ -6,13 +6,14 @@
 
 namespace Integrator
 {
-	class MISPathTracingIntegrator: public RayTracingBaseIntegrator
+	template <bool USE_RIS=false>
+	class MISPT: public RayTracingBaseIntegrator
 	{
 	protected:
 
 	public:
 
-		MISPathTracingIntegrator(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
+		MISPT(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			RayTracingBaseIntegrator(sample_per_pixel, width, height)
 		{}
 
@@ -107,20 +108,25 @@ namespace Integrator
 					else
 					{
 						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
-
-						//double surface_pdf = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
-						double surface_pdf = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						double surface_pdf_area;
+						if constexpr (USE_RIS)
+							surface_pdf_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution);
+						else
+							surface_pdf_area = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
+						double conversion = hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						double surface_pdf = surface_pdf_area * conversion;
 						double weight = dir_pdf / (dir_pdf + surface_pdf);
 						res += T * contribution * weight;
-						//res += T * contribution;
 					}
 
 					prev_delta = hit.geometry->getMaterial()->delta();
 
 					if (!prev_delta && len < m_max_len)
 					{
-						//res += T * MISAddDirectIllumination(scene, hit, sampler);
-						res += T * MISAddRISDirectIllumination(scene, hit, sampler);
+						if constexpr (USE_RIS)
+							res += T * MISAddRISDirectIllumination(scene, hit, sampler);
+						else
+							res += T * MISAddDirectIllumination(scene, hit, sampler);
 					}
 
 					double xi = sampler.generateContinuous<double>();
