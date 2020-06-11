@@ -796,9 +796,10 @@ namespace Geometry
 			
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			double sum = 0;
+			int index = 0;
 			for (int i = 0; i < m_ris_number_of_candidates; ++i)
 			{
-				RISCandidate& candidate = candidates[i];
+				RISCandidate& candidate = candidates[index];
 				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
 				//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
 				const GeometryBase* geo = m_surface_lights[light_index];
@@ -813,15 +814,15 @@ namespace Geometry
 				const RGBColor L = Le * bsdf * G;
 				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
 				{
-					candidate.w = 0;
-					candidate.p_target = 0;
-					candidate.estimate = 0;
+					// candidate = 0;
+					continue;
 				}
 				else
 				{
 					candidate.w = L.grey() / candidate.sample.pdf;
 					candidate.p_target = L.grey();
 					candidate.estimate = L;
+					++index;
 				}
 				sum += candidate.w;
 			}
@@ -841,10 +842,9 @@ namespace Geometry
 				if (xi >= partial_sum && xi < new_sum)
 				{
 					sample = candidates[i].sample;
-					double p_of_y_knowing_x = candidates[i].w / sum;
 					double p_target = candidates[i].p_target;
 					sample.pdf = p_target * m_ris_number_of_candidates / sum;
-					if(false) 
+					if(m_ris_estimate_N > 1) 
 					{
 						Hit sample_hit;
 						sample_hit.point = sample.vector;
@@ -852,7 +852,8 @@ namespace Geometry
 						sample.primitive = sample.primitive;
 						sample_hit.normal = sample_hit.primitive_normal = sample.normal;
 						sample_hit.tex_uv = sample.uv;
-						sample.pdf = pdfRISEstimate(ref, sample_hit, sampler, candidates[i].estimate);
+						double estimate = pdfRISEstimate(ref, sample_hit, sampler, candidates[i].estimate, m_ris_estimate_N-1);
+						sample.pdf = (sample.pdf + estimate * (m_ris_estimate_N - 1)) / m_ris_estimate_N;
 					}
 					assert(p_target > 0);
 					if (Contribution)
@@ -886,9 +887,10 @@ namespace Geometry
 			for (int n = 0; n < N; ++n)
 			{
 				double sum = w;
-				for (int i = 1; i < m_ris_number_of_candidates; ++i) // 1 less
+				int index = 0;
+				for (int i = 0; i < m_ris_number_of_candidates-1; ++i) // 1 less
 				{
-					RISCandidate& candidate = candidates[i];
+					RISCandidate& candidate = candidates[index];
 					int light_index = sampler.generate(0, m_surface_lights.size() - 1);
 					//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
 					const GeometryBase* geo = m_surface_lights[light_index];
@@ -903,13 +905,14 @@ namespace Geometry
 					const RGBColor L = Le * bsdf * G;
 					if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
 					{
-						candidate.w = 0;
-						candidate.p_target = 0;
+						// candidate = 0
+						continue; 
 					}
 					else
 					{
 						candidate.w = L.grey() / candidate.sample.pdf;
 						candidate.p_target = L.grey();
+						++index;
 					}
 					sum += candidate.w;
 				}
