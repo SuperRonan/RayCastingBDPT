@@ -772,7 +772,7 @@ namespace Geometry
 			return pdf_geo * pdf_point;
 		}
 
-		int m_ris_estimate_N = 4;
+		int m_ris_estimate_N = 1;
 
 		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * Contribution=nullptr)const
 		{

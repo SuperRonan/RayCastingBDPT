@@ -77,7 +77,8 @@ namespace Integrator
 			{
 				const double surface_pdf = light_sample.pdf * dist2 / std::abs(light_hit.primitive_normal * to_light);
 				const double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, to_light);
-				res += contribution / (surface_pdf + bsdf_pdf);
+				double weight = surface_pdf / (surface_pdf + bsdf_pdf);
+				res = contribution / light_sample.pdf * weight;
 			}
 			return res;
 		}
@@ -109,8 +110,8 @@ namespace Integrator
 
 						//double surface_pdf = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
 						double surface_pdf = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution) * hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
-
-						res += T * contribution / (dir_pdf + surface_pdf) * dir_pdf;
+						double weight = dir_pdf / (dir_pdf + surface_pdf);
+						res += T * contribution * weight;
 						//res += T * contribution;
 					}
 
@@ -118,7 +119,8 @@ namespace Integrator
 
 					if (!prev_delta && len < m_max_len)
 					{
-						res += T * MISAddDirectIllumination(scene, hit, sampler);
+						//res += T * MISAddDirectIllumination(scene, hit, sampler);
+						res += T * MISAddRISDirectIllumination(scene, hit, sampler);
 					}
 
 					double xi = sampler.generateContinuous<double>();
