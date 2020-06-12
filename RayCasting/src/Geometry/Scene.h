@@ -32,7 +32,8 @@
 #include <Geometry/BVH.h>
 #include <Geometry/Shapes/Disk.h>
 #include <System/Parallel.h>
-
+#include <map>
+#include <unordered_map>
 
 namespace Geometry
 {
@@ -571,6 +572,8 @@ namespace Geometry
 
 		int m_ris_number_of_candidates;
 
+		std::map<const GeometryBase*, int> m_light_to_index;
+
 	public:	
 		void preAllocate()
 		{
@@ -695,6 +698,12 @@ namespace Geometry
 			m_envmap.setSphere(m_sceneBoundingBox.center(), longest_radius * 1.01);
 
 			m_envmap.preCompute(div);
+
+			m_light_to_index.clear();
+			for (int i = 0; i < m_surface_lights.size(); ++i)
+			{
+				m_light_to_index.emplace(m_surface_lights[i], i);
+			}
 		}
 
 
@@ -800,8 +809,8 @@ namespace Geometry
 			for (int i = 0; i < m_ris_number_of_candidates; ++i)
 			{
 				RISCandidate& candidate = candidates[index];
-				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
-				//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+				//int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+				int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
 				const GeometryBase* geo = m_surface_lights[light_index];
 				geo->sampleLight(candidate.sample, ref, sampler);
 				candidate.sample.pdf /= m_surface_lights.size();
@@ -883,16 +892,25 @@ namespace Geometry
 				return 0;
 			double w = p_target / p_source;
 			double res = 0;
+			int sample_light_index = m_light_to_index.at(sample.geometry);
 			std::vector<RISCandidate>& candidates = m_candidates_buffers[Parallel::tid()];
 			for (int n = 0; n < N; ++n)
 			{
+				bool has_seen_sample_light_index = false;
 				double sum = w;
 				int index = 0;
-				for (int i = 0; i < m_ris_number_of_candidates-1; ++i) // 1 less
+				for (int i = 0; i < m_ris_number_of_candidates; ++i) 
 				{
+					if (i == sample_light_index && !has_seen_sample_light_index) // 1 less
+					{
+						// Warning! this works because the number of ris candidates == number of lights!!!
+						assert(m_ris_number_of_candidates == m_surface_lights.size());
+						has_seen_sample_light_index = true;
+						continue; //discard this index 
+					}
 					RISCandidate& candidate = candidates[index];
-					int light_index = sampler.generate(0, m_surface_lights.size() - 1);
-					//int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+					//int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+					int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
 					const GeometryBase* geo = m_surface_lights[light_index];
 					geo->sampleLight(candidate.sample, ref, sampler);
 					candidate.sample.pdf /= m_surface_lights.size();
@@ -916,6 +934,7 @@ namespace Geometry
 					}
 					sum += candidate.w;
 				}
+				assert(has_seen_sample_light_index);
 				double pdf = m_ris_number_of_candidates * p_target / sum;
 				res += pdf;
 			}
