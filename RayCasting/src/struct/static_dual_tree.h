@@ -40,7 +40,7 @@ protected:
 
 /////////////////////////////////////
 // Static: always the same number of sons for each node
-// Dual: Carries tzo types, one for the nodes and one for the leaf
+// Dual: Carries two types, one for the nodes and one for the leaf
 /////////////////////////////////////
 template<unsigned int N, class node_type, class leaf_type>
 class StaticDualTree

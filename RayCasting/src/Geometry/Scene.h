@@ -579,6 +579,9 @@ namespace Geometry
 		{
 			m_ris_number_of_candidates = m_surface_lights.size();
 			m_candidates_buffers = Parallel::preAllocate(std::vector<RISCandidate>(m_ris_number_of_candidates));
+			m_disk_bvh.preAllocate();
+			m_triangle_bvh.preAllocate();
+			m_sphere_bvh.preAllocate();
 		}
 
 

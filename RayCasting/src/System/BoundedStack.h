@@ -147,6 +147,7 @@ public:
 template <class T>
 using StackN = BoundedStack<12, T>;
 
+// -1 -> the data buffer is given (and not owned by this)
 template <class T>
 class BoundedStack<-1, T>
 {

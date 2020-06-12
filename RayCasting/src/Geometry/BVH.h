@@ -231,16 +231,16 @@ namespace Geometry
 			return res;
 		}
 
+		struct Param
+		{
+			const Node* node;
+			double t_entry;
+			double t_exit;
+		};
 
 		
 		void iterativeIntersection(CastedRay<Primitive>& cray)const
 		{
-			struct Param
-			{
-				const TreeType* node;
-				double t_entry;
-				double t_exit;
-			};
 			Param current = { m_tree, 0, 0 };
 			if (current.node->getNodeValue().intersect(cray, 0, std::numeric_limits<double>::max(), current.t_entry, current.t_exit))
 			{
@@ -359,17 +359,32 @@ namespace Geometry
 			}//if intersection with the surrounding box
 		}
 
+		int maxDepth(const TreeType * node)const
+		{
+			if (node->isLeaf())
+				return 1;
+			else
+				return 1 + std::max(maxDepth((*node)[0]), maxDepth((*node)[1]));
+		}
+
+	public:
+		void preAllocate()
+		{
+			int depth = (m_tree ? maxDepth(m_tree) : 0) + 1; // + 1 to be sure
+			m_params_buffers = Parallel::preAllocate(std::vector<Param>(depth));
+		}
+
+	protected:
+
+		mutable std::vector<std::vector<Param>> m_params_buffers;
+
+
 		void iterativeIntersectionVector(CastedRay<Primitive>& cray)const
 		{
-			struct Param
-			{
-				const Node* node;
-				double t_entry;
-				double t_exit;
-			};
 			Param current = { &m_tree_vector[0], 0, 0 };
 			if (current.node->box.intersect(cray, 0, std::numeric_limits<double>::max(), current.t_entry, current.t_exit))
 			{
+				//BoundedStack<-1, Param> params(m_params_buffers[Parallel::tid()].data(), m_params_buffers[Parallel::tid()].size());
 				BoundedStack<30, Param> params;
 				while (true)
 				{
