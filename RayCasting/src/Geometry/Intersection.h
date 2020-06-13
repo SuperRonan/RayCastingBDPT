@@ -20,6 +20,8 @@ namespace Geometry
 
 		Math::Vector2f m_uv = { 0, 0 };
 
+		static double constexpr epsilon = 1e-9;
+
 	public:
 
 		Intersection(bool v=false, double t=std::numeric_limits<double>::max()):
@@ -65,7 +67,7 @@ namespace Geometry
 		if (std::abs(delta) < std::numeric_limits<double>::epsilon())
 		{
 			const double t = -b / (2 * a);
-			if (t > 0.000000001 && t < m_t)
+			if (t > epsilon && t < m_t)
 			{
 				m_valid = true;
 				m_t = t;
@@ -77,7 +79,7 @@ namespace Geometry
 			const double left = -b / (2 * a);
 			const double right = std::sqrt(delta) / (2 * a);
 			double t = left - right;
-			if (t > 0.000000001 && t < m_t)
+			if (t > epsilon && t < m_t)
 			{
 				m_valid = true;
 				m_t = t;
@@ -85,7 +87,7 @@ namespace Geometry
 				return;
 			}
 			t = left + right;
-			if (t > 0.0000000001 && t < m_t)
+			if (t > epsilon && t < m_t)
 			{
 				m_valid = true;
 				m_t = t;
@@ -150,7 +152,7 @@ namespace Geometry
 			return;
 		}
 		const double t = (tri.vAxis() * qvec) * inv_det;
-		if (t < 0.000000001 || t > m_t)
+		if (t < epsilon || t > m_t)
 		{
 			return;
 		}
@@ -189,7 +191,7 @@ namespace Geometry
 		double denum = disk.normal() * ray.direction();
 		double num = disk.normal() * (disk.center() - ray.source());
 		double t = num / denum;
-		if (t < 0.0000000001 || t > m_t)
+		if (t < epsilon || t > m_t)
 		{
 			return;
 		}
