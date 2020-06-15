@@ -19,6 +19,8 @@ namespace Geometry
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	class RGBColor
 	{
+	public:
+		static int constexpr nSamples = 3;
 	protected:
 		/// \brief	The red(0), green(1) and blue (2) components.
 		double m_color[3] ;

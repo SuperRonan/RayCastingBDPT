@@ -302,6 +302,7 @@
     <ClInclude Include="..\src\Math\SolidAngleSampler.h" />
     <ClInclude Include="..\src\Math\Vector.h" />
     <ClInclude Include="..\src\Math\Vectorf.h" />
+    <ClInclude Include="..\src\MIS\Estimators.h" />
     <ClInclude Include="..\src\MIS\ImageEstimators.h" />
     <ClInclude Include="..\src\settings.h" />
     <ClInclude Include="..\src\Set\set_operators.h" />

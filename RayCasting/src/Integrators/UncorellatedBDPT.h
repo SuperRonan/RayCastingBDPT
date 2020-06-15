@@ -248,8 +248,8 @@ namespace Integrator
 #endif
 		}
 
-		std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-		//std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		std::vector<MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
+		//std::vector<MIS::BalanceEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
