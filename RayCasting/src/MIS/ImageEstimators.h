@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Image/Image.h>
-#include <Geometry/RGBColor.h>
 #include <omp.h>
 #include <cassert>
 #include <Math\Vector.h>
@@ -13,7 +12,7 @@
 namespace MIS
 {
 
-	template <bool MAJOR>
+	template <class Spectrum, bool MAJOR>
 	class ImageEstimator
 	{
 	protected:
@@ -40,26 +39,26 @@ namespace MIS
 		virtual void setSampleForTechnique(int techIndex, int n)
 		{}
 
-		virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
+		virtual void addEstimate(Spectrum const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
 
-		virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
+		virtual void addOneTechniqueEstimate(Spectrum const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
 
 		virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
 
 		virtual void loop() = 0;
 
-		virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) = 0;
+		virtual void solve(Image::Image<Spectrum, MAJOR>& res, int iterations) = 0;
 
 		virtual void debug(int iterations, bool col_sum, bool matrix, bool vec, bool alpha)const
 		{}
 	};
 
-	template <bool MAJOR>
-	class BalanceEstimatorImage : public ImageEstimator<MAJOR>
+	template <class Spectrum, bool MAJOR>
+	class BalanceEstimatorImage : public ImageEstimator<Spectrum, MAJOR>
 	{
 	protected:
 
-		Image::Image<Geometry::RGBColor, MAJOR> m_image;
+		Image::Image<Spectrum, MAJOR> m_image;
 
 		std::mutex m_mutex;
 
@@ -79,7 +78,7 @@ namespace MIS
 		}
 
 
-		virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addEstimate(Spectrum const& balanceEstimate, double* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 		{
 			addOneTechniqueEstimate(balanceEstimate, tech_index, uv, thread_safe_update);
 		}
@@ -90,7 +89,7 @@ namespace MIS
 		virtual void loop() override
 		{}
 
-		virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addOneTechniqueEstimate(Spectrum const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 		{
 			Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
 			if (thread_safe_update)
@@ -100,7 +99,7 @@ namespace MIS
 				m_mutex.unlock();
 		}
 
-		virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
+		virtual void solve(Image::Image<Spectrum, MAJOR>& res, int iterations) override
 		{
 			Parallel::ParallelFor(0, m_width * m_height,
 				[&](int pixel)
@@ -110,8 +109,8 @@ namespace MIS
 		}
 	};
 
-	template <bool MAJOR>
-	class DirectEstimatorImage : public ImageEstimator<MAJOR>
+	template <class Spectrum, bool MAJOR>
+	class DirectEstimatorImage : public ImageEstimator<Spectrum, MAJOR>
 	{
 	protected:
 
@@ -162,7 +161,7 @@ namespace MIS
 			return res;
 #else
 			const StorageFloat* matrix = m_matrices.data() + msize * index;
-			const StorageFloat* vector = m_vectors.data() + m_numtechs * 3 * index;
+			const StorageFloat* vector = m_vectors.data() + m_numtechs * Spectrum::nSamples * index;
 			const StorageUInt* counts = m_sampleCounts.data() + m_numtechs * index;
 			PixelData res(matrix, vector, counts);
 			return res;
@@ -207,16 +206,16 @@ namespace MIS
 		DirectEstimatorImage(int N, int width, int height) :
 			ImageEstimator(N, width, height),
 			msize(N* (N + 1) / 2),
-			m_pixel_data_size(msize * sizeof(StorageFloat) + 3 * m_numtechs * sizeof(StorageFloat) + m_numtechs * sizeof(StorageUInt)),
+			m_pixel_data_size(msize * sizeof(StorageFloat) + Spectrum::nSamples * m_numtechs * sizeof(StorageFloat) + m_numtechs * sizeof(StorageUInt)),
 			m_vector_ofsset(msize * sizeof(StorageFloat)),
-			m_counter_offset(msize * sizeof(StorageFloat) + 3 * m_numtechs * sizeof(StorageFloat)),
+			m_counter_offset(msize * sizeof(StorageFloat) + Spectrum::nSamples * m_numtechs * sizeof(StorageFloat)),
 			m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
 		{
 			int res = width * height;
 			m_data = std::vector<char>(res * m_pixel_data_size, (char)0);
 		}
 
-		DirectEstimatorImage(DirectEstimatorImage<MAJOR> const& other) :
+		DirectEstimatorImage(DirectEstimatorImage<Spectrum, MAJOR> const& other) :
 			ImageEstimator(other),
 			msize(other.msize),
 			m_pixel_data_size(other.m_pixel_data_size),
@@ -233,7 +232,7 @@ namespace MIS
 		{
 			int res = width * height;
 			m_matrices = std::vector<StorageFloat>(res * msize, (StorageFloat)0.0);
-			m_vectors = std::vector<StorageFloat>(res * m_numtechs * 3, (StorageFloat)0.0);
+			m_vectors = std::vector<StorageFloat>(res * m_numtechs * Spectrum::nSamples, (StorageFloat)0.0);
 			m_sampleCounts = std::vector<StorageUInt>(res * m_numtechs, (StorageUInt)0);
 		}
 
@@ -252,7 +251,7 @@ namespace MIS
 			m_sample_per_technique[techIndex] = n;
 		}
 
-		void checkSample(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index)
+		void checkSample(Spectrum const& balanceEstimate, Float* balanceWeights, int tech_index)
 		{
 			for (int i = 0; i < m_numtechs; ++i)
 			{
@@ -265,7 +264,7 @@ namespace MIS
 			}
 		}
 
-		virtual void addEstimate(Geometry::RGBColor const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addEstimate(Spectrum const& balanceEstimate, Float* balanceWeights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 		{
 			PixelData data = getPixelData(uv);
 			if (thread_safe_update)
@@ -282,7 +281,7 @@ namespace MIS
 			}
 			if (!balanceEstimate.isBlack())
 			{
-				for (int k = 0; k < 3; ++k)
+				for (int k = 0; k < Spectrum::nSamples; ++k)
 				{
 					StorageFloat* vector = data.contribVector + k * m_numtechs;
 					for (int i = 0; i < m_numtechs; ++i)
@@ -309,7 +308,7 @@ namespace MIS
 				m_mutex.unlock();
 		}
 
-		virtual void addOneTechniqueEstimate(Geometry::RGBColor const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addOneTechniqueEstimate(Spectrum const& balanceEstimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
 		{
 			PixelData data = getPixelData(uv);
 			int mat_index = matTo1D(tech_index, tech_index);
@@ -317,7 +316,7 @@ namespace MIS
 				m_mutex.lock();
 			++data.sampleCount[tech_index];
 			data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
-			for (int k = 0; k < 3; ++k)
+			for (int k = 0; k < Spectrum::nSamples; ++k)
 			{
 				StorageFloat* vector = data.contribVector + k * m_numtechs;
 				vector[tech_index] = vector[tech_index] + balanceEstimate[k];
@@ -403,7 +402,7 @@ namespace MIS
 
 		virtual void saveVectors(int iterations)const
 		{
-			Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
+			Image::Image<Spectrum, MAJOR> img(m_width * m_numtechs, m_height);
 			int resolution = m_width * m_height;
 			Parallel::ParallelFor(0, resolution, [&](int pixel)
 				{
@@ -412,7 +411,7 @@ namespace MIS
 					PixelData data = getPixelData(pixel);
 					for (int i = 0; i < m_numtechs; ++i)
 					{
-						for (int k = 0; k < 3; ++k)
+						for (int k = 0; k < Spectrum::nSamples; ++k)
 						{
 							img(indices[0] * m_numtechs + i, indices[1])[k] = (data.contribVector + k * m_numtechs)[i] / iterations;
 						}
@@ -423,7 +422,7 @@ namespace MIS
 
 		virtual void saveAlphas(int iterations)const
 		{
-			Image::Image<Geometry::RGBColor, MAJOR> img(m_width * m_numtechs, m_height);
+			Image::Image<Spectrum, MAJOR> img(m_width * m_numtechs, m_height);
 			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
 			VectorT MVector(m_numtechs);
 			for (int i = 0; i < m_numtechs; ++i)	MVector(i) = m_sample_per_technique[i];
@@ -443,7 +442,7 @@ namespace MIS
 
 					bool matrix_done = false;
 
-					for (int k = 0; k < 3; ++k)
+					for (int k = 0; k < Spectrum::nSamples; ++k)
 					{
 						bool isZero = true;
 						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
@@ -490,7 +489,7 @@ namespace MIS
 		}
 #endif
 
-		virtual void solve(Image::Image<Geometry::RGBColor, MAJOR>& res, int iterations) override
+		virtual void solve(Image::Image<Spectrum, MAJOR>& res, int iterations) override
 		{
 			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
 			VectorT MVector(m_numtechs);
@@ -506,13 +505,13 @@ namespace MIS
 					VectorT& vector = vectors[tid];
 					Solver& solver = solvers[tid];
 
-					Geometry::RGBColor color = 0;
+					Spectrum color = 0;
 
 					PixelData data = getPixelData(pixel);
 
 					bool matrix_done = false;
 
-					for (int k = 0; k < 3; ++k)
+					for (int k = 0; k < Spectrum::nSamples; ++k)
 					{
 						bool isZero = true;
 						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;

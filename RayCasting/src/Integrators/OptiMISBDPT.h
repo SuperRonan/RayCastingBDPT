@@ -242,8 +242,8 @@ namespace Integrator
 #endif
 		}
 
-		mutable std::vector<MIS::DirectEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
-		//mutable std::vector<MIS::BalanceEstimatorImage<Image::IMAGE_ROW_MAJOR>> solvers;
+		mutable std::vector<MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
+		//mutable std::vector<MIS::BalanceEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
 
 		const bool DEBUG = false;
 
