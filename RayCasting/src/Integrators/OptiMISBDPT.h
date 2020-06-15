@@ -261,7 +261,8 @@ namespace Integrator
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int num_tech = len;
-				solvers.emplace_back(num_tech, visu.width(), visu.height());
+				//solvers.emplace_back(num_tech, visu.width(), visu.height());
+				solvers.push_back(MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>(num_tech, visu.width(), visu.height()));
 				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size());
 				reporter.report(len - 1);
 			}
