@@ -245,6 +245,7 @@ namespace Integrator
 		mutable std::vector<MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
 		//mutable std::vector<MIS::BalanceEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
 
+
 		const bool DEBUG = false;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
