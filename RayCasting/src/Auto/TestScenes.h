@@ -750,10 +750,10 @@ namespace Auto
 			base -= d * 1.5;
 			for (int i = 0; i < sizes.size(); ++i)
 			{
-				Geometry::Material* mat = new Geometry::Material(colors[i] * colors_multipliers[i] * 5 * scale / (sizes[i] * sizes[i]));
+				Geometry::Material* mat = new Geometry::Material(colors[i] * colors_multipliers[i] * 5 / (sizes[i] * sizes[i]));
 				if (true)//spheres
 				{
-					Geometry::Sphere sphere = Geometry::Sphere(base + d * i, sizes[i], mat);
+					Geometry::Sphere sphere = Geometry::Sphere(base + d * i, sizes[i] * scale, mat);
 					scene.add(sphere);
 				}
 				else
