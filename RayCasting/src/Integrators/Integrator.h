@@ -27,7 +27,7 @@ namespace Integrator
 		
 
 	public:
-		double m_alpha = 0.5;
+		double m_alpha = 1;
 
 	protected:
 

@@ -982,6 +982,7 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	{
 		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect(sample_per_pixel, w, h);
 		res[RenderMode::OptimalDirect]->setLen(maxLen);
+		res[RenderMode::OptimalDirect]->m_alpha = alpha;
 	}
 
 
@@ -1573,7 +1574,7 @@ int main(int argc, char** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 11;
+	unsigned int maxLen = 3;
 
 	unsigned int lights_divisions = sample_per_pixel*0+1;
 
