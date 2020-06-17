@@ -960,12 +960,12 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 
 enum RenderMode : int {
 	rayTracing = 0, box = 1, normal = 2, uv = 3, materialID = 4, zBuffer = 5, AmbientOcclusion = 6,
-	naivePathTracing = 10, 
+	naivePathTracing = 10,
 	PathTracing = 20, RISPathTracing = 21,
 	MISPT = 30, RISinMISPT = 31,
-	lightTracing = 40, 
+	lightTracing = 40,
 	bdpt = 50, naiveBDPT = 51, OptiMISBDPT = 52, UncorellatedBDPT = 53,
-	OptimalDirect = 60, 
+	OptimalDirect = 60, OptimalDirectRIS = 61,
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
 	};
@@ -980,9 +980,14 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	}
 
 	{
-		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect<false>(sample_per_pixel, w, h);
 		res[RenderMode::OptimalDirect]->setLen(maxLen);
 		res[RenderMode::OptimalDirect]->m_alpha = alpha;
+	}
+	{
+		res[RenderMode::OptimalDirectRIS] = new Integrator::OptimalDirect<true>(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirectRIS]->setLen(maxLen);
+		res[RenderMode::OptimalDirectRIS]->m_alpha = alpha;
 	}
 
 
@@ -1260,8 +1265,15 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 				break;
 			case SDLK_x:
 				if (render_mode != RenderMode::OptimalDirect)
-					std::cout << "switching to Optimis Direct" << std::endl;
-				render_mode = RenderMode::OptimalDirect;
+				{
+					std::cout << "switching to optimal direct" << std::endl;
+					render_mode = RenderMode::OptimalDirect;
+				}
+				else
+				{
+					std::cout << "switching to optimal direct with RIS" << std::endl;
+					render_mode = RenderMode::OptimalDirectRIS;
+				}
 				break;
 			case SDLK_w:
 				if (render_mode != RenderMode::OptiMISBDPT)
