@@ -147,7 +147,7 @@ namespace Integrator
 							s1_pdf = scene.pdfSampleLi(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
 							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf, pdf);
 
-							solver.addEstimate(L * weight, weights, 0, p);
+							solver.addEstimate(L * weight, weights, 0, p[0], p[1]);
 						}
 					}
 					else
@@ -225,7 +225,7 @@ namespace Integrator
 						if (scene.visibility(light_top.hit.point, camera_top.hit.point))
 						{
 							double weight = VCWeight(weights, cameraSubPath, lightSubPath, s, t, first_t_not_spicky, last_s_not_spicky, s1_pdf);
-							solver.addEstimate(L * weight, weights, s, p);
+							solver.addEstimate(L * weight, weights, s, p[0], p[1]);
 						}
 
 					}
@@ -275,7 +275,7 @@ namespace Integrator
 									const double w = VMWeight(weights, cameraSubPath, lightSubPath, s, t, s1_pdf);
 									RGBColor BE = L * k / m_photon_emitted * w;
 									
-									solver.addEstimate(BE, weights, VMtechIndex(len), uv);
+									solver.addEstimate(BE, weights, VMtechIndex(len), uv[0], uv[1]);
 								}
 							}
 						}, pt.hit.point);
@@ -508,9 +508,9 @@ namespace Integrator
 #endif
 		}
 
-		mutable std::vector<MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
-		//mutable std::vector<MIS::BalanceEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
-
+		using Estimator = MIS::DirectEstimatorImage < RGBColor, double, Image::IMAGE_ROW_MAJOR > ;
+		//using Estimator = MIS::BalanceEstimatorImage < RGBColor, double, Image::IMAGE_ROW_MAJOR > ;
+		mutable std::vector<Estimator> solvers;
 
 		
 		const bool DEBUG = false;

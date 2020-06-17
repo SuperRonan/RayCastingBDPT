@@ -54,12 +54,12 @@ namespace Integrator
 							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf, pdf_light);
 							if (weight == -1)
 							{
-								solver.addOneTechniqueEstimate(L, s, p);
+								solver.addOneTechniqueEstimate(L, s, p[0], p[1]);
 							}
 							else
 							{
 								L *= weight;
-								solver.addEstimate(L, weights, s, p);
+								solver.addEstimate(L, weights, s, p[0], p[1]);
 							}
 						}
 					}
@@ -143,11 +143,11 @@ namespace Integrator
 							double weight = computeWeights(weights, cameraSubPath, LightSubPath, s, t, s1_pdf);
 							if (weight == -1)
 							{
-								solver.addOneTechniqueEstimate(L, s, p);
+								solver.addOneTechniqueEstimate(L, s, p[0], p[1]);
 							}
 							else
 							{
-								solver.addEstimate(L * weight, weights, s, p);
+								solver.addEstimate(L * weight, weights, s, p[0], p[1]);
 							}
 						}
 					}
@@ -248,8 +248,9 @@ namespace Integrator
 #endif
 		}
 
-		std::vector<MIS::DirectEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
-		//std::vector<MIS::BalanceEstimatorImage<RGBColor, Image::IMAGE_ROW_MAJOR>> solvers;
+		using Estimator = MIS::DirectEstimatorImage<RGBColor, double, Image::IMAGE_ROW_MAJOR>;
+		//using Estimator = MIS::BalanceEstimatorImage<RGBColor, double, Image::IMAGE_ROW_MAJOR>;
+		std::vector<Estimator> solvers;
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{

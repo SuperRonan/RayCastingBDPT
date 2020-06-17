@@ -12,7 +12,7 @@
 namespace MIS
 {
 
-	template <class Spectrum, bool MAJOR>
+	template <class Spectrum, class Float, bool MAJOR>
 	class ImageEstimator
 	{
 	protected:
@@ -39,11 +39,9 @@ namespace MIS
 		virtual void setSampleForTechnique(int techIndex, int n)
 		{}
 
-		virtual void addEstimate(Spectrum const& balance_estimate, double* balance_weights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
+		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) = 0;
 
-		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
-
-		virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) = 0;
+		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Float u, Float v, bool thread_safe_update = false) = 0;
 
 		virtual void loop() = 0;
 
@@ -53,8 +51,8 @@ namespace MIS
 		{}
 	};
 
-	template <class Spectrum, bool MAJOR>
-	class BalanceEstimatorImage : public ImageEstimator<Spectrum, MAJOR>
+	template <class Spectrum, class Float, bool MAJOR>
+	class BalanceEstimatorImage : public ImageEstimator<Spectrum, Float, MAJOR>
 	{
 	protected:
 
@@ -78,20 +76,17 @@ namespace MIS
 		}
 
 
-		virtual void addEstimate(Spectrum const& balance_estimate, double* balance_weights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
 			addOneTechniqueEstimate(balance_estimate, tech_index, uv, thread_safe_update);
 		}
 
-		virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
-		{}
-
 		virtual void loop() override
 		{}
 
-		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
-			Math::Vector<int, 2> pixel = { uv[0] * m_width, uv[1] * m_height };
+			Math::Vector<int, 2> pixel = { u * m_width, v * m_height };
 			if (thread_safe_update)
 				m_mutex.lock();
 			m_image(pixel) += balance_estimate;
@@ -109,14 +104,13 @@ namespace MIS
 		}
 	};
 
-	template <class Spectrum, bool MAJOR>
-	class DirectEstimatorImage : public ImageEstimator<Spectrum, MAJOR>
+	template <class Spectrum, class Float, bool MAJOR>
+	class DirectEstimatorImage : public ImageEstimator<Spectrum, Float, MAJOR>
 	{
 	protected:
 
 #define ONE_CONTIGUOUS_ARRAY
 #define ENABLE_DEBUG
-		using Float = double;
 		using solvingFloat = Float;
 		using MatrixT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, Eigen::Dynamic>;
 		using VectorT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, 1>;
@@ -169,9 +163,9 @@ namespace MIS
 		}
 
 
-		PixelData getPixelData(Math::Vector2f const& uv)const
+		PixelData getPixelData(Float u, Float v)const
 		{
-			const Math::Vector<int, 2> pixel(uv[0] * m_width, uv[1] * m_height);
+			const Math::Vector<int, 2> pixel(u * m_width, v * m_height);
 			const int index = PixelTo1D(pixel[0], pixel[1]);
 			return getPixelData(index);
 		}
@@ -213,7 +207,7 @@ namespace MIS
 			m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
 		{}
 
-		DirectEstimatorImage(DirectEstimatorImage<Spectrum, MAJOR> const& other) :
+		DirectEstimatorImage(DirectEstimatorImage const& other) :
 			ImageEstimator(other),
 			msize(other.msize),
 			m_pixel_data_size(other.m_pixel_data_size),
@@ -223,7 +217,7 @@ namespace MIS
 			m_sample_per_technique(other.m_sample_per_technique)
 		{}
 
-		DirectEstimatorImage(DirectEstimatorImage<Spectrum, MAJOR> && other):
+		DirectEstimatorImage(DirectEstimatorImage && other):
 			ImageEstimator(other),
 			msize(other.msize),
 			m_pixel_data_size(other.m_pixel_data_size),
@@ -244,7 +238,7 @@ namespace MIS
 			m_sampleCounts = std::vector<StorageUInt>(res * m_numtechs, (StorageUInt)0);
 		}
 
-		DirectEstimatorImage(DirectEstimatorImage<Spectrum, MAJOR> const& other) :
+		DirectEstimatorImage(DirectEstimatorImage const& other) :
 			ImageEstimator(other),
 			msize(other.msize),
 			m_matrices(other.m_matrices),
@@ -253,7 +247,7 @@ namespace MIS
 			m_sample_per_technique(other.m_sample_per_technique)
 		{}
 
-		DirectEstimatorImage(DirectEstimatorImage<Spectrum, MAJOR> && other) :
+		DirectEstimatorImage(DirectEstimatorImage && other) :
 			ImageEstimator(other),
 			msize(other.msize),
 			m_matrices(std::move(other.m_matrices)),
@@ -281,9 +275,9 @@ namespace MIS
 			}
 		}
 
-		virtual void addEstimate(Spectrum const& balance_estimate, Float* balance_weights, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
-			PixelData data = getPixelData(uv);
+			PixelData data = getPixelData(u, v);
 			if (thread_safe_update)
 				m_mutex.lock();
 			++data.sampleCount[tech_index];
@@ -303,7 +297,7 @@ namespace MIS
 					StorageFloat* vector = data.contribVector + k * m_numtechs;
 					for (int i = 0; i < m_numtechs; ++i)
 					{
-						double tmp = balance_weights[i] * balance_estimate[k];
+						Float tmp = balance_weights[i] * balance_estimate[k];
 						vector[i] = vector[i] + tmp;
 					}
 				}
@@ -312,22 +306,9 @@ namespace MIS
 				m_mutex.unlock();
 		}
 
-
-		virtual void addZeroEstimate(int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
+		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
-			PixelData data = getPixelData(uv);
-			int mat_index = matTo1D(tech_index, tech_index);
-			if (thread_safe_update)
-				m_mutex.lock();
-			++data.sampleCount[tech_index];
-			data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
-			if (thread_safe_update)
-				m_mutex.unlock();
-		}
-
-		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Math::Vector2f const& uv, bool thread_safe_update = false) override
-		{
-			PixelData data = getPixelData(uv);
+			PixelData data = getPixelData(u, v);
 			int mat_index = matTo1D(tech_index, tech_index);
 			if (thread_safe_update)
 				m_mutex.lock();
@@ -381,13 +362,13 @@ namespace MIS
 					for (int i = 0; i < m_numtechs; ++i)
 					{
 						size_t expected = m_sample_per_technique[i];
-						double sum = 0;
+						Float sum = 0;
 						for (int j = 0; j < m_numtechs; ++j)
 						{
 							sum += matrix(i, j);
 						}
 						sum /= iterations;
-						double diff = (expected - sum) / expected;
+						Float diff = (expected - sum) / expected;
 						img(indices[0] * m_numtechs + i, indices[1]) = diff;
 					}
 				});
@@ -495,6 +476,7 @@ namespace MIS
 
 		virtual void debug(int iterations, bool col_sum, bool matrix, bool vec, bool alpha)const override
 		{
+#ifdef ENABLE_DEBUG
 			if (col_sum)
 				saveColSum(iterations);
 			if (matrix)
@@ -503,6 +485,9 @@ namespace MIS
 				saveVectors(iterations);
 			if (alpha)
 				saveAlphas(iterations);
+#else 
+			std::cout<<"Warning! Image Direct Estimator Debug disabled. Nothing happens!"
+#endif
 		}
 #endif
 
