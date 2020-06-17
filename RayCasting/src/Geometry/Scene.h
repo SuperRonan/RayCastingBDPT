@@ -877,11 +877,13 @@ namespace Geometry
 			assert(false);
 		}
 
+		// Contribution should be in area density
 		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution)const
 		{
 			return pdfRISEstimate(ref, sample, sampler, contribution, m_ris_estimate_N);
 		}
 
+		// Contribution should be in area density
 		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, int N)const
 		{
 			if (N == 0)	return 0;

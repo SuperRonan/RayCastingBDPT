@@ -90,6 +90,8 @@ namespace Integrator
 		{
 			Ray ray(pray);
 			RGBColor T = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction());
+			RGBColor prev_bsdf;
+			double prev_cos_theta;
 			RGBColor res = 0;
 			int len = 1;
 			Hit hit, prev_hit;
@@ -107,16 +109,19 @@ namespace Integrator
 					}
 					else
 					{
-						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
+						// Conversion from area to solid angle
+						double conversion = hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
+						RGBColor Le = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
+						double G = prev_cos_theta / conversion;
+						RGBColor contribution = prev_bsdf * Le * G;
 						double surface_pdf_area;
 						if constexpr (USE_RIS)
 							surface_pdf_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution);
 						else
 							surface_pdf_area = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
-						double conversion = hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
 						double surface_pdf = surface_pdf_area * conversion;
 						double weight = dir_pdf / (dir_pdf + surface_pdf);
-						res += T * contribution * weight;
+						res += T * Le * weight;
 					}
 
 					prev_delta = hit.geometry->getMaterial()->delta();
@@ -134,9 +139,11 @@ namespace Integrator
 					{
 						DirectionSample next_dir;
 						hit.geometry->getMaterial()->sampleBSDF(hit, next_dir, sampler);
-						T *= next_dir.bsdf * std::abs(hit.primitive_normal * next_dir.direction) / next_dir.pdf / m_alpha;
+						prev_cos_theta = std::abs(hit.primitive_normal * next_dir.direction);
+						T *= next_dir.bsdf * prev_cos_theta / next_dir.pdf / m_alpha;
 						ray = Ray(hit.point, next_dir.direction);
 						dir_pdf = next_dir.pdf;
+						prev_bsdf = next_dir.bsdf;
 					}
 					else
 					{
