@@ -78,7 +78,7 @@ namespace MIS
 
 		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
-			addOneTechniqueEstimate(balance_estimate, tech_index, uv, thread_safe_update);
+			addOneTechniqueEstimate(balance_estimate, tech_index, u, v, thread_safe_update);
 		}
 
 		virtual void loop() override

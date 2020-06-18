@@ -8,13 +8,25 @@
 
 namespace Integrator
 {
-	template <bool USE_RIS=true>
+	template <int MODE>
 	class OptimalDirect : public Integrator
 	{
 	protected:
 
-#define numTechs (USE_RIS ? 3 : 2)
+		// MODE: 
+		// 0 -> bsdf + Li
+		// 1 -> bsdf + RIS
+		// 2 -> bsdf + Li + RIS
 
+		static_assert(MODE >= 0 && MODE <= 2);
+
+#define USE_RIS (MODE >= 1)
+#define USE_Li (MODE == 0 || MODE == 2)
+
+#define numTechs ((MODE == 2) ? 3 : 2)
+
+#define Li_ID 1
+#define RIS_ID (MODE == 1 ? 1 : 2)
 		using Estimator = MIS::DirectEstimator<RGBColor>;
 		//using Estimator = MIS::BalanceEstimator<RGBColor>;
 
@@ -39,9 +51,9 @@ namespace Integrator
 		{
 			RGBColor res = 0;
 			weights[0] = 0;// By default
-			weights[1] = 1;
+			weights[Li_ID] = 1;
 			if (USE_RIS)
-				weights[2] = 0;
+				weights[RIS_ID] = 0;
 			//sample the surface
 			SurfaceSample light_sample;
 			//scene.sampleLe(sampler, light_sample);
@@ -71,11 +83,11 @@ namespace Integrator
 					{
 						const double ris_pdf = scene.pdfRISEstimate(hit, light_hit, sampler, contribution / conversion) * conversion;
 						sum += ris_pdf;
-						weights[2] = ris_pdf / sum;
+						weights[RIS_ID] = ris_pdf / sum;
 					}
 					weights[0] = bsdf_pdf / sum;
-					weights[1] = surface_pdf / sum;
-					res = contribution / surface_pdf * weights[1];
+					weights[Li_ID] = surface_pdf / sum;
+					res = contribution / surface_pdf * weights[Li_ID];
 				}
 			}
 			return res;
@@ -84,8 +96,10 @@ namespace Integrator
 		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double * weights)const
 		{
 			RGBColor res = 0;
-			weights[0] = weights[1] = 0; // By default
-			weights[2] = 1;
+			weights[0];
+			weights[RIS_ID] = 1;
+			if constexpr (USE_Li)
+				weights[Li_ID] = 0; 
 			//sample the surface
 			SurfaceSample light_sample;
 			RGBColor contribution;
@@ -102,13 +116,17 @@ namespace Integrator
 			{
 				const double conversion = dist2 / std::abs(light_hit.primitive_normal * to_light);
 				const double ris_pdf = light_sample.pdf * conversion;
-				const double Li_pdf = scene.pdfSampleLi(light_hit.geometry, hit, light_hit.point) * conversion;
 				const double bsdf_pdf = hit.geometry->getMaterial()->pdf(hit, to_light);
-				const double sum = ris_pdf + Li_pdf + bsdf_pdf;
+				double sum = bsdf_pdf + ris_pdf;
+				if constexpr (USE_Li)
+				{
+					const double Li_pdf = scene.pdfSampleLi(light_hit.geometry, hit, light_hit.point) * conversion;
+					sum += Li_pdf;
+					weights[Li_ID] = Li_pdf / sum;
+				}
 				weights[0] = bsdf_pdf / sum;
-				weights[1] = Li_pdf / sum;
-				weights[2] = ris_pdf / sum;
-				res = contribution / light_sample.pdf * weights[2];
+				weights[RIS_ID] = ris_pdf / sum;
+				res = contribution / light_sample.pdf * weights[RIS_ID];
 			}
 			return res;
 		}
@@ -149,11 +167,11 @@ namespace Integrator
 						if (!Le.isBlack())
 						{
 							Estimator& estimator = estimators[len - 2 - 1];
-							const double surface_pdf_area = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
 							const double conversion = hit.z * hit.z / (std::abs(hit.primitive_normal * ray.direction()));
-							const double surface_pdf = surface_pdf_area * conversion;
-							double sum = dir_pdf + surface_pdf;
+							double sum = dir_pdf;
 							double weights[numTechs];
+							double* const& pdf = weights;
+							pdf[0] = dir_pdf;
 							if constexpr (USE_RIS)
 							{
 								double G = prev_cos_theta / conversion;
@@ -161,10 +179,16 @@ namespace Integrator
 								const double surface_pdf_ris_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution);
 								const double pdf_ris = surface_pdf_ris_area * conversion;
 								sum += pdf_ris;
-								weights[2] = pdf_ris / sum;
+								pdf[RIS_ID] = pdf_ris;
 							}
-							weights[0] = dir_pdf / sum;
-							weights[1] = surface_pdf / sum;
+							if constexpr (USE_Li)
+							{
+								const double surface_pdf_area = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
+								const double surface_pdf = surface_pdf_area * conversion;
+								pdf[Li_ID] = surface_pdf;
+								sum += surface_pdf;
+							}
+							for (int i = 0; i < numTechs; ++i)	weights[i] = pdf[i] / sum;
 							
 							RGBColor balance_estimate = beta * Le * weights[0];
 							estimator.addEstimate(balance_estimate, weights, 0);
@@ -176,14 +200,18 @@ namespace Integrator
 					if (!prev_delta && len < m_max_len)
 					{
 						double weights[numTechs];
-						RGBColor balance_estimate = MISAddDirectIllumination(scene, hit, sampler, weights);
+						RGBColor balance_estimate;
 						Estimator& estimator = estimators[len - 2];
-						estimator.addEstimate(beta * balance_estimate, weights, 1);
-
+						
+						if constexpr (USE_Li)
+						{
+							balance_estimate = MISAddDirectIllumination(scene, hit, sampler, weights);
+							estimator.addEstimate(beta * balance_estimate, weights, Li_ID);
+						}
 						if constexpr(USE_RIS)
 						{
 							balance_estimate = MISAddRISDirectIllumination(scene, hit, sampler, weights);
-							estimator.addEstimate(beta * balance_estimate, weights, 2);
+							estimator.addEstimate(beta * balance_estimate, weights, RIS_ID);
 						}
 					}
 
@@ -452,6 +480,10 @@ namespace Integrator
 
 			}
 		}
-	};
 #undef numTechs
+#undef USE_RIS
+#undef USE_Li
+#undef Li_ID
+#undef RIS_ID
+	};
 }

@@ -965,7 +965,7 @@ enum RenderMode : int {
 	MISPT = 30, RISinMISPT = 31,
 	lightTracing = 40,
 	bdpt = 50, naiveBDPT = 51, OptiMISBDPT = 52, UncorellatedBDPT = 53,
-	OptimalDirect = 60, OptimalDirectRIS = 61,
+	OptimalDirectLi = 60, OptimalDirectRIS = 61, OptimalDirectLiRIS = 62,
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
 	};
@@ -980,14 +980,19 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	}
 
 	{
-		res[RenderMode::OptimalDirect] = new Integrator::OptimalDirect<false>(sample_per_pixel, w, h);
-		res[RenderMode::OptimalDirect]->setLen(maxLen);
-		res[RenderMode::OptimalDirect]->m_alpha = alpha;
+		res[RenderMode::OptimalDirectLi] = new Integrator::OptimalDirect<0>(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirectLi]->setLen(maxLen);
+		res[RenderMode::OptimalDirectLi]->m_alpha = alpha;
 	}
 	{
-		res[RenderMode::OptimalDirectRIS] = new Integrator::OptimalDirect<true>(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirectRIS] = new Integrator::OptimalDirect<1>(sample_per_pixel, w, h);
 		res[RenderMode::OptimalDirectRIS]->setLen(maxLen);
 		res[RenderMode::OptimalDirectRIS]->m_alpha = alpha;
+	}
+	{
+		res[RenderMode::OptimalDirectLiRIS] = new Integrator::OptimalDirect<2>(sample_per_pixel, w, h);
+		res[RenderMode::OptimalDirectLiRIS]->setLen(maxLen);
+		res[RenderMode::OptimalDirectLiRIS]->m_alpha = alpha;
 	}
 
 
@@ -1264,15 +1269,20 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 				render_mode = RenderMode::bdpt;
 				break;
 			case SDLK_x:
-				if (render_mode != RenderMode::OptimalDirect)
+				if (render_mode < RenderMode::OptimalDirectLi || render_mode >= RenderMode::OptimalDirectLiRIS)
 				{
-					std::cout << "switching to optimal direct" << std::endl;
-					render_mode = RenderMode::OptimalDirect;
+					std::cout << "switching to optimal direct Li" << std::endl;
+					render_mode = RenderMode::OptimalDirectLi;
+				}
+				else if(render_mode == RenderMode::OptimalDirectLi)
+				{
+					std::cout << "switching to optimal direct RIS" << std::endl;
+					render_mode = RenderMode::OptimalDirectRIS;
 				}
 				else
 				{
-					std::cout << "switching to optimal direct with RIS" << std::endl;
-					render_mode = RenderMode::OptimalDirectRIS;
+					std::cout << "switching to optimal direct Li + RIS" << std::endl;
+					render_mode = RenderMode::OptimalDirectLiRIS;
 				}
 				break;
 			case SDLK_w:
@@ -1545,13 +1555,13 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	//Auto::initVeach(scene, visu.width(), visu.height(), 5);
+	Auto::initVeach(scene, visu.width(), visu.height(), 5);
 	//Auto::initSDSCornell(scene, visu.width(), visu.height());
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
@@ -1583,10 +1593,10 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 11;
 										
 	// max lenght is included
-	unsigned int maxLen = 5;
+	unsigned int maxLen = 3;
 
 	unsigned int lights_divisions = sample_per_pixel*0+1;
 
