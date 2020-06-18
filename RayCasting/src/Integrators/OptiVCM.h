@@ -701,46 +701,6 @@ namespace Integrator
 			solvers.shrink_to_fit();
 		}
 
-
-
-
-		void fastRender(Scene const& scene, Visualizer::Visualizer& visu)final override
-		{
-			m_frame_buffer.resize(visu.width(), visu.height());
-			m_frame_buffer.fill();
-			visu.clean();
-			if (!m_light_paths_built)
-				buildLightPaths(scene, visu.width(), visu.height(), 0);
-			const double pixel_area = scene.m_camera.m_down.norm() * scene.m_camera.m_right.norm() / (m_frame_buffer.size());
-			const size_t npixels = m_frame_buffer.size();
-			const size_t sample_pass = npixels;
-			size_t total = 0;
-			OMP_PARALLEL_FOR
-				for (long y = 0; y < m_frame_buffer.height(); y++)
-				{
-					int tid = omp_get_thread_num();
-					double v = ((double)y + 0.5) / m_frame_buffer.height();
-					for (size_t x = 0; x < visu.width(); x++)
-					{
-						double u = ((double)x + 0.5) / visu.width();
-
-						size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), 0);
-						Math::Sampler sampler(seed);
-
-						RGBColor pixel = 0;
-
-						m_frame_buffer(x, y) += pixel;
-						
-
-					}//pixel x
-				}//pixel y
-				//the pass has been computed
-			total = npixels;
-			showFrame(visu, 1);
-
-			visu.update();
-		}
-
 		void debug(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
 

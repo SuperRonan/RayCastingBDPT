@@ -55,7 +55,40 @@ namespace Integrator
 
 		virtual void render(Scene const&, Visualizer::Visualizer &) = 0;
 
-		virtual void fastRender(Scene const&, Visualizer::Visualizer &) = 0;
+		virtual void fastRender(Scene const& scene, Visualizer::Visualizer& visu)
+		{
+#ifdef TIME_SEED
+			size_t time_seed = nano();
+#endif
+			OMP_PARALLEL_FOR
+				for (long y = 0; y < visu.height(); ++y)
+				{
+					for (size_t x = 0; x < visu.width(); ++x)
+					{
+						size_t seed = pixelSeed(x, y, visu.width(), visu.height(), 0);
+#ifdef TIME_SEED
+						seed += time_seed;
+#endif
+						Math::Sampler sampler(seed);
+						Ray ray(scene.m_camera.getRay(((double)x + 0.5) / visu.width(), ((double)y + 0.5) / visu.height()));
+
+						RGBColor result = 0;
+						Hit hit;
+						if (scene.full_intersection(ray, hit))
+						{
+							//An albedo would be better, but I haven't done it yet
+							for (int i = 0; i < 3; ++i)
+							{
+								result[i] = abs(fmod(hit.point[i]+0.01, 1));
+							}
+						}
+						
+
+						visu.plot(x, y, result);
+					}
+				}
+			visu.update();
+		}
 
 		virtual void debug(Scene const&, Visualizer::Visualizer &) = 0;
 

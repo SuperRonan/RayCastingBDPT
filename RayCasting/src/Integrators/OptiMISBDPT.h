@@ -419,40 +419,6 @@ namespace Integrator
 		}
 
 
-
-
-		void fastRender(Scene const& scene, Visualizer::Visualizer& visu)final override
-		{
-			//m_frame_buffer.resize(visu.width(), visu.height());
-			//m_frame_buffer.fill();
-			visu.clean();
-			OMP_PARALLEL_FOR
-				for (long y = 0; y < visu.height(); y++)
-				{
-					int tid = omp_get_thread_num();
-					double v = ((double)y + 0.5) / visu.height();
-					for (size_t x = 0; x < visu.width(); x++)
-					{
-						double u = ((double)x + 0.5) / visu.width();
-
-						Ray ray = scene.m_camera.getRay(u, v);
-						size_t seed = pixelSeed(x, y, m_frame_buffer.width(), m_frame_buffer.height(), 0);
-						Math::Sampler sampler(seed);
-
-						RGBColor pixel = 0;
-
-						Hit hit;
-						if (scene.full_intersection(ray, hit))
-						{
-							pixel = hit.geometry->getMaterial()->ID_COLOR() * std::abs(ray.direction() * hit.primitive_normal);
-						}
-						visu.plot(x, y, pixel);
-					}//pixel x
-				}//pixel y
-				//the pass has been computed
-			visu.update();
-		}
-
 		void debug(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
 

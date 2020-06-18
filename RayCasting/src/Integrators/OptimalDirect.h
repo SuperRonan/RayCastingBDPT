@@ -394,33 +394,6 @@ namespace Integrator
 
 
 
-		void fastRender(Scene const& scene, Visualizer::Visualizer& visu) final override
-		{
-#ifdef TIME_SEED
-			size_t time_seed = nano();
-#endif
-			OMP_PARALLEL_FOR
-				for (long y = 0; y < visu.height(); ++y)
-				{
-					for (size_t x = 0; x < visu.width(); ++x)
-					{
-						size_t seed = pixelSeed(x, y, visu.width(), visu.height(), 0);
-#ifdef TIME_SEED
-						seed += time_seed;
-#endif
-						Math::Sampler sampler(seed);
-						Ray ray(scene.m_camera.getRay(((double)x + 0.5) / visu.width(), ((double)y + 0.5) / visu.height()));
-
-						RGBColor result = 0;// sendRay(scene, ray, sampler);
-
-						visu.plot(x, y, result);
-					}
-				}
-			visu.update();
-		}
-
-
-
 
 		void debug(Scene const& scene, Visualizer::Visualizer& visu)final override
 		{
