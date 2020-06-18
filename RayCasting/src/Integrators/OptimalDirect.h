@@ -138,7 +138,10 @@ namespace Integrator
 					}
 					else if (prev_delta)
 					{
-						RGBColor contribution = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
+						RGBColor Le = hit.geometry->getMaterial()->Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
+						RGBColor estimate = beta * Le;
+						Estimator& estimator = estimators[len - 2 - 1];
+						estimator.addOneTechniqueEstimate(estimate, 0);
 					}
 					else
 					{
@@ -196,7 +199,6 @@ namespace Integrator
 				}
 				else
 				{
-					emissive = beta * scene.getBackgroundColor(ray.direction());
 					break;
 				}
 			}

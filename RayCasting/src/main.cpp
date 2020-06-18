@@ -1545,12 +1545,12 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
-	Auto::initVeach(scene, visu.width(), visu.height());
+	//Auto::initVeach(scene, visu.width(), visu.height());
 	//Auto::initVeach(scene, visu.width(), visu.height(), 5);
 	//Auto::initSDSCornell(scene, visu.width(), visu.height());
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
@@ -1586,7 +1586,7 @@ int main(int argc, char** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 3;
+	unsigned int maxLen = 5;
 
 	unsigned int lights_divisions = sample_per_pixel*0+1;
 
