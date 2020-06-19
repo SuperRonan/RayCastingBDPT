@@ -3,7 +3,6 @@
 #include <Image/Image.h>
 #include <System/Parallel.h>
 #include <cassert>
-#include <Math\Vector.h>
 #include <mutex>
 #include <Eigen/Dense>
 
@@ -11,7 +10,9 @@
 
 namespace MIS
 {
-
+	// Major:
+	// true -> row major
+	// false -> col major
 	template <class Spectrum, class Float, bool MAJOR>
 	class ImageEstimator
 	{
@@ -21,9 +22,17 @@ namespace MIS
 
 		const int m_width, m_height;
 
+		constexpr static int spectrumDim()
+		{
+			return Spectrum::nSamples;
+		}
+
 		int PixelTo1D(int i, int j)const
 		{
-			return Image::Image<int, MAJOR>::index(i, j, m_width, m_height);
+			if constexpr (MAJOR) // row major
+				return i * m_height + j;
+			else // col major
+				return j * m_width + i;
 		}
 
 	public:
@@ -155,7 +164,7 @@ namespace MIS
 			return res;
 #else
 			const StorageFloat* matrix = m_matrices.data() + msize * index;
-			const StorageFloat* vector = m_vectors.data() + m_numtechs * Spectrum::nSamples * index;
+			const StorageFloat* vector = m_vectors.data() + m_numtechs * spectrumDim() * index;
 			const StorageUInt* counts = m_sampleCounts.data() + m_numtechs * index;
 			PixelData res(matrix, vector, counts);
 			return res;
@@ -200,9 +209,9 @@ namespace MIS
 		DirectEstimatorImage(int N, int width, int height) :
 			ImageEstimator(N, width, height),
 			msize(N* (N + 1) / 2),
-			m_pixel_data_size(msize * sizeof(StorageFloat) + Spectrum::nSamples * m_numtechs * sizeof(StorageFloat) + m_numtechs * sizeof(StorageUInt)),
+			m_pixel_data_size(msize * sizeof(StorageFloat) + spectrumDim() * m_numtechs * sizeof(StorageFloat) + m_numtechs * sizeof(StorageUInt)),
 			m_vector_ofsset(msize * sizeof(StorageFloat)),
-			m_counter_offset(msize * sizeof(StorageFloat) + Spectrum::nSamples * m_numtechs * sizeof(StorageFloat)),
+			m_counter_offset(msize * sizeof(StorageFloat) + spectrumDim() * m_numtechs * sizeof(StorageFloat)),
 			m_data(std::vector<char>(width* height* m_pixel_data_size, (char)0)),
 			m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
 		{}
@@ -234,7 +243,7 @@ namespace MIS
 		{
 			int res = width * height;
 			m_matrices = std::vector<StorageFloat>(res * msize, (StorageFloat)0.0);
-			m_vectors = std::vector<StorageFloat>(res * m_numtechs * Spectrum::nSamples, (StorageFloat)0.0);
+			m_vectors = std::vector<StorageFloat>(res * m_numtechs * spectrumDim(), (StorageFloat)0.0);
 			m_sampleCounts = std::vector<StorageUInt>(res * m_numtechs, (StorageUInt)0);
 		}
 
@@ -292,7 +301,7 @@ namespace MIS
 			}
 			if (!balance_estimate.isBlack())
 			{
-				for (int k = 0; k < Spectrum::nSamples; ++k)
+				for (int k = 0; k < spectrumDim(); ++k)
 				{
 					StorageFloat* vector = data.contribVector + k * m_numtechs;
 					for (int i = 0; i < m_numtechs; ++i)
@@ -314,7 +323,7 @@ namespace MIS
 				m_mutex.lock();
 			++data.sampleCount[tech_index];
 			data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
-			for (int k = 0; k < Spectrum::nSamples; ++k)
+			for (int k = 0; k < spectrumDim(); ++k)
 			{
 				StorageFloat* vector = data.contribVector + k * m_numtechs;
 				vector[tech_index] = vector[tech_index] + balance_estimate[k];
@@ -409,7 +418,7 @@ namespace MIS
 					PixelData data = getPixelData(pixel);
 					for (int i = 0; i < m_numtechs; ++i)
 					{
-						for (int k = 0; k < Spectrum::nSamples; ++k)
+						for (int k = 0; k < spectrumDim(); ++k)
 						{
 							img(indices[0] * m_numtechs + i, indices[1])[k] = (data.contribVector + k * m_numtechs)[i] / iterations;
 						}
@@ -440,7 +449,7 @@ namespace MIS
 
 					bool matrix_done = false;
 
-					for (int k = 0; k < Spectrum::nSamples; ++k)
+					for (int k = 0; k < spectrumDim(); ++k)
 					{
 						bool isZero = true;
 						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
@@ -513,7 +522,7 @@ namespace MIS
 
 					bool matrix_done = false;
 
-					for (int k = 0; k < Spectrum::nSamples; ++k)
+					for (int k = 0; k < spectrumDim(); ++k)
 					{
 						bool isZero = true;
 						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
