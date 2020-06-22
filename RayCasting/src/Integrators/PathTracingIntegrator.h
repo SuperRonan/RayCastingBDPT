@@ -34,9 +34,7 @@ namespace Integrator
 			Ray ray = pray;
 			bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
-			RGBColor prod_color = scene.m_camera.We<true>(ray.direction());
-			double prod_pdf = scene.m_camera.pdfWeSolidAngle<true>(pray.direction());
-
+			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / scene.m_camera.pdfWeSolidAngle<true>(pray.direction());
 			RGBColor res = 0;
 			for (int len = 2; len <= m_max_len; ++len)
 			{
@@ -46,7 +44,7 @@ namespace Integrator
 					const Material& material = *hit.geometry->getMaterial();
 					if (use_emissive && material.is_emissive())
 					{
-						res += prod_color * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view) / prod_pdf;
+						res += beta * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 					}
 
 					//use_emissive = hit.geometry->getMaterial()->spicky();
@@ -54,9 +52,9 @@ namespace Integrator
 					if (!use_emissive && len < m_max_len)
 					{
 						if constexpr (USE_RIS)
-							res += prod_color * addRISDirectIllumination(scene, hit, sampler) / prod_pdf;
+							res += beta * addRISDirectIllumination(scene, hit, sampler);
 						else
-							res += prod_color * addOneDirectIllumination(scene, hit, sampler) / prod_pdf;
+							res += beta * addOneDirectIllumination(scene, hit, sampler);
 					}
 
 
@@ -70,8 +68,7 @@ namespace Integrator
 					{
 						DirectionSample next_dir;
 						material.sampleBSDF(hit, next_dir, sampler);
-						prod_color *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
-						prod_pdf *= next_dir.pdf * alpha;
+						beta *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal) / (next_dir.pdf * alpha);
 						ray = Ray(hit.point, next_dir.direction);
 					}
 					else
@@ -79,15 +76,14 @@ namespace Integrator
 						break;
 					}
 
-					if (prod_color.isBlack() || prod_pdf == 0)
+					if (beta.isBlack() || beta.anythingWrong())
 					{
 						break;
 					}
 				}
 				else
 				{
-					if(prod_pdf != 0)
-						res += prod_color * scene.getBackgroundColor(ray.direction()) / prod_pdf;
+					res += beta * scene.getBackgroundColor(ray.direction());
 					break;
 				}
 			}
@@ -109,8 +105,7 @@ namespace Integrator
 		RGBColor sendRay(Scene const& scene, Ray const& pray, Math::Sampler& sampler)const final override
 		{
 			Ray ray = pray;
-			RGBColor prod_color = scene.m_camera.We<true>(ray.direction());
-			double prod_pdf = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
+			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
 			RGBColor res = 0;
 			for (int len = 2; len <= m_max_len; ++len)
 			{
@@ -119,7 +114,7 @@ namespace Integrator
 				{
 					const Material& material = *hit.geometry->getMaterial();
 					
-					res += prod_color * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view) / prod_pdf;
+					res += beta * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
 					
 
 #ifdef LATE_RUSSIAN
@@ -132,8 +127,7 @@ namespace Integrator
 					{
 						DirectionSample next_dir;
 						material.sampleBSDF(hit, next_dir, sampler);
-						prod_color *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
-						prod_pdf *= next_dir.pdf * alpha;
+						beta *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal) / (next_dir.pdf * alpha);
 						ray = Ray(hit.point, next_dir.direction);
 					}
 					else
@@ -141,14 +135,14 @@ namespace Integrator
 						break;
 					}
 
-					if (prod_color.isBlack() || prod_pdf == 0)
+					if (beta.isBlack() || beta.anythingWrong())
 					{
 						break;
 					}
 				}
 				else
 				{
-					res += prod_color * scene.getBackgroundColor(ray.direction()) / prod_pdf;
+					res += beta * scene.getBackgroundColor(ray.direction());
 					break;
 				}
 			}
