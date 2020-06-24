@@ -4,9 +4,6 @@
 #include <omp.h>
 #include <vector>
 
-constexpr auto DEFAULT_INCREMENTATION = [](int& i) {++i; };
-
-
 class Parallel
 {
 protected:
