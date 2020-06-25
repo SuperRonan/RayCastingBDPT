@@ -42,6 +42,7 @@
 #include <Integrators/UncorellatedBDPT.h>
 #include <Integrators/VCM.h>
 #include <Integrators/OptiVCM.h>
+#include <Integrators/RWMCPT.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -968,6 +969,7 @@ enum RenderMode : int {
 	OptimalDirectLi = 60, OptimalDirectRIS = 61, OptimalDirectLiRIS = 62,
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
+	RWMCPT = 90,
 	};
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
@@ -1080,6 +1082,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	//	res[RenderMode::naiveBDPT]->setLen(maxLen);
 	//	res[RenderMode::naiveBDPT]->m_alpha = alpha;
 	//}
+
+	{
+		res[RenderMode::RWMCPT] = new Integrator::RWMCPT(sample_per_pixel, w, h);
+		res[RenderMode::RWMCPT]->setLen(maxLen);
+	}
 
 	{
 		res[RenderMode::box] = new Integrator::BOXIntegrator(sample_per_pixel, w, h);
@@ -1314,6 +1321,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 				if (render_mode != RenderMode::UncorellatedBDPT)
 					std::cout << "switching to UBDPT" << std::endl;
 				render_mode = RenderMode::UncorellatedBDPT;
+				break;
+			case SDLK_j:
+				if (render_mode != RenderMode::RWMCPT)
+					std::cout << "switching to Reweighted Monte Carlo Path Tracing" << std::endl;
+				render_mode = RenderMode::RWMCPT;
 				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
@@ -1555,13 +1567,13 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 2, 1, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initVeach(scene, visu.width(), visu.height(), 5);
+	//Auto::initVeach(scene, visu.width(), visu.height(), 5);
 	//Auto::initSDSCornell(scene, visu.width(), visu.height());
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
