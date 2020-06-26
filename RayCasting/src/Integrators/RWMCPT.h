@@ -14,26 +14,40 @@ namespace Integrator
 
 		struct Sample
 		{
-			RGBColor estimate;
+			RGBColor f;
+			double pdf;
 
 			Sample():
-				estimate(0)
+				f(0),
+				pdf(1)
 			{}
 
-			Sample(RGBColor const& estimate):
-				estimate(estimate)
+			Sample(RGBColor const& f, double pdf):
+				f(f),
+				pdf(pdf)
 			{}
 
 			double w()const
 			{
-				return estimate.grey();
+				return pdf;
+			}
+
+			RGBColor estimate()const
+			{
+				return f / pdf;
+			}
+
+			bool isZero()const
+			{
+				return f.isBlack();
 			}
 		};
 
-		RGBColor addOneDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
+		RGBColor addOneDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double & pdf)const
 		{
 			Geometry::SurfaceSample sample;
 			scene.sampleLi(sampler, sample, hit);
+			pdf = sample.pdf;
 			//scene.sampleLe(sampler, sample);
 			Math::Vector3f to_light = sample.vector - hit.point;
 			const double dist2 = to_light.norm2();
@@ -50,7 +64,7 @@ namespace Integrator
 			Ray ray(hit.point, to_light);
 			if (scene.full_intersection(ray, light_hit) && samePoint(light_hit, dist, sample.geo))
 			{
-				return contrib / sample.pdf;
+				return contrib;
 			}
 			return 0;
 		}
@@ -59,20 +73,23 @@ namespace Integrator
 		{
 			bool use_emissive = true;
 			double cost = ray.direction() * scene.m_camera.m_front;
-			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
+			RGBColor f = scene.m_camera.We<true>(ray.direction());
+			double pdf = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
 			RGBColor res = 0;
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				Hit hit;
 				if (scene.full_intersection(ray, hit))
 				{
+					
 					const Material& material = *hit.geometry->getMaterial();
-					if (use_emissive && material.is_emissive())
+					if (use_emissive)
 					{
+						const double conversion = len == 2 ? 1.0 : std::abs(ray.direction() * hit.primitive_normal);
 						const int iid = len - 2;
 						Sample& sample = samples[iid];
-						RGBColor estimate = beta * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
-						sample.estimate = estimate;
+						RGBColor c = f * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
+						sample = Sample(c, pdf * conversion);
 						sums[iid] += sample.w();
 					}
 
@@ -82,17 +99,19 @@ namespace Integrator
 					{
 						const int iid = len - 1;
 						Sample& sample = samples[iid];
-						RGBColor estimate = beta * addOneDirectIllumination(scene, hit, sampler);
-						sample.estimate = estimate;
+						double pdf_l;
+						RGBColor c = f * addOneDirectIllumination(scene, hit, sampler, pdf_l);
+						sample = Sample(c, pdf * pdf_l);
 						sums[iid] += sample.w();
 					}
 
 					DirectionSample next_dir;
 					material.sampleBSDF(hit, next_dir, sampler);
-					beta *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal) / next_dir.pdf;
+					f *= next_dir.bsdf * std::abs(next_dir.direction * hit.primitive_normal);
+					pdf *= next_dir.pdf;
 					ray = Ray(hit.point, next_dir.direction);
 					
-					if (beta.isBlack() || beta.anythingWrong())
+					if (f.isBlack() || pdf == 0)
 					{
 						break;
 					}
@@ -161,8 +180,9 @@ namespace Integrator
 								if (sums_buffer[iid] > 0)
 								{
 									const Sample& sample = samples_buffer[n * Nintegrals + iid];
+									//double weight = 1.0 / (double)m_sample_per_pixel;
 									double weight = sample.w() / sums_buffer[iid];
-									result += sample.estimate * weight;
+									result += sample.estimate() * weight;
 								}
 							}
 						}
