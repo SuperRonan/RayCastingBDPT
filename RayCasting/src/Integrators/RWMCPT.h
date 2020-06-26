@@ -85,7 +85,7 @@ namespace Integrator
 					const Material& material = *hit.geometry->getMaterial();
 					if (use_emissive)
 					{
-						const double conversion = len == 2 ? 1.0 : std::abs(ray.direction() * hit.primitive_normal);
+						const double conversion = len == 2 ? 1.0 : (std::abs(ray.direction() * hit.primitive_normal) / (hit.z * hit.z));
 						const int iid = len - 2;
 						Sample& sample = samples[iid];
 						RGBColor c = f * material.Le(hit.primitive_normal, hit.tex_uv, hit.to_view);
@@ -118,11 +118,11 @@ namespace Integrator
 				}
 				else
 				{
-					//const int iid = len - 2;
+					const int iid = len - 2;
 					//RGBColor estimate = beta * scene.getBackgroundColor(ray.direction());
-					//Sample& sample = samples[iid];
-					//sample.estimate = estimate;
-					//sums[iid] += sample.w();
+					Sample& sample = samples[iid];
+					sample = Sample(0, pdf);
+					sums[iid] += sample.w();
 					break;
 				}
 			}

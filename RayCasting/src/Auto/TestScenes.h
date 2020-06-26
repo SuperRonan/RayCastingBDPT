@@ -201,7 +201,7 @@ namespace Auto
 
 
 
-	void initRealCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder)
+	void initRealCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder, bool closed=false)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
 		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
@@ -215,7 +215,8 @@ namespace Auto
 		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
 
 		double scale = 5;
-		Geometry::Cornel::init_cornell(scene, white, white, white, nullptr, red, green, scale);
+		Geometry::Material* fourth_wall = closed ? white : nullptr;
+		Geometry::Cornel::init_cornell(scene, white, white, white, fourth_wall, red, green, scale);
 
 		double light_size = 1;
 		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
@@ -278,6 +279,12 @@ namespace Auto
 
 
 		// Sets the camera
+		if(closed)
+		{
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+		else
 		{
 			Geometry::Camera camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
