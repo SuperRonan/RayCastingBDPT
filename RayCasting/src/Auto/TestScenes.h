@@ -291,6 +291,78 @@ namespace Auto
 		}
 	}
 
+	void initRGBCornell(Geometry::Scene& scene, size_t width, size_t height, bool closed = false)
+	{
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
+
+		double scale = 5;
+		Geometry::Material* fourth_wall = closed ? white : nullptr;
+		Geometry::Cornel::init_cornell(scene, white, white, white, fourth_wall, red, green, scale);
+
+		double light_size = 1;
+		{
+			RGBColor light_color[] = { {1.5, 0.3, 0.3}, {0.3, 1.3, 0.3}, {0.3, 0.3, 1.1} };
+			for (int l = 0; l < 3; ++l)
+			{
+				Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, light_color[l] * 10.0 / (light_size * light_size));
+				Geometry::Square* up_light = new Geometry::Square(light);
+				up_light->scale(scale * 0.2 * light_size);
+				up_light->translate({ 0, 0, scale / 2 - 0.001 });
+				up_light->translate({ scale * 0.2, 0, 0 });
+				double angle = Math::twoPi * l / 3.0;
+				up_light->rotate(Math::Quaternion<double>({ 0, 0, 1 }, angle));
+				scene.add(up_light);
+			}
+		}
+
+		//tall block
+		{
+			Geometry::GeometryCollection* cube;
+			Geometry::Material* cube_mat = blue;
+
+			cube = new Geometry::Cube(cube_mat);
+			cube->scaleX(0.3 * scale);
+			cube->scaleY(0.3 * scale);
+			
+			cube->scaleZ(0.6 * scale);
+			cube->rotate(Math::Quaternion<double>({ 0, 0, 1 }, 0.3));
+			cube->translate({ scale * 0.2, scale * 0.15, -scale * 0.21 });
+			scene.add(cube);
+		}
+
+		//little block
+		{
+			Geometry::Cube* cube = new Geometry::Cube(orange);
+			cube->scaleX(0.3 * scale);
+			cube->scaleY(0.3 * scale);
+			cube->scaleZ(0.3 * scale);
+			cube->rotate(Math::Quaternion<double>({ 0, 0, 1 }, -0.3));
+			cube->translate({ -scale * 0.1, -scale * 0.2, -scale * 0.351 });
+
+
+			scene.add(cube);
+		}
+
+
+		// Sets the camera
+		if (closed)
+		{
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+		else
+		{
+			Geometry::Camera camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+	}
+
 	void initTestNonSymmetry(Geometry::Scene& scene, size_t width, size_t height, int mode)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
