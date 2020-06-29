@@ -58,14 +58,14 @@ namespace Integrator
 			return res;
 		}
 
-		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler)const
+		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, RGBColor const& beta=1)const
 		{
 			RGBColor res = 0;
 
 			//sample the surface
 			SurfaceSample light_sample;
 			RGBColor contribution;
-			scene.sampleLiRIS(sampler, light_sample, hit, &contribution);
+			scene.sampleLiRIS(sampler, light_sample, hit, beta, &contribution);
 			if (contribution.isBlack())
 				return contribution;
 			Math::Vector3f to_light = (light_sample.vector - hit.point);
@@ -90,6 +90,7 @@ namespace Integrator
 		{
 			Ray ray(pray);
 			RGBColor T = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction());
+			RGBColor prev_T = 1;
 			RGBColor prev_bsdf;
 			double prev_cos_theta;
 			RGBColor res = 0;
@@ -116,7 +117,7 @@ namespace Integrator
 						RGBColor contribution = prev_bsdf * Le * G;
 						double surface_pdf_area;
 						if constexpr (USE_RIS)
-							surface_pdf_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution);
+							surface_pdf_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution, prev_T);
 						else
 							surface_pdf_area = scene.pdfSampleLi(hit.geometry, prev_hit, hit.point);
 						double surface_pdf = surface_pdf_area * conversion;
@@ -129,7 +130,7 @@ namespace Integrator
 					if (!prev_delta && len < m_max_len)
 					{
 						if constexpr (USE_RIS)
-							res += T * MISAddRISDirectIllumination(scene, hit, sampler);
+							res += T * MISAddRISDirectIllumination(scene, hit, sampler, prev_T);
 						else
 							res += T * MISAddDirectIllumination(scene, hit, sampler);
 					}
@@ -140,6 +141,7 @@ namespace Integrator
 						DirectionSample next_dir;
 						hit.geometry->getMaterial()->sampleBSDF(hit, next_dir, sampler);
 						prev_cos_theta = std::abs(hit.primitive_normal * next_dir.direction);
+						prev_T = T;
 						T *= next_dir.bsdf * prev_cos_theta / next_dir.pdf / m_alpha;
 						ray = Ray(hit.point, next_dir.direction);
 						dir_pdf = next_dir.pdf;

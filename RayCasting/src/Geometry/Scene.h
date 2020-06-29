@@ -786,7 +786,7 @@ namespace Geometry
 
 		int m_ris_estimate_N = 1;
 
-		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor * Contribution=nullptr)const
+		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor const& common = 1, RGBColor* Contribution = nullptr)const
 		{
 			if (m_ris_number_of_candidates == 1) // M = 1 -> classic sampleLi
 			{
@@ -824,15 +824,16 @@ namespace Geometry
 				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
 				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
 				const RGBColor L = Le * bsdf * G;
-				if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
+				double target = (common * L).energy();
+				if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else
 				{
 					// candidate = 0;
 					continue;
 				}
 				else
 				{
-					candidate.w = L.grey() / candidate.sample.pdf;
-					candidate.p_target = L.grey();
+					candidate.w = target / candidate.sample.pdf;
+					candidate.p_target = target;
 					candidate.estimate = L;
 					++index;
 				}
@@ -864,7 +865,7 @@ namespace Geometry
 						sample.primitive = sample.primitive;
 						sample_hit.normal = sample_hit.primitive_normal = sample.normal;
 						sample_hit.tex_uv = sample.uv;
-						double estimate = pdfRISEstimate(ref, sample_hit, sampler, candidates[i].estimate, m_ris_estimate_N-1);
+						double estimate = pdfRISEstimate(ref, sample_hit, sampler, candidates[i].estimate, common, m_ris_estimate_N-1);
 						sample.pdf = (sample.pdf + estimate * (m_ris_estimate_N - 1)) / m_ris_estimate_N;
 					}
 					assert(p_target > 0);
@@ -878,13 +879,13 @@ namespace Geometry
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, RGBColor const& common=1)const
 		{
-			return pdfRISEstimate(ref, sample, sampler, contribution, m_ris_estimate_N);
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, m_ris_estimate_N);
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, int N)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, RGBColor const& common, int N)const
 		{
 			if (N == 0)	return 0;
 			if (m_ris_number_of_candidates == 1)
@@ -892,7 +893,7 @@ namespace Geometry
 			
 			double p_target, p_source;
 			p_source = pdfSampleLi(sample.geometry, ref, sample.point);
-			p_target = contribution.grey();
+			p_target = (contribution * common).energy();
 			if (p_target == 0)
 				return 0;
 			double w = p_target / p_source;
@@ -926,15 +927,16 @@ namespace Geometry
 					const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
 					const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
 					const RGBColor L = Le * bsdf * G;
-					if (L.anythingWrong() || L.isBlack() || L.grey() < 1e-100) // I don't like this, but is creates nan else
+					double target = (common * L).energy();
+					if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else
 					{
 						// candidate = 0
 						continue; 
 					}
 					else
 					{
-						candidate.w = L.grey() / candidate.sample.pdf;
-						candidate.p_target = L.grey();
+						candidate.w = target / candidate.sample.pdf;
+						candidate.p_target = L.energy();
 						++index;
 					}
 					sum += candidate.w;

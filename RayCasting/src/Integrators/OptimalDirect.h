@@ -47,7 +47,7 @@ namespace Integrator
 
 
 		// returns the balance estimate
-		RGBColor MISAddDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double * weights)const
+		RGBColor MISAddDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double * weights, RGBColor const& beta=1)const
 		{
 			RGBColor res = 0;
 			weights[0] = 0;// By default
@@ -81,7 +81,7 @@ namespace Integrator
 					double sum = bsdf_pdf + surface_pdf;
 					if constexpr(USE_RIS)
 					{
-						const double ris_pdf = scene.pdfRISEstimate(hit, light_hit, sampler, contribution / conversion) * conversion;
+						const double ris_pdf = scene.pdfRISEstimate(hit, light_hit, sampler, contribution / conversion, beta) * conversion;
 						sum += ris_pdf;
 						weights[RIS_ID] = ris_pdf / sum;
 					}
@@ -93,7 +93,7 @@ namespace Integrator
 			return res;
 		}
 
-		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double * weights)const
+		RGBColor MISAddRISDirectIllumination(Scene const& scene, Hit const& hit, Math::Sampler& sampler, double * weights, RGBColor const& beta = 1)const
 		{
 			RGBColor res = 0;
 			weights[0];
@@ -103,7 +103,7 @@ namespace Integrator
 			//sample the surface
 			SurfaceSample light_sample;
 			RGBColor contribution;
-			scene.sampleLiRIS(sampler, light_sample, hit, &contribution);
+			scene.sampleLiRIS(sampler, light_sample, hit, beta, &contribution);
 			if (contribution.isBlack())
 				return contribution;
 			Math::Vector3f to_light = (light_sample.vector - hit.point);
@@ -137,6 +137,7 @@ namespace Integrator
 		{
 			Ray ray(pray);
 			RGBColor beta = scene.m_camera.We(ray.direction()) / scene.m_camera.pdfWeSolidAngle(ray.direction());
+			RGBColor prev_beta = 1;
 			RGBColor emissive = 0;
 			int len = 1;
 			Hit hit, prev_hit;
@@ -176,7 +177,7 @@ namespace Integrator
 							{
 								double G = prev_cos_theta / conversion;
 								RGBColor contribution = prev_bsdf * Le * G;
-								const double surface_pdf_ris_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution);
+								const double surface_pdf_ris_area = scene.pdfRISEstimate(prev_hit, hit, sampler, contribution, prev_beta);
 								const double pdf_ris = surface_pdf_ris_area * conversion;
 								sum += pdf_ris;
 								pdf[RIS_ID] = pdf_ris;
@@ -205,12 +206,12 @@ namespace Integrator
 						
 						if constexpr (USE_Li)
 						{
-							balance_estimate = MISAddDirectIllumination(scene, hit, sampler, weights);
+							balance_estimate = MISAddDirectIllumination(scene, hit, sampler, weights, beta);
 							estimator.addEstimate(beta * balance_estimate, weights, Li_ID);
 						}
 						if constexpr(USE_RIS)
 						{
-							balance_estimate = MISAddRISDirectIllumination(scene, hit, sampler, weights);
+							balance_estimate = MISAddRISDirectIllumination(scene, hit, sampler, weights, beta);
 							estimator.addEstimate(beta * balance_estimate, weights, RIS_ID);
 						}
 					}
@@ -218,6 +219,7 @@ namespace Integrator
 					DirectionSample next_dir;
 					hit.geometry->getMaterial()->sampleBSDF(hit, next_dir, sampler);
 					prev_cos_theta = std::abs(hit.primitive_normal * next_dir.direction);
+					prev_beta = beta;
 					beta *= next_dir.bsdf * prev_cos_theta / next_dir.pdf;
 					ray = Ray(hit.point, next_dir.direction);
 					dir_pdf = next_dir.pdf;

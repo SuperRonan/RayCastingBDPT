@@ -313,6 +313,12 @@ namespace Geometry
 			return m_color[0] * 0.3 + m_color[1] * 0.59 + m_color[2] * 0.11;
 		}
 
+		double energy()const
+		{
+			return brightness();
+			return grey();
+		}
+
 		bool anythingWrong()const
 		{
 			for (int i = 0; i < 3; ++i)

@@ -15,11 +15,11 @@ namespace Integrator
 			RayTracingBaseIntegrator(sample_per_pixel, width, height)
 		{}
 
-		RGBColor addRISDirectIllumination(Scene const& scene, Hit const& ref, Math::Sampler& sampler)const
+		RGBColor addRISDirectIllumination(Scene const& scene, Hit const& ref, Math::Sampler& sampler, RGBColor beta=1)const
 		{
 			SurfaceSample sls;
 			RGBColor contribution;
-			scene.sampleLiRIS(sampler, sls, ref, &contribution);
+			scene.sampleLiRIS(sampler, sls, ref, beta, &contribution);
 			if (contribution.isBlack())
 				return contribution;
 			Hit light_hit;
@@ -52,7 +52,7 @@ namespace Integrator
 					if (!use_emissive && len < m_max_len)
 					{
 						if constexpr (USE_RIS)
-							res += beta * addRISDirectIllumination(scene, hit, sampler);
+							res += beta * addRISDirectIllumination(scene, hit, sampler, beta);
 						else
 							res += beta * addOneDirectIllumination(scene, hit, sampler);
 					}
