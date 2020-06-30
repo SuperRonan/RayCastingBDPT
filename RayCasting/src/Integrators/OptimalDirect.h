@@ -246,13 +246,14 @@ namespace Integrator
 				estimators_buffer = Parallel::preAllocate(estimators);
 			}
 			resizeFrameBuffer(visu.width(), visu.height());
-			m_frame_buffer.fill(Image::MultiSample<RGBColor>());
+			m_frame_buffer.fill(0);
 			ProgressReporter reporter;
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 			reporter.start(visu.height());
 			OMP_PARALLEL_FOR
 			for (long y = 0; y < m_frame_buffer.height(); y++)
 			{
+				if (kbr == Visualizer::Visualizer::KeyboardRequest::done)	continue;
 				int tid = omp_get_thread_num();
 				std::vector<Estimator>& estimators = estimators_buffer[tid];
 				for (size_t x = 0; x < visu.width(); x++)
@@ -285,20 +286,15 @@ namespace Integrator
 					visu.plot(x, y, result);
 					m_frame_buffer(x, y) = result;
 				}//pixel x
-				if(tid == 0)
+				if (tid == 0)
+				{
+					kbr = visu.update();
 					reporter.report(y + 1, -1);
+				}
 			}//pixel y
 			reporter.finish();
 			kbr = visu.update();
 			visu.show();
-			if (kbr == Visualizer::Visualizer::KeyboardRequest::done)
-			{
-				goto __render__end__loop__;
-			}
-			else if (kbr == Visualizer::Visualizer::KeyboardRequest::save)
-			{
-				Image::ImWrite::write(m_frame_buffer);
-			}
 		__render__end__loop__:
 			
 			scene.reset_surface_lights();
