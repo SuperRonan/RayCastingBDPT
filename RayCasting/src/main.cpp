@@ -965,7 +965,7 @@ enum RenderMode : int {
 	PathTracing = 20, RISPathTracing = 21,
 	MISPT = 30, RISinMISPT = 31,
 	lightTracing = 40,
-	bdpt = 50, naiveBDPT = 51, OptiMISBDPT = 52, UncorellatedBDPT = 53,
+	bdpt = 50, RISbdpt=51, OptiMISBDPT = 55, naiveBDPT = 58, UncorellatedBDPT = 59,
 	OptimalDirectLi = 60, OptimalDirectRIS = 61, OptimalDirectLiRIS = 62,
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
@@ -1035,9 +1035,15 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	}
 
 	{
-		res[RenderMode::bdpt] = new Integrator::BidirectionalIntegrator(sample_per_pixel, w, h);
+		res[RenderMode::bdpt] = new Integrator::BidirectionalIntegrator<false>(sample_per_pixel, w, h);
 		res[RenderMode::bdpt]->setLen(maxLen);
 		res[RenderMode::bdpt]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::RISbdpt] = new Integrator::BidirectionalIntegrator<true>(sample_per_pixel, w, h);
+		res[RenderMode::RISbdpt]->setLen(maxLen);
+		res[RenderMode::RISbdpt]->m_alpha = alpha;
 	}
 
 	{
@@ -1270,10 +1276,17 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Light Tracing" << std::endl;
 				render_mode = RenderMode::lightTracing;
 				break;
-			case SDLK_k:
-				if (render_mode != RenderMode::bdpt)
+			case SDLK_b:
+				if (render_mode == RenderMode::bdpt)
+				{
+					std::cout << "switching to RIS BDPT" << std::endl;
+					render_mode = RenderMode::RISbdpt;
+				}
+				else
+				{
 					std::cout << "switching to BDPT" << std::endl;
-				render_mode = RenderMode::bdpt;
+					render_mode = RenderMode::bdpt;
+				}
 				break;
 			case SDLK_x:
 				if (render_mode < RenderMode::OptimalDirectLi || render_mode >= RenderMode::OptimalDirectLiRIS)

@@ -66,7 +66,7 @@ namespace Geometry
 			double cos_wo = wo * normal;
 			if (cos_wo * cos_wi > 0) // same hemisphere
 			{
-				assert(cos_wi > 1);
+				assert(cos_wi > 0);
 				const double diffuse_rho = 1.0 / Math::twoPi;
 
 				Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
@@ -88,7 +88,7 @@ namespace Geometry
 			double cos_wo = wo * normal;
 			if (cos_wo * cos_wi > 0) // same hemisphere
 			{
-				assert(cos_wi > 1);
+				assert(cos_wi > 0);
 				const double pdf_diffuse = cos_wi / Math::pi;
 
 				Math::Vector3f reflected = hit.primitive_normal.reflect(wo);

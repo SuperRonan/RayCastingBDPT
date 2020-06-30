@@ -12,9 +12,10 @@ namespace Geometry
 
 	class Hit
 	{
-	
-
 	public:
+
+		enum Type {SurfaceT, CameraT};
+		Type type;
 		double z;
 		union
 		{
@@ -33,6 +34,7 @@ namespace Geometry
 		
 		Math::Vector2f primitive_uv;
 		Math::Vector2f tex_uv;
+
 
 		//Math::Vector3f reflected;
 

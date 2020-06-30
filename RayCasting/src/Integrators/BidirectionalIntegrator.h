@@ -5,6 +5,7 @@
 
 namespace Integrator
 {
+	template <bool USE_RIS=true>
 	class BidirectionalIntegrator: public BidirectionalBase
 	{
 	protected:
@@ -38,9 +39,19 @@ namespace Integrator
 						// naive path tracing
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
-							L = camera_top.beta * camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
+							const RGBColor Le = camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
+							L = camera_top.beta * Le;
 							double pdf = scene.pdfSampleLe(camera_top.hit.geometry);
-							s1_pdf = scene.pdfSampleLi(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
+							if constexpr(USE_RIS)
+							{
+								const RGBColor bsdf = cameraSubPath[t - 2].type == Vertex::Type::Camera ?
+									cameraSubPath[t - 2].hit.camera->We(-camera_top.omega_o()) :
+									cameraSubPath[t - 2].material()->BSDF(cameraSubPath[t - 2].hit, -camera_top.omega_o(), cameraSubPath[t - 2].omega_o(), false);
+								const RGBColor contrib = bsdf * Le * Vertex::G(camera_top, cameraSubPath[t - 2]);
+								s1_pdf = scene.pdfRISEstimate(cameraSubPath[t - 2].hit, camera_top.hit, sampler, contrib);
+							}
+							else
+								s1_pdf = scene.pdfSampleLi(camera_top.hit.geometry, cameraSubPath[t - 2].hit, camera_top.hit.point);
 							double weight = VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf, pdf);
 							pixel_res += L * weight;
 						}
@@ -51,7 +62,14 @@ namespace Integrator
 						if(s == 1)
 						{
 							SurfaceSample sls;
-							scene.sampleLi(sampler, sls, camera_top.hit);
+							if constexpr (USE_RIS)
+							{
+								// I could get the contribution from the call to this function
+								// I could also give the beta of the camera_top as common, but it makes the other call to the pdf a bit complex for now
+								scene.sampleLiRIS(sampler, sls, camera_top.hit); 
+							}
+							else
+								scene.sampleLi(sampler, sls, camera_top.hit);
 							s1_pdf = sls.pdf;
 							Vertex light_resampled;
 							light_resampled.delta = false;
@@ -65,10 +83,18 @@ namespace Integrator
 							light_resampled.beta = 1.0 / sls.pdf;
 							resampled_vertex_sa = {LightSubPath.begin(), light_resampled};
 						}
-						else if (s == 2)
+						else if (s <= 3) // BTW this assumes that the connecting loops are in the order t then s
 						{
-							// BTW this assumes that the connecting loops are in the order t then s
-							s1_pdf = scene.pdfSampleLi(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point); 
+							if constexpr (USE_RIS)
+							{
+								const RGBColor radiance_arriving_on_y_2 = LightSubPath[1].beta * (LightSubPath[0].fwd_pdf * LightSubPath[1].fwd_pdf);
+								const Math::Vector3f y_2_to_next = s == 2 ? LightSubPath[1].dir_to_vertex(&camera_top) : -LightSubPath[2].omega_o();
+								const RGBColor bsdf = LightSubPath[1].material()->BSDF(LightSubPath[1].hit, LightSubPath[1].omega_o(), y_2_to_next, false);
+								const RGBColor contrib = radiance_arriving_on_y_2 * bsdf;
+								s1_pdf = scene.pdfRISEstimate(LightSubPath[1].hit, LightSubPath[0].hit, sampler, contrib);
+							}
+							else if(s == 2)
+								s1_pdf = scene.pdfSampleLi(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point); 
 						}
 
 						Vertex& light_top = LightSubPath[s - 1];

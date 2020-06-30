@@ -199,7 +199,7 @@ namespace Geometry
 						rsi.fill(res, ray);
 					}
 				}
-
+				res.type = Hit::Type::SurfaceT;
 				return true;
 			}
 			else
@@ -797,8 +797,8 @@ namespace Geometry
 					double dist2 = to_light.norm2();
 					to_light /= std::sqrt(dist2);
 					double G = std::abs((to_light * ref.primitive_normal) * (to_light * sample.normal)) / dist2;
-					*Contribution = ref.geometry->getMaterial()->BSDF(ref, to_light) * 
-						sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G;
+					const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+					*Contribution = bsdf * sample.geo->getMaterial()->Le(sample.normal, sample.uv, -to_light) * G;
 					if (Contribution->anythingWrong())	*Contribution = 0;
 				}
 				return;
@@ -822,7 +822,7 @@ namespace Geometry
 				to_light /= std::sqrt(dist2);
 				double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
 				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
-				const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+				const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, false);
 				const RGBColor L = Le * bsdf * G;
 				double target = (common * L).energy();
 				if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else
@@ -925,7 +925,7 @@ namespace Geometry
 					to_light /= std::sqrt(dist2);
 					double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
 					const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
-					const RGBColor bsdf = ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+					const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, false);
 					const RGBColor L = Le * bsdf * G;
 					double target = (common * L).energy();
 					if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else

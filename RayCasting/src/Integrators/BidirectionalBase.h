@@ -146,6 +146,17 @@ namespace Integrator
 				return hit.normal;
 			}
 
+			// Returns the the geometry term between p and q 
+			// (but does not consider the visibility)
+			static double G(Vertex const& p, Vertex const& q)
+			{
+				Math::Vector3f dir = p.position() - q.position();
+				const double dist2 = dir.norm2();
+				dir /= std::sqrt(dist2);
+				const double cos_p = p.pNormal() * dir;
+				const double cos_q = q.pNormal() * dir;
+				return std::abs(cos_p * cos_q) / dist2;
+			}
 
 			//////////////////////////////////
 			// returns the probability of sampling the direction from this to next, knowing this has been sampled from prev
@@ -263,6 +274,7 @@ namespace Integrator
 			camera_vertex.hit.normal = camera_vertex.hit.primitive_normal = ray.direction();
 			camera_vertex.hit.point = scene.m_camera.getPosition();
 			camera_vertex.hit.camera = &scene.m_camera;
+			camera_vertex.hit.type = Hit::Type::CameraT;
 			double pdf_sa = scene.m_camera.pdfWeSolidAngle<true>(ray.direction());
 			RGBColor beta = scene.m_camera.We<true>(ray.direction()) / pdf_sa;
 			int nv = randomWalk<TransportMode::Importance>(scene, sampler, res, ray, beta, pdf_sa, m_max_len - 1);
@@ -285,6 +297,7 @@ namespace Integrator
 			light_vertex.hit.normal = light_vertex.hit.primitive_normal = sls.normal;
 			light_vertex.hit.tex_uv = sls.uv;
 			light_vertex.hit.point = sls.vector;
+			light_vertex.hit.type = Hit::Type::SurfaceT;
 
 			light_vertex.fwd_pdf = sls.pdf;
 			light_vertex.beta = 1.0 / sls.pdf;
