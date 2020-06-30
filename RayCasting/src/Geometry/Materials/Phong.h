@@ -4,14 +4,27 @@
 
 namespace Geometry
 {
-
+	// A BRDF material:
+	// diffuse + glossy
 	class Phong : public Material
 	{
 	protected:
 
+		RGBColor m_diffuse, m_glossy;
+		double m_shininess;
+
+		double pmf_choose_diffuse()const
+		{
+			return m_diffuse.energy() / (m_glossy.energy() + m_diffuse.energy());
+		}
+
 	public:
 
-		Phong(RGBColor const& dif = 1, RGBColor const& spec = 0, double s = 1, RGBColor const& em = 0, std::string const& tex = "") 
+		Phong(RGBColor const& dif = 1, RGBColor const& glossy = 0, double s = 1, RGBColor const& em = 0, std::string const& tex = "") :
+			Material(em, tex),
+			m_diffuse(dif),
+			m_glossy(glossy),
+			m_shininess(s)
 		{
 
 		}
@@ -24,306 +37,80 @@ namespace Geometry
 
 		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=false, double* pdf_rev=nullptr)const override
 		{
-			Material::sampleBSDF(hit, out, sampler);
-			return;
+			const RGBColor tex = getTexturePixel(hit.tex_uv);
+			Math::Vector3f normal = hit.orientedPrimitiveNormal();
+			double cos_wo = hit.to_view * normal;
+			const double pmf = pmf_choose_diffuse();
+			const double xi = sampler.generateContinuous<double>();
+			if (xi < pmf) // Sample the diffuse
+			{
+				Math::RandomDirection diffuse_sampler(&sampler, normal);
+				out.direction = diffuse_sampler.generate();
+			}
+			else // Sample the glossy
+			{
+				Math::Vector3f reflected = normal.reflect(hit.to_view);
+				Math::RandomDirection glossy_sampler(&sampler, reflected, m_shininess);
+				out.direction = glossy_sampler.generate();
+			}
+			out.pdf = Phong::pdf(hit, out.direction, hit.to_view, RADIANCE);
+			out.bsdf = Phong::BSDF(hit, out.direction, hit.to_view, RADIANCE);
 		}
 
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
-			return 0;
+			RGBColor res = 0;
+			Math::Vector3f normal = hit.orientedPrimitiveNormal(); // should take wi ? 
+			double cos_wi = wi * normal;
+			double cos_wo = wo * normal;
+			if (cos_wo * cos_wi > 0) // same hemisphere
+			{
+				assert(cos_wi > 1);
+				const double diffuse_rho = 1.0 / Math::twoPi;
+
+				Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
+				const double cos_r = reflected * wi;
+				const double glossy_rho = cos_r > 0 ? (std::pow(cos_r, m_shininess) * (m_shininess + 1) / Math::twoPi / (RADIANCE ? cos_wo : cos_wi) ) : 0;
+
+				RGBColor texture = getTexturePixel(hit.tex_uv);
+
+				res = m_diffuse * texture * diffuse_rho + m_glossy * glossy_rho;
+			}
+			return res;
 		}
 
-		virtual double pdf(const Hit & hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const  override
+		virtual double pdf(const Hit & hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE=false)const override
 		{
-			return Material::pdf(hit, wi, wo);
+			double res = 0;
+			Math::Vector3f normal = hit.orientedPrimitiveNormal(); // should take wi ? 
+			double cos_wi = wi * normal;
+			double cos_wo = wo * normal;
+			if (cos_wo * cos_wi > 0) // same hemisphere
+			{
+				assert(cos_wi > 1);
+				const double pdf_diffuse = cos_wi / Math::pi;
+
+				Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
+				const double cos_r = reflected * wi;
+				const double pdf_glossy = cos_r > 0 ? (std::pow(cos_r, m_shininess) * (m_shininess + 1) / Math::twoPi) : 0;
+
+				const double pmf = pmf_choose_diffuse();
+
+				res = pmf * pdf_diffuse + (1 - pmf) * pdf_glossy;
+			}
+			else
+			{ // maybe the wi is in the glossy lobe
+				Math::Vector3f reflected = hit.primitive_normal.reflect(wo);
+				const double cos_r = reflected * wi;
+				const double pdf_glossy = cos_r > 0 ? (std::pow(cos_r, m_shininess) * (m_shininess + 1) / Math::twoPi) : 0;
+
+				const double pmf = pmf_choose_diffuse();
+
+				res = (1 - pmf) * pdf_glossy;
+			}
+			return res;
 		}
 
 	};
-
-	/*
-	class PhongMaterial : public Material
-	{
-	protected:
-		/// <summary> The ambient color </summary>
-		RGBColor m_ambientColor;
-		/// <summary> the diffuse color</summary>
-		RGBColor m_diffuseColor;
-		/// <summary> The specular color</summary>
-		RGBColor m_specularColor;
-		/// <summary> The shininess</summary>
-		double    m_shininess;
-
-	public:
-		const medium * m_medium = nullptr;
-		bool m_transparent = false;
-		virtual RGBColor ID_COLOR()const
-		{
-			return PHONG_ID_COLOR;
-		}
-		PhongMaterial(RGBColor const & ambientColor = RGBColor(), RGBColor const & diffuseColor = RGBColor(),
-			RGBColor specularColor = RGBColor(), double shininess = 1.0, RGBColor const & emissiveColor = RGBColor(),
-			std::string const & textureFile = "") :
-			Material(emissiveColor, textureFile),
-			m_ambientColor(ambientColor),
-			m_diffuseColor(diffuseColor / Math::pi),
-			m_specularColor(specularColor),
-			m_shininess(shininess)
-		{}
-		/// <summary>
-		/// Sets the ambient color.
-		/// </summary>
-		/// <param name="color">The color.</param>
-		void setAmbient(RGBColor const & color)
-		{
-			m_ambientColor = color;
-		}
-		/// <summary>
-		/// Gets the ambient color.
-		/// </summary>
-		/// <returns>The ambiant color</returns>
-		const RGBColor & getAmbient() const
-		{
-			return m_ambientColor;
-		}
-		/// <summary>
-		/// Sets the diffuse color.
-		/// </summary>
-		/// <param name="color">The color.</param>
-		void setDiffuse(RGBColor const & color)
-		{
-			m_diffuseColor = color / Math::pi;
-		}
-		/// <summary>
-		/// Gets the diffuse color.
-		/// </summary>
-		/// <returns></returns>
-		const RGBColor & getDiffuse() const
-		{
-			return m_diffuseColor;
-		}
-		/// <summary>
-		/// Sets the specular color.
-		/// </summary>
-		/// <param name="color">The color.</param>
-		void setSpecular(RGBColor const & color)
-		{
-			m_specularColor = color;
-		}
-		/// <summary>
-		/// Gets the specular color.
-		/// </summary>
-		/// <returns></returns>
-		const RGBColor & getSpecular() const
-		{
-			return m_specularColor;
-		}
-		/// <summary>
-		/// Sets the shininess.
-		/// </summary>
-		/// <param name="s">The shininess.</param>
-		void setShininess(double s)
-		{
-			m_shininess = s;
-		}
-		/// <summary>
-		/// Gets the shininess.
-		/// </summary>
-		/// <returns></returns>
-		const double & getShininess() const
-		{
-			return m_shininess;
-		}
-
-		//virtual void shader(Ray const& ray, Hit<double> const& hit, LightStack const& lights, ShaderOut & out)const override
-		//{
-		//	RGBColor const& emissive = getEmissive();
-		//	RGBColor const& ambient = 0;// getAmbient();
-		//	RGBColor diffuse = 0;
-		//	RGBColor specular = 0;
-		//	const RGBColor tex_color = hasTexture() ? getTexture().safe_pixel(hit.tex_uv) : 1;
-		//	const Math::Vector3f & reflected = hit.reflected;
-		//	for (size_t i = 0; i < lights.size(); ++i)
-		//	{
-		//		const DirectionalLight & l = lights[i];
-		//		const Math::Vector3f & to_light = l.direction();
-		//		diffuse = diffuse + getDiffuse() * l.color() * (hit.normal * to_light);
-		//		if (reflected * to_light > 0)
-		//		{
-		//			specular = specular + getSpecular() * l.color() * pow(to_light * reflected, getShininess());
-		//		}
-		//	}
-		//	out.rest = (ambient + diffuse + specular) * tex_color;
-		//	out.emisive = emissive * tex_color;
-		//}
-		bool is_transparent()const
-		{
-			return m_transparent;
-		}
-		/*virtual void apply_micro_facets(Hit<double> & hit)const override
-		{
-
-		}
-		//virtual void compute_out_dir(DirectionStack& out, Hit<double> const& hit, unsigned int diffuse_samples, unsigned int specular_samples)const override
-		//{
-		//	//Multi importance sampling ??
-		//	//
-		//	//TODO chack to proba, and the number of samples, I think it is wierd
-		//	//
-		//	if (!m_diffuseColor.isBlack())
-		//	{
-		//		Math::RandomDirection diffuse_sampler(hit.primitive_normal);
-		//		for (int i = 0; i < diffuse_samples; ++i)
-		//		{
-		//			Math::Vector3f direction = diffuse_sampler.generate();
-		//			if (direction * hit.primitive_normal < 0)
-		//			{
-		//				direction = -direction;
-		//			}
-		//			//TODO unbias
-		//			double probability = direction * hit.primitive_normal / Math::pi;
-		//			//double bias = 1;
-		//			out.push({ probability, direction });
-		//		}
-		//	}
-		//	if (!m_specularColor.isBlack())
-		//	{
-		//		Math::RandomDirection specular_sampler(hit.reflected, m_shininess);
-		//		for (int i = 0; i < specular_samples; ++i)
-		//		{
-		//			Math::Vector3f direction = specular_sampler.generate();
-		//			if (direction * hit.normal < 0)
-		//			{
-		//				continue;
-		//			}
-		//			//wrong
-		//			double probability = 1.0 / Math::twoPi;
-		//			out.push({ probability, direction });
-		//		}
-		//	}
-		//}
-		virtual bool sampleBSDF(Hit<double> const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionSample& out, Math::Sampler& sampler)const override
-		{
-			//for now, it only woks with only diffuse materials, no blending of the two kinds of bsdf yet
-			RGBColor tex = hasTexture() ? getTexture().pixel(hit.tex_uv) : 1;
-			RGBColor dif = tex * m_diffuseColor;
-			RGBColor const& spec = m_specularColor;
-
-			if (!dif.isBlack())
-			{
-				Math::RandomDirection diffuse_sampler(&sampler, hit.primitive_normal, 1);
-				double pdf = 0;
-				Math::Vector3f dir;
-				while (pdf == 0)
-				{
-					dir = diffuse_sampler.generate();
-					pdf = (dir * hit.primitive_normal) / Math::pi;
-				}
-				if (pdf < 0)
-				{
-					dir = -dir;
-					pdf = -pdf;
-				}
-				assert(pdf > 0 && pdf <= 1);
-				//TODO MIS
-				double weight = 1.0 ;
-				RGBColor bsdf = dif + spec * pow(hit.reflected * dir, m_shininess);
-				out = { weight, pdf, bsdf, dir };
-				return true;
-			}
-		}
-		virtual RGBColor BSDF(Hit<double> const& hit, Math::Vector3f const& wi)const override
-		{
-			RGBColor tex = hasTexture() ? getTexture().pixel(hit.tex_uv) : 1;
-			RGBColor dif = tex * m_diffuseColor;
-			RGBColor const& spec = m_specularColor;
-			//TODO manage transparancy
-			return wi * hit.primitive_normal > 0 ? dif + spec * pow(hit.reflected * wi, m_shininess) : 0;
-		}
-		virtual void BSDF(Hit<double> const& hit, ColorStack& res, LightSampleStack const& wis)const override
-		{
-			RGBColor tex = hasTexture() ? getTexture().pixel(hit.tex_uv) : 1;
-			RGBColor dif = tex * m_diffuseColor;
-			RGBColor const& spec = m_specularColor;
-			for (SurfaceLightSample wi : wis)
-			{
-				Math::Vector3f const& direction = wi.vector;
-				//TODO transparancy
-				RGBColor bsdf = direction * hit.primitive_normal > 0 ? dif + spec * pow(hit.reflected * direction, m_shininess) : 0;
-				res.push(bsdf);
-			}
-		}
-
-
-		virtual void sampleBSDF(Hit<double> const& hit, unsigned int diffuse_samples, unsigned int specular_samples, DirectionStack& out, Math::Sampler& sampler)const override
-		{
-			RGBColor tex = hasTexture() ? getTexture().pixel(hit.tex_uv) : 1;
-			RGBColor dif = tex * m_diffuseColor;
-			RGBColor const& spec = m_specularColor;
-			if (dif.isBlack())
-			{
-				diffuse_samples = 0;
-			}
-			if (spec.isBlack())
-			{
-				specular_samples = 0;
-			}
-			unsigned int total_samples = diffuse_samples + specular_samples;
-			//sampling directions according to a cos pdf
-			if (diffuse_samples>0)
-			{
-				Math::RandomDirection diffuse_sampler(&sampler, hit.primitive_normal, 1);
-				for (unsigned int i = 0; i < diffuse_samples; ++i)
-				{
-					double pdf=0;
-					Math::Vector3f dir;
-					while (pdf == 0)
-					{
-						dir = diffuse_sampler.generate();
-						pdf = (dir * hit.primitive_normal) / Math::pi;
-					}
-					if (pdf < 0)
-					{
-						dir = -dir;
-						pdf = -pdf;
-					}
-					assert(pdf > 0 && pdf <= 1);
-					//TODO MIS
-					double weight = 1.0 / total_samples;
-					RGBColor bsdf = dif + spec * pow(hit.reflected * dir, m_shininess);
-					out.push({ weight, pdf, bsdf, dir });
-				}
-			}
-			//sampling directions according to a specular pdf
-			if (specular_samples>0)
-			{
-				Math::RandomDirection spec_sampler(&sampler, hit.reflected, m_shininess);
-				for (unsigned int i = 0; i < specular_samples; ++i)
-				{
-					Math::Vector3f dir = spec_sampler.generate();
-					if (dir * hit.normal < 0)
-					{
-						continue;
-					}
-					//TODO check if it really works all the time
-					double bsdfd = pow(hit.reflected * dir, m_shininess);
-					double pdf = (m_shininess + 1) * bsdfd / (Math::twoPi);
-					assert(pdf > 0 && pdf <= 1);
-					//TODO MIS
-					double weight = 1.0 / total_samples;
-					RGBColor bsdf = dif + spec * bsdfd;
-					out.push({ weight, pdf, bsdf, dir });
-				}
-			}
-			//TODO add MIS
-		}
-		/*
-		virtual Material * new_copy()const
-		{
-			return new PhongMaterial(*this);
-		}
-
-	};
-	*/
-
 }

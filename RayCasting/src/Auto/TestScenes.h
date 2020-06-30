@@ -9,6 +9,7 @@
 #include <Geometry/Shapes/Cylinder.h>
 #include <Image/ImWrite.h>
 #include <Geometry/Materials/Dielectric.h>
+#include <Geometry/Materials/Phong.h>
 #include <Image/ImRead.h>
 
 namespace Auto
@@ -299,7 +300,7 @@ namespace Auto
 		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
 
 		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
-		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
+		Geometry::Material* orange = new Geometry::Phong({ 0.8, 0.4, 0.1 }, {0.2, 0.2, 0.2}, 250); 
 
 		double scale = 5;
 		Geometry::Material* fourth_wall = closed ? white : nullptr;
