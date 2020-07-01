@@ -91,7 +91,7 @@ namespace Integrator
 								const Math::Vector3f y_2_to_next = s == 2 ? LightSubPath[1].dir_to_vertex(&camera_top) : -LightSubPath[2].omega_o();
 								const RGBColor bsdf = LightSubPath[1].material()->BSDF(LightSubPath[1].hit, LightSubPath[1].omega_o(), y_2_to_next, false);
 								const RGBColor contrib = radiance_arriving_on_y_2 * bsdf;
-								s1_pdf = scene.pdfRISEstimate(LightSubPath[1].hit, LightSubPath[0].hit, sampler, contrib);
+								s1_pdf = scene.pdfRISEstimate(LightSubPath[1].hit, LightSubPath[0].hit, sampler, contrib, y_2_to_next);
 							}
 							else if(s == 2)
 								s1_pdf = scene.pdfSampleLi(LightSubPath[0].hit.geometry, LightSubPath[1].hit, LightSubPath[0].hit.point); 

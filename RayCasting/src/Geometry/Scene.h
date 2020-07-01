@@ -881,11 +881,23 @@ namespace Geometry
 		// Contribution should be in area density
 		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, RGBColor const& common=1)const
 		{
-			return pdfRISEstimate(ref, sample, sampler, contribution, common, m_ris_estimate_N);
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, m_ris_estimate_N);
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, RGBColor const& common, int N)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, Math::Vector3f const& omega_o, RGBColor const& common = 1)const
+		{
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, omega_o, m_ris_estimate_N);
+		}
+
+		// Contribution should be in area density
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, RGBColor const& common, int N)const
+		{
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, N);
+		}
+
+		// Contribution should be in area density
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, RGBColor const& common, Math::Vector3f const& omega_o, int N)const
 		{
 			if (N == 0)	return 0;
 			if (m_ris_number_of_candidates == 1)
@@ -925,7 +937,7 @@ namespace Geometry
 					to_light /= std::sqrt(dist2);
 					double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
 					const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
-					const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+					const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, omega_o, false);
 					const RGBColor L = Le * bsdf * G;
 					double target = (common * L).energy();
 					if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else

@@ -1573,7 +1573,7 @@ int main(int argc, char** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
-	//Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
+	Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
@@ -1588,7 +1588,7 @@ int main(int argc, char** argv)
 	//initGuitar(scene, visu);
 	//initDog(scene, visu);
 	//initGarage(scene, visu);
-	initRobot(scene, visu);
+	//initRobot(scene, visu);
 	//initTemple(scene, visu);
 	//initGraveStone(scene, visu);
 	//initBoat(scene, visu);
@@ -1611,12 +1611,12 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16*16;
+	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
 	unsigned int maxLen = 5;
 
-	unsigned int lights_divisions = sample_per_pixel;
+	unsigned int lights_divisions = sample_per_pixel*0+1;
 
 
 	double alpha = 1;
@@ -1630,8 +1630,8 @@ int main(int argc, char** argv)
 	scene.check_capacity();
 
 
-	RenderOption render_option = RenderOption::Pass;
-	RenderMode render_mode = RenderMode::bdpt;
+	RenderOption render_option = RenderOption::RealTime;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
