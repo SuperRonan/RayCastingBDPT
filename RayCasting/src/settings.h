@@ -41,11 +41,8 @@ void toc()
 //multiply the final result is the Visualizer x10 for the tone mapping
 #define MULT_10
 
-//when loading materials with the 3ds loader, try to convert to Lambert or specular instead of always using Phong
-#define CONVERT_MATERIALS
-
 //when converting the materials, for them to be lambertian
-#define FORCE_LAMBERT
+//#define FORCE_LAMBERT
 
 #include <string>
 

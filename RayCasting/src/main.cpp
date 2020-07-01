@@ -72,13 +72,13 @@ void createGround(Geometry::Scene & scene)
 {
 	Geometry::BoundingBox sb = scene.getBoundingBox();
 	// Non emissive 
-	//GeometryCollection::Material * material = new GeometryCollection::Phong(RGBColor(), 0.5, 0.0 , 0.0f, 0, ""); // Non existing material...
+	Geometry::Material* material = new Geometry::Phong({ 0.5, 0.5, 0.5 }, { 0.5, 0.5, 0.5 }, 1000);
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(0., 0., 0.), RGBColor(1., 1., 1.), 10000.0f);	//perfect mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0f, 1.0f, 1.0f), RGBColor(0.f, 0.f, 0.f), 100.0f); //not a mirror
 	//GeometryCollection::Material * material = new GeometryCollection::Material(RGBColor(), RGBColor(1.0,.4,.4)*0.5, RGBColor(), 1000.0f, RGBColor(0.5, 0.5, 0.5)*0.5); // Non existing material...
 	//Geometry::Material* material = new Geometry::Glossy(0.9, 1000);
 	//Geometry::Material* material = new GeometryCollection::DeltaMirror(0.5);
-	Geometry::Material* material = new Geometry::Lambertian<Geometry::REFLECT>(1);
+	//Geometry::Material* material = new Geometry::Lambertian<Geometry::REFLECT>(1);
 
 	Geometry::Square * square = new Geometry::Square(material);
 	Math::Vector3f scaleV = (sb.max() - sb.min());
@@ -93,20 +93,11 @@ void createGround(Geometry::Scene & scene)
 	::std::cout << "center: " << (sb.min() + sb.max()) / 2.0 << ::std::endl;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \fn	void createGround(GeometryCollection::Scene & scene)
-///
-/// \brief	Adds a sirface area light to the scene
-///
-/// \author	F. Lamarche, Université de Rennes 1
-/// \date	03/12/2013
-///
-/// \param [in,out]	scene	The scene.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-void createSurfaceLight(Geometry::Scene & scene, double value)
+
+void createSurfaceLight(Geometry::Scene & scene, RGBColor const& value)
 {
 	Geometry::BoundingBox sb = scene.getBoundingBox();
-	Geometry::Material * material = new Geometry::Material(RGBColor(value, value, value) * 20);
+	Geometry::Material * material = new Geometry::Material(value);
 	
 	Geometry::Square * square = new Geometry::Square(material);
 	Math::Vector3f scaleV = (sb.max() - sb.min());
@@ -608,7 +599,7 @@ void initTemple(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 	}
 	createGround(scene);
 	//createSurfaceLight(scene, 1);
-	createSurfaceLight(scene, 1);
+	createSurfaceLight(scene, { 1.5, 1.2, 0.8 });
 }
 
 /// <summary>
@@ -640,6 +631,7 @@ void initRobot(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 		camera.translateLocal(Math::makeVector(0.f, 40.f, 50.f));
 		scene.setCamera(camera);
 	}
+	createSurfaceLight(scene, RGBColor( 1.6, 1.1, 0.5 ) * 50);
 	createGround(scene);
 }
 
@@ -1553,7 +1545,7 @@ int main(int argc, char** argv)
 
 
 #ifdef _DEBUG
-	int scale = 10;
+	int scale = 1;
 #else
 	int scale = 1;
 #endif
@@ -1581,7 +1573,7 @@ int main(int argc, char** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
-	Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
+	//Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
@@ -1596,7 +1588,7 @@ int main(int argc, char** argv)
 	//initGuitar(scene, visu);
 	//initDog(scene, visu);
 	//initGarage(scene, visu);
-	//initRobot(scene, visu);
+	initRobot(scene, visu);
 	//initTemple(scene, visu);
 	//initGraveStone(scene, visu);
 	//initBoat(scene, visu);
@@ -1619,12 +1611,12 @@ int main(int argc, char** argv)
 
 
 	// 3 - Computes the scene
-	unsigned int sample_per_pixel = 16;
+	unsigned int sample_per_pixel = 16*16;
 										
 	// max lenght is included
 	unsigned int maxLen = 5;
 
-	unsigned int lights_divisions = sample_per_pixel*0+1;
+	unsigned int lights_divisions = sample_per_pixel;
 
 
 	double alpha = 1;
@@ -1638,8 +1630,8 @@ int main(int argc, char** argv)
 	scene.check_capacity();
 
 
-	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderOption render_option = RenderOption::Pass;
+	RenderMode render_mode = RenderMode::bdpt;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

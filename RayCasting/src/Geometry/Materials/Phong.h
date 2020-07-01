@@ -54,6 +54,7 @@ namespace Geometry
 				out.direction = glossy_sampler.generate();
 			}
 			out.pdf = Phong::pdf(hit, out.direction, hit.to_view, RADIANCE);
+			if (pdf_rev)	*pdf_rev = out.pdf;
 			out.bsdf = Phong::BSDF(hit, out.direction, hit.to_view, RADIANCE);
 		}
 

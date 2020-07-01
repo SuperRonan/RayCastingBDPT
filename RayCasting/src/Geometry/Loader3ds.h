@@ -13,6 +13,7 @@
 #include <Geometry/Shapes/Geometry.h>
 #include <Geometry/Materials/Lambert.h>
 #include <Geometry/Materials/Glossy.h>
+#include <Geometry/Materials/Phong.h>
 #include <settings.h>
 
 
@@ -63,8 +64,7 @@ namespace Geometry
 				{
 					RGBColor ambient;
 					ambient.set(material->ambient);
-					return new Glossy(spec, material->shininess);
-					//return new Phong(dif, spec, material->shininess);
+					return new Phong(dif, spec, material->shininess);
 				}
 			}
 		}
@@ -76,21 +76,8 @@ namespace Geometry
 		/// <param name="texturePath">The texture path.</param>
 		void loadMaterial(Lib3dsMaterial* material, const ::std::string& texturePath)
 		{
-			Material* res = nullptr;
-#ifdef CONVERT_MATERIALS
-			res = bestType(material);
-#else
-			Phong* currentMaterial = new Phong();
-			RGBColor color;
-			color.set(material->diffuse);
-			currentMaterial->setDiffuse(color);
-			color.set(material->specular);
-			currentMaterial->setSpecular(color);
-			color.set(material->ambient);
-			currentMaterial->setAmbient(color);
-			currentMaterial->setShininess(material->shininess);
-			res = currentMaterial;
-#endif
+			Material* res = bestType(material);
+
 
 			::std::string textureName = material->texture1_map.name;
 			if (textureName != "")
