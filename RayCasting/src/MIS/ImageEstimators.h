@@ -495,7 +495,7 @@ namespace MIS
 			if (alpha)
 				saveAlphas(iterations);
 #else 
-			std::cout<<"Warning! Image Direct Estimator Debug disabled. Nothing happens!"
+			std::cout << "Warning! Image Direct Estimator Debug disabled. Nothing happens!" << std::endl;
 #endif
 		}
 #endif

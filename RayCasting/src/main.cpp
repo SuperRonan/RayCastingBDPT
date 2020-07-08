@@ -1551,17 +1551,14 @@ int main(int argc, char** argv)
 #endif
 
 	// 1 - Initializes a window for rendering
-	//Visualizer::Visualizer visu(2000, 2000, scale);// pour les ecrans 4K
-	Visualizer::Visualizer visu(1000, 1000, scale);
-	//Visualizer::Visualizer visu(2000, 1000, scale);
-	//Visualizer::Visualizer visu(1900, 1000, scale);
-	//Visualizer::Visualizer visu(1000, 500, scale);
-	//Visualizer::Visualizer visu(500, 500, scale);
-	//Visualizer::Visualizer visu(300, 300, scale) ;
-	//Visualizer::Visualizer visu(250, 250, scale) ;
-	//Visualizer::Visualizer visu(200, 200, scale) ;
-	//Visualizer::Visualizer visu(150, 150, scale) ;
-	//Visualizer::Visualizer visu(100, 100, scale) ;
+	//Visualizer::Visualizer visu(2048, 2048, scale);// pour les ecrans 4K
+	//Visualizer::Visualizer visu(1024, 1024, scale);
+	//Visualizer::Visualizer visu(2048, 1024, scale);
+	//Visualizer::Visualizer visu(1024, 512, scale);
+	Visualizer::Visualizer visu(512, 512, scale);
+	//Visualizer::Visualizer visu(384, 384, scale) ;
+	//Visualizer::Visualizer visu(256, 256, scale) ;
+	//Visualizer::Visualizer visu(128, 128, scale) ;
 	//Visualizer::Visualizer visu(1, 1, 1);
 
 	//testSqaureSample(visu);
@@ -1614,7 +1611,7 @@ int main(int argc, char** argv)
 	unsigned int sample_per_pixel = 16;
 										
 	// max lenght is included
-	unsigned int maxLen = 5;
+	unsigned int maxLen = 7;
 
 	unsigned int lights_divisions = sample_per_pixel*0+1;
 
