@@ -270,6 +270,7 @@
     <ClInclude Include="..\src\Integrators\BidirectionalIntegrator.h" />
     <ClInclude Include="..\src\Integrators\BlackHolePath.h" />
     <ClInclude Include="..\src\Integrators\DirectIntegrator.h" />
+    <ClInclude Include="..\src\Integrators\riscbdpt.h" />
     <ClInclude Include="..\src\Integrators\RWMCPT.h" />
     <ClInclude Include="..\src\Integrators\Integrator.h" />
     <ClInclude Include="..\src\Integrators\LightIntegrator.h" />

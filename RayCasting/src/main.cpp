@@ -43,6 +43,7 @@
 #include <Integrators/VCM.h>
 #include <Integrators/OptiVCM.h>
 #include <Integrators/RWMCPT.h>
+#include <Integrators/riscbdpt.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -957,7 +958,7 @@ enum RenderMode : int {
 	PathTracing = 20, RISPathTracing = 21,
 	MISPT = 30, RISinMISPT = 31,
 	lightTracing = 40,
-	bdpt = 50, RISbdpt=51, OptiMISBDPT = 55, naiveBDPT = 58, UncorellatedBDPT = 59,
+	bdpt = 50, RISLibdpt=51, riscbdpt = 52, OptiMISBDPT = 55, naiveBDPT = 58, UncorellatedBDPT = 59,
 	OptimalDirectLi = 60, OptimalDirectRIS = 61, OptimalDirectLiRIS = 62,
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
@@ -1033,9 +1034,15 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 	}
 
 	{
-		res[RenderMode::RISbdpt] = new Integrator::BidirectionalIntegrator<true>(sample_per_pixel, w, h);
-		res[RenderMode::RISbdpt]->setLen(maxLen);
-		res[RenderMode::RISbdpt]->m_alpha = alpha;
+		res[RenderMode::RISLibdpt] = new Integrator::BidirectionalIntegrator<true>(sample_per_pixel, w, h);
+		res[RenderMode::RISLibdpt]->setLen(maxLen);
+		res[RenderMode::RISLibdpt]->m_alpha = alpha;
+	}
+
+	{
+		res[RenderMode::riscbdpt] = new Integrator::RISCBDPT(sample_per_pixel, w, h);
+		res[RenderMode::riscbdpt]->setLen(maxLen);
+		res[RenderMode::riscbdpt]->m_alpha = alpha;
 	}
 
 	{
@@ -1272,7 +1279,12 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 				if (render_mode == RenderMode::bdpt)
 				{
 					std::cout << "switching to RIS BDPT" << std::endl;
-					render_mode = RenderMode::RISbdpt;
+					render_mode = RenderMode::RISLibdpt;
+				}
+				else if (render_mode == RenderMode::RISLibdpt)
+				{
+					std::cout << "switching to RISC BDPT" << std::endl;
+					render_mode = RenderMode::riscbdpt;
 				}
 				else
 				{
@@ -1552,10 +1564,10 @@ int main(int argc, char** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2048, 2048, scale);// pour les ecrans 4K
-	//Visualizer::Visualizer visu(1024, 1024, scale);
+	Visualizer::Visualizer visu(1024, 1024, scale);
 	//Visualizer::Visualizer visu(2048, 1024, scale);
 	//Visualizer::Visualizer visu(1024, 512, scale);
-	Visualizer::Visualizer visu(512, 512, scale);
+	//Visualizer::Visualizer visu(512, 512, scale);
 	//Visualizer::Visualizer visu(384, 384, scale) ;
 	//Visualizer::Visualizer visu(256, 256, scale) ;
 	//Visualizer::Visualizer visu(128, 128, scale) ;
@@ -1628,7 +1640,7 @@ int main(int argc, char** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderMode render_mode = RenderMode::riscbdpt;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

@@ -473,7 +473,14 @@ namespace Integrator
 			return weight;
 		}
 
-		
+		static __forceinline size_t pixelSeed(size_t x, size_t y, size_t width, size_t height, size_t pass)
+		{
+#ifdef SAMPLER_BIAS
+			return (pass) * (width * height);
+#else
+			return (y * width + x) + (pass) * (width * height);
+#endif
+		}
 
 	};
 }
