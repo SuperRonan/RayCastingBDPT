@@ -1544,6 +1544,60 @@ void testRIS(size_t seed=0)
 	std::cout << "Final Integral estimate: " << final_estimate / (N * K) << std::endl;
 }
 
+template <class Float, bool second_iteration=false>
+Float fastInvSqrt(Float f)
+{
+	if constexpr (std::is_same<Float, float>::value)
+	{
+		int32_t i;
+		float x2;
+		x2 = f * 0.5f;
+		i = *(int32_t*)&f;
+		i = 0x5f3759df - (i >> 1); // wtf
+		f = *(float*)&i;
+		f *= 1.5f - (x2 * f * f);
+		if constexpr(second_iteration)
+			f *= 1.5f - (x2 * f * f);
+		return f;
+	}
+	else //if constexpr (std::is_same<Float, double>::value)
+	{
+		int64_t i;
+		double x2;
+		x2 = f * 0.5f;
+		i = *(int64_t*)&f;
+		i = 0x5FE6EC85E7DE30DA - (i >> 1); // wtf
+		f = *(double*)&i;
+		f *= 1.5f - (x2 * f * f);
+		if constexpr (second_iteration)
+			f *= 1.5f - (x2 * f * f);
+		return f;
+	}
+}
+
+template <class Float>
+void testInvSqrt()
+{
+	Math::Sampler sampler;
+	
+	for (int i = 0; i < 100; ++i)
+	{
+		Float f = sampler.generateContinuous<Float>(0, 2);
+		Float exact1 = Float(1.0) / (std::sqrt(f));
+		Float exact2 = std::sqrt(Float(1.0) / (f));
+		Float exact = (exact1 + exact2) * Float(0.5);
+
+		Float fast1 = fastInvSqrt<Float, false>(f);
+		Float fast2 = fastInvSqrt<Float, true>(f);
+
+		std::cout << "f: " << f << std::endl;
+		std::cout << "exact: " << exact << std::endl;
+		std::cout << "fast1: " << fast1 << std::endl;
+		std::cout << "fast2: " << fast2 << std::endl;
+	}
+
+}
+
 int main(int argc, char** argv)
 {
 	Parallel::init();
@@ -1581,8 +1635,8 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
-	Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
+	//Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
@@ -1640,7 +1694,7 @@ int main(int argc, char** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::riscbdpt;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

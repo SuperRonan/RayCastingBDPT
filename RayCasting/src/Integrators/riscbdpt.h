@@ -13,13 +13,17 @@ namespace Integrator
 		mutable Image::Image<Path> m_light_paths;
 		bool m_light_paths_built = false;
 
+		int m_num_candidates = 4;
+
+		mutable std::vector<std::vector<const Path*>> m_candidates_buffer;
+
 	public:
 
 
 		void buildLightPaths(Scene const& scene, size_t width, size_t height, size_t pass)
 		{
-			m_light_paths.resize(width, height);
 			m_light_paths_built = false;
+			m_light_paths.resize(width, height);
 			OMP_PARALLEL_FOR
 				for (int x = 0; x < width; ++x)
 				{
@@ -34,16 +38,19 @@ namespace Integrator
 			m_light_paths_built = true;
 		}
 
+		double computeWeight(Path& csp, Path& lsp, int S, int T, double s1_pdf)const
+		{
+			return 0;
+		}
 
-		void computeSample(Scene const& scene, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
+
+		void computeSample(Scene const& scene, int light_index, double u, double v, __in Math::Sampler& sampler, __out RGBColor& pixel_res, LightVertexStack& lt_vertices)const
 		{
 			Path cameraSubPath;
-			int light_index = sampler.generate(0, m_light_paths.size()-1);
-			const Path& _LightSubPath = m_light_paths[light_index];
+			const Path& pixel_LightSubPath = m_light_paths[light_index];
 			Path LightSubPath;
-			std::memcpy(&LightSubPath, &_LightSubPath, sizeof(Path));
+			std::memcpy(&LightSubPath, &pixel_LightSubPath, sizeof(Path));
 			Ray ray = scene.m_camera.getRay(u, v);
-
 			traceCameraSubPath(scene, sampler, cameraSubPath, ray);
 			double s1_pdf;
 			for (int t = 1; t <= cameraSubPath.size(); ++t)
@@ -58,117 +65,75 @@ namespace Integrator
 					}
 					RGBColor L = 0;
 
-					// special cases of connections strategies
 					if (s + t == 1)
 						continue;
+
 					if (s == 0)
 					{
 						// naive path tracing
+						// The light subpath is the one associated with the pixel
 						if (camera_top.hit.geometry->getMaterial()->is_emissive())
 						{
 							const RGBColor Le = camera_top.hit.geometry->getMaterial()->Le(camera_top.pNormal(), camera_top.hit.tex_uv, camera_top.omega_o());
 							L = camera_top.beta * Le;
 							double pdf = scene.pdfSampleLe(camera_top.hit.geometry);
 							
-							const RGBColor bsdf = cameraSubPath[t - 2].type == Vertex::Type::Camera ?
-								cameraSubPath[t - 2].hit.camera->We(-camera_top.omega_o()) :
-								cameraSubPath[t - 2].material()->BSDF(cameraSubPath[t - 2].hit, -camera_top.omega_o(), cameraSubPath[t - 2].omega_o(), false);
-							const RGBColor contrib = bsdf * Le * Vertex::G(camera_top, cameraSubPath[t - 2]);
-							s1_pdf = scene.pdfRISEstimate(cameraSubPath[t - 2].hit, camera_top.hit, sampler, contrib);
-							
-							double weight = VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf, pdf);
+							{
+								const RGBColor bsdf = cameraSubPath[t - 2].type == Vertex::Type::Camera ?
+									cameraSubPath[t - 2].hit.camera->We(-camera_top.omega_o()) :
+									cameraSubPath[t - 2].material()->BSDF(cameraSubPath[t - 2].hit, -camera_top.omega_o(), cameraSubPath[t - 2].omega_o(), false);
+								const RGBColor contrib = bsdf * Le * Vertex::G(camera_top, cameraSubPath[t - 2]);
+								s1_pdf = scene.pdfRISEstimate(cameraSubPath[t - 2].hit, camera_top.hit, sampler, contrib);
+							}
+
+							double weight = 1.0;// VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf, pdf);
 							pixel_res += L * weight;
 						}
 					}
 					else
 					{
-						ScopedAssignment<Vertex> resampled_vertex_sa;
-						if (s == 1)
+						if (t > 1 && s > 1)
 						{
-							SurfaceSample sls;
+							// Use RIS to select the light sub path
 
-							// I could get the contribution from the call to this function
-							// I could also give the beta of the camera_top as common, but it makes the other call to the pdf a bit complex for now
-							scene.sampleLiRIS(sampler, sls, camera_top.hit);
-
-							s1_pdf = sls.pdf;
-							Vertex light_resampled;
-							light_resampled.delta = false;
-							light_resampled.type = Vertex::Type::Light;
-							light_resampled.hit.geometry = sls.geo;
-							light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
-							light_resampled.hit.tex_uv = sls.uv;
-							light_resampled.hit.point = sls.vector;
-							double Le_pdf = scene.pdfSampleLe(sls.geo);
-							light_resampled.fwd_pdf = Le_pdf;
-							light_resampled.beta = 1.0 / sls.pdf;
-							resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
-						}
-						else if (s <= 3) // BTW this assumes that the connecting loops are in the order t then s
-						{
-							const RGBColor radiance_arriving_on_y_2 = LightSubPath[1].beta * (LightSubPath[0].fwd_pdf * LightSubPath[1].fwd_pdf);
-							const Math::Vector3f y_2_to_next = s == 2 ? LightSubPath[1].dir_to_vertex(&camera_top) : -LightSubPath[2].omega_o();
-							const RGBColor bsdf = LightSubPath[1].material()->BSDF(LightSubPath[1].hit, LightSubPath[1].omega_o(), y_2_to_next, false);
-							const RGBColor contrib = radiance_arriving_on_y_2 * bsdf;
-							s1_pdf = scene.pdfRISEstimate(LightSubPath[1].hit, LightSubPath[0].hit, sampler, contrib, y_2_to_next);
-						}
-
-						Vertex& light_top = LightSubPath[s - 1];
-
-						if (camera_top.delta || light_top.delta)
-							continue;
-
-						Math::Vector3f dir = camera_top.hit.point - light_top.hit.point;
-						const double dist2 = dir.norm2();
-						const double dist = sqrt(dist2);
-						dir /= dist;
-
-						double G = std::abs(dir * light_top.hit.primitive_normal) / dist2;
-
-						RGBColor camera_connection, light_connection;
-
-						if (t == 1)
-						{
-							//light tracing
-							camera_connection = scene.m_camera.We(-dir);
 						}
 						else
 						{
-							//general case
-							camera_connection = camera_top.hit.geometry->getMaterial()->BSDF(camera_top.hit, -dir, false);
-							G *= std::abs(camera_top.hit.primitive_normal * dir);
-						}
+							// The light subpath is the one associated with the pixel
 
-						if (s == 1)
-						{
-							//direct lighting estimation
-							light_connection = light_top.hit.geometry->getMaterial()->Le(light_top.pNormal(), light_top.hit.tex_uv, dir);
-						}
-						else
-						{
-							//general case
-							light_connection = light_top.hit.geometry->getMaterial()->BSDF(light_top.hit, dir, true);
-						}
+							Vertex& light_top = LightSubPath[s - 1];
+							if (camera_top.delta || light_top.delta)
+								continue;
 
-						L = camera_top.beta * camera_connection * G * light_connection * light_top.beta;
-
-
-						if (!L.isBlack() && scene.visibility(light_top.hit.point, camera_top.hit.point))
-						{
-							L *= VCbalanceWeight(cameraSubPath, LightSubPath, s, t, s1_pdf);
-							if (t == 1)
+							ScopedAssignment<Vertex> resampled_vertex_sa;
+							if (s == 1)
 							{
-								LightVertex lv;
-								lv.light = L / scene.m_camera.resolution;
-								lv.uv = scene.m_camera.raster(-dir);
-								lt_vertices.push(lv);
+								// simply resample the vertex on the light source
+								SurfaceSample sls;
+								// I could get the contribution from the call to this function
+								// I could also give the beta of the camera_top as common, but it makes the other call to the pdf a bit complex for now
+								scene.sampleLiRIS(sampler, sls, camera_top.hit);
+								s1_pdf = sls.pdf;
+								Vertex light_resampled;
+								light_resampled.delta = false;
+								light_resampled.type = Vertex::Type::Light;
+								light_resampled.hit.geometry = sls.geo;
+								light_resampled.hit.normal = light_resampled.hit.primitive_normal = sls.normal;
+								light_resampled.hit.tex_uv = sls.uv;
+								light_resampled.hit.point = sls.vector;
+								double Le_pdf = scene.pdfSampleLe(sls.geo);
+								light_resampled.fwd_pdf = Le_pdf;
+								light_resampled.beta = 1.0 / sls.pdf;
+								resampled_vertex_sa = { LightSubPath.begin(), light_resampled };
 							}
-							else
-							{
-								pixel_res += L;
-							}
-						}
+							
+							Math::Vector3f y_to_x = camera_top.hit.point - light_top.hit.point;
+							const double dist2 = y_to_x.norm2();
+							const double dist = sqrt(dist2);
+							y_to_x /= dist;
 
+							double G = std::abs(y_to_x * light_top.hit.primitive_normal) / dist2;
+						}
 					}
 				}
 			}
@@ -216,7 +181,7 @@ namespace Integrator
 							RGBColor pixel = 0;
 							LightVertexStack lvs;
 
-							computeSample(scene, u, v, sampler, pixel, lvs);
+							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, pixel, lvs);
 
 							m_frame_buffer(x, y) += pixel;
 							for (LightVertex const& lv : lvs)
@@ -295,7 +260,7 @@ namespace Integrator
 							RGBColor pixel = 0;
 							LightVertexStack lvs;
 
-							computeSample(scene, u, v, sampler, pixel, lvs);
+							computeSample(scene, m_light_paths.index(x, y), u, v, sampler, pixel, lvs);
 
 							m_frame_buffer(x, y) += pixel;
 							for (LightVertex const& lv : lvs)
@@ -354,7 +319,7 @@ namespace Integrator
 						RGBColor pixel = 0;
 						LightVertexStack lvs;
 
-						computeSample(scene, u, v, sampler, pixel, lvs);
+						computeSample(scene, m_light_paths.index(x, y), u, v, sampler, pixel, lvs);
 
 						m_frame_buffer(x, y) += pixel;
 						for (LightVertex const& lv : lvs)
