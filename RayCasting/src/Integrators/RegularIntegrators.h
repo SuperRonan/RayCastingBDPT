@@ -81,7 +81,7 @@ namespace Integrator
 			RGBColor sky = 1;
 			if (scene.full_intersection(ray, hit))
 			{
-				Math::RandomDirection dir_sampler(&sampler, hit.primitive_normal);
+				Math::OldRandomDirection dir_sampler(&sampler, hit.primitive_normal);
 				Math::Vector3f dir = dir_sampler.generate();
 				double cos_dir = dir * hit.primitive_normal;
 				if (cos_dir < 0)

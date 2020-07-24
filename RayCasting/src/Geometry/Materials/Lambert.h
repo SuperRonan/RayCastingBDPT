@@ -50,7 +50,7 @@ namespace Geometry
 			if constexpr (MODE == TRANSMIT)
 				normal = -normal;
 			//There is not really a point of sampling a 
-			Math::RandomDirection direction_sampler(&sampler, normal);
+			Math::OldRandomDirection direction_sampler(&sampler, normal);
 			out.direction = direction_sampler.generate();
 			out.pdf = (out.direction * normal) / Math::pi;
 			if (out.pdf == 0)

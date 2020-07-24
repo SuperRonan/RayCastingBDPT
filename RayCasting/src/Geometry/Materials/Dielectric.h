@@ -258,7 +258,7 @@ namespace Geometry
 			
 			if (!reflect)
 			{
-				Math::RandomDirection direction_sampler(&sampler, -normal, m_shininess);
+				Math::OldRandomDirection direction_sampler(&sampler, -normal, m_shininess);
 				out.direction = direction_sampler.generate();
 				double cos_t = out.direction * -normal;
 				double f = scaling * std::pow(cos_t, m_shininess);
@@ -292,7 +292,7 @@ namespace Geometry
 
 				const Math::Vector3f & main_direction = xi < fresnel_reflectance ? reflected : transmited;
 
-				Math::RandomDirection direction_sampler(&sampler, main_direction, m_shininess);
+				Math::OldRandomDirection direction_sampler(&sampler, main_direction, m_shininess);
 				out.direction = direction_sampler.generate();
 
 				bool has_reflected = out.direction * normal > 0;
@@ -309,7 +309,7 @@ namespace Geometry
 			}
 			else // only reflects
 			{
-				Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);
+				Math::OldRandomDirection direction_sampler(&sampler, reflected, m_shininess);
 				out.direction = direction_sampler.generate();
 				double cos_reflected = reflected * out.direction;
 				double f = scaling * std::pow(cos_reflected, m_shininess);

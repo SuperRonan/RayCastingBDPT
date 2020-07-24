@@ -241,7 +241,7 @@ namespace Geometry
 		virtual DirectionSample sampleLightDirection(SurfaceSample const& sls, Math::Sampler& sampler)const
 		{
 			DirectionSample res;
-			Math::RandomDirection diffuse_sampler(&sampler, sls.normal, m_light_spickyness+1);
+			Math::OldRandomDirection diffuse_sampler(&sampler, sls.normal, m_light_spickyness+1);
 			res.direction = diffuse_sampler.generate();
 			res.bsdf = Le(sls.normal, sls.uv, res.direction);
 			res.pdf = std::pow(res.direction * sls.normal, m_light_spickyness+1.0) * ((m_light_spickyness+2.0) / Math::twoPi);

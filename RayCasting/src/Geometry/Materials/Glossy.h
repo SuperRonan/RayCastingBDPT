@@ -79,7 +79,7 @@ namespace Geometry
 		virtual void sampleBSDF(Hit const& hit, DirectionSample& out, Math::Sampler& sampler, bool RADIANCE=true, double *pdf_rev=nullptr)const override
 		{
 			Math::Vector3f reflected = hit.primitive_reflected();
-			Math::RandomDirection direction_sampler(&sampler, reflected, m_shininess);
+			Math::OldRandomDirection direction_sampler(&sampler, reflected, m_shininess);
 			out.direction = direction_sampler.generate();
 
 			double cosr = reflected * out.direction;

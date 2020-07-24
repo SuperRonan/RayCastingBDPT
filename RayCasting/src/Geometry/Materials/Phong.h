@@ -44,13 +44,13 @@ namespace Geometry
 			const double xi = sampler.generateContinuous<double>();
 			if (xi < pmf) // Sample the diffuse
 			{
-				Math::RandomDirection diffuse_sampler(&sampler, normal);
+				Math::OldRandomDirection diffuse_sampler(&sampler, normal);
 				out.direction = diffuse_sampler.generate();
 			}
 			else // Sample the glossy
 			{
 				Math::Vector3f reflected = normal.reflect(hit.to_view);
-				Math::RandomDirection glossy_sampler(&sampler, reflected, m_shininess);
+				Math::OldRandomDirection glossy_sampler(&sampler, reflected, m_shininess);
 				out.direction = glossy_sampler.generate();
 			}
 			out.pdf = Phong::pdf(hit, out.direction, hit.to_view, RADIANCE);

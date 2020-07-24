@@ -228,6 +228,7 @@
     <ClInclude Include="..\src\Geometry\LightCache.h" />
     <ClInclude Include="..\src\Geometry\LightSampler.h" />
     <ClInclude Include="..\src\Geometry\Loader3ds.h" />
+    <ClInclude Include="..\src\Geometry\Materials\BadLambert.h" />
     <ClInclude Include="..\src\Geometry\Materials\CartoonMaterial.h" />
     <ClInclude Include="..\src\Geometry\Materials\DeltaMirror.h" />
     <ClInclude Include="..\src\Geometry\Materials\Dielectric.h" />
