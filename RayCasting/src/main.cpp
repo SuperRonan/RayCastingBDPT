@@ -1611,7 +1611,7 @@ int main(int argc, char** argv)
 
 
 #ifdef _DEBUG
-	int scale = 1;
+	int scale = 10;
 #else
 	int scale = 1;
 #endif
@@ -1635,7 +1635,7 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
+	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
 	//Auto::initRGBCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
@@ -1647,6 +1647,7 @@ int main(int argc, char** argv)
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
+	Auto::initBadCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
 	
 	//initGuitar(scene, visu);
 	//initDog(scene, visu);

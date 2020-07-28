@@ -10,6 +10,7 @@
 #include <Image/ImWrite.h>
 #include <Geometry/Materials/Dielectric.h>
 #include <Geometry/Materials/Phong.h>
+#include <Geometry/Materials/BadLambert.h>
 #include <Image/ImRead.h>
 
 namespace Auto
@@ -886,5 +887,98 @@ namespace Auto
 		}
 	}
 
+
+
+
+	void initBadCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder, bool closed = false)
+	{
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+
+		//Geometry::Material* blue = new Geometry::BadLambertian({ 0.1, 0.2, 0.75 });
+		Geometry::Material* blue = new Geometry::Lambertian < Geometry::LAMBERT_MODE::REFLECT> ({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::BadLambertian({ 0.8, 0.4, 0.1 });
+
+		Geometry::Material* spec = new Geometry::Glossy(1, 1000);
+		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
+
+		double scale = 5;
+		Geometry::Material* fourth_wall = closed ? white : nullptr;
+		Geometry::Cornel::init_cornell(scene, white, white, white, fourth_wall, red, green, scale);
+
+		double light_size = 1;
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Square* up_light = new Geometry::Square(light);
+		up_light->scale(scale * 0.2 * light_size);
+		up_light->translate({ 0, 0, scale / 2 - 0.001 });
+		scene.add(up_light);
+
+
+		//tall block
+		{
+			Geometry::GeometryCollection* cube;
+			Geometry::Material* cube_mat;
+
+			if (mode == 0)
+			{
+				if (colors)
+					cube_mat = blue;
+				else
+					cube_mat = white;
+			}
+			else if (mode == 1)
+				cube_mat = spec;
+			else
+				cube_mat = mirror;
+
+
+			if (cylinder)//cylinder
+			{
+				//GeometryCollection::Cube* cube = 
+				cube = new Geometry::CylinderFabrice(10, 1, 1, cube_mat, false, false);
+				cube->scaleX(0.15 * scale);
+				cube->scaleY(0.15 * scale);
+
+			}
+			else //cube
+			{
+				cube = new Geometry::Cube(cube_mat);
+				cube->scaleX(0.3 * scale);
+				cube->scaleY(0.3 * scale);
+			}
+			cube->scaleZ(0.6 * scale);
+			cube->rotate(Math::Quaternion<double>({ 0, 0, 1 }, 0.3));
+			cube->translate({ scale * 0.2, scale * 0.15, -scale * 0.21 });
+			scene.add(cube);
+		}
+
+		//little block
+		{
+			Geometry::Cube* cube = new Geometry::Cube(colors ? orange : white);
+			cube->scaleX(0.3 * scale);
+			cube->scaleY(0.3 * scale);
+			cube->scaleZ(0.3 * scale);
+			cube->rotate(Math::Quaternion<double>({ 0, 0, 1 }, -0.3));
+			cube->translate({ -scale * 0.1, -scale * 0.2, -scale * 0.351 });
+
+
+			scene.add(cube);
+		}
+
+
+		// Sets the camera
+		if (closed)
+		{
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+		else
+		{
+			Geometry::Camera camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+	}
 
 }

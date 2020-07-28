@@ -50,14 +50,14 @@ namespace Geometry
 			//There is not really a point of sampling a 
 			Math::RandomDirection direction_sampler(normal);
 			
-			double u = sampler.generateContinuous<double>();
+			double u = sampler.generateContinuous<double>(-1, 1);
 			double v = sampler.generateContinuous<double>();
 			
-			out.direction = direction_sampler.generate(u, v);
+			out.direction = direction_sampler.generate(abs(u), v);
 			
-			double cos_wi = std::abs(out.direction * normal);
-			out.pdf = cos_wi / Math::pi;
-			if (u > 0.5)
+			double cos_wi = (out.direction * normal);
+			out.pdf = cos_wi / Math::twoPi;
+			if (u > 0)
 			{
 				out.bsdf = dif;
 			}
@@ -70,9 +70,10 @@ namespace Geometry
 
 		virtual RGBColor BSDF(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
+			RGBColor res = 0;
 			if (((wi * hit.primitive_normal) * (wo * hit.primitive_normal)) > 0)
-				return m_diffuse * getTexturePixel(hit.tex_uv);
-			return 0;
+				res = m_diffuse * getTexturePixel(hit.tex_uv);
+			return res;
 		}
 
 
@@ -80,7 +81,7 @@ namespace Geometry
 		virtual double pdf(Hit const& hit, Math::Vector3f const& wi, Math::Vector3f const& wo, bool RADIANCE = false)const override
 		{
 			double cos_wi = std::abs(wi * hit.primitive_normal);
-			return cos_wi / Math::pi;
+			return cos_wi / Math::twoPi;
 		}
 	};
 }
