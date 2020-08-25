@@ -32,7 +32,8 @@ namespace Integrator
 
 		virtual RGBColor sendRay(Scene const& scene, Ray const& ray, Math::Sampler& sampler)const = 0;
 
-		
+		virtual void render_begin(Scene const& scene, Visualizer::Visualizer& visu)
+		{}
 
 		void render(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
@@ -44,6 +45,7 @@ namespace Integrator
 
 			ProgressReporter reporter;
 			reporter.start(m_sample_per_pixel);
+			render_begin(scene, visu);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
 				OMP_PARALLEL_FOR

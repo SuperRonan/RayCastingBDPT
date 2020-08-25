@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Integrators/RayTracingBaseIntegrator.h>
+#include <Integrators/VisibilityCache.h>
 
 
 namespace Integrator
@@ -8,8 +9,23 @@ namespace Integrator
 	template <bool USE_RIS=false>
 	class IterativePathTracingIntegrator final: public RayTracingBaseIntegrator
 	{
+	protected:
+
+#define USE_VISIBILITY_CACHE
+#ifdef USE_VISIBILITY_CACHE
+		mutable VisibilityCache<double> m_vis_cache;
+#endif
 
 	public:
+
+		virtual void render_begin(Scene const& scene, Visualizer::Visualizer& visu)override
+		{
+#ifdef USE_VISIBILITY_CACHE
+			int N = 20;
+			m_vis_cache.init(scene.m_sceneBoundingBox.larger(), { N, N, N });
+#endif
+		}
+
 
 		IterativePathTracingIntegrator(unsigned int sample_per_pixel, unsigned int width, unsigned int height) :
 			RayTracingBaseIntegrator(sample_per_pixel, width, height)
@@ -19,13 +35,20 @@ namespace Integrator
 		{
 			SurfaceSample sls;
 			RGBColor contribution;
+#ifdef USE_VISIBILITY_CACHE
+			scene.sampleLiRIS(sampler, sls, ref, beta, &contribution, &m_vis_cache);
+#else
 			scene.sampleLiRIS(sampler, sls, ref, beta, &contribution);
+#endif
 			if (contribution.isBlack())
 				return contribution;
 			Hit light_hit;
 			const Math::Vector3f to_light = sls.vector - ref.point;
 			Ray ray(ref.point, to_light);
 			bool V = (scene.full_intersection(ray, light_hit) && std::abs(light_hit.z - to_light.norm()) < 0.00001);
+#ifdef USE_VISIBILITY_CACHE
+			m_vis_cache.report(ref.point, sls.vector, V);
+#endif
 			return contribution * V / sls.pdf;
 		}
 

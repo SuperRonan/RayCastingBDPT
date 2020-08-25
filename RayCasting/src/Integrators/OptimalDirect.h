@@ -5,6 +5,7 @@
 #include <Geometry/RGBColor.h>
 #include <Image/ImWrite.h>
 #include <MIS/Estimators.h>
+#include <Integrators/VisibilityCache.h>
 
 namespace Integrator
 {
@@ -27,10 +28,17 @@ namespace Integrator
 
 #define Li_ID 1
 #define RIS_ID (MODE == 1 ? 1 : 2)
-		using Estimator = MIS::DirectEstimator<RGBColor>;
-		//using Estimator = MIS::BalanceEstimator<RGBColor>;
+
+#define USE_VISIBILITY_CACHE
+
+		//using Estimator = MIS::DirectEstimator<RGBColor>;
+		using Estimator = MIS::BalanceEstimator<RGBColor>;
 
 		Image::Image<RGBColor> m_frame_buffer;
+
+#ifdef USE_VISIBILITY_CACHE
+		VisibilityCache<double> m_vis_cache;
+#endif
 
 		void resizeFrameBuffer(size_t w, size_t h)
 		{

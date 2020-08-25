@@ -293,7 +293,7 @@ namespace Auto
 		}
 	}
 
-	void initRGBCornell(Geometry::Scene& scene, size_t width, size_t height, bool closed = false)
+	void initCornellThreeLights(Geometry::Scene& scene, size_t width, size_t height, bool closed = false, bool rgb = true)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
 		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
@@ -312,7 +312,8 @@ namespace Auto
 			RGBColor light_color[] = { {1.5, 0.3, 0.3}, {0.3, 1.3, 0.3}, {0.3, 0.3, 1.1} };
 			for (int l = 0; l < 3; ++l)
 			{
-				Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, light_color[l] * 10.0 / (light_size * light_size));
+				RGBColor color = rgb ? light_color[l] : (RGBColor{1.6, 1, 0.5} * 0.5);
+				Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, color * 10.0 / (light_size * light_size));
 				Geometry::Square* up_light = new Geometry::Square(light);
 				up_light->scale(scale * 0.2 * light_size);
 				up_light->translate({ 0, 0, scale / 2 - 0.001 });

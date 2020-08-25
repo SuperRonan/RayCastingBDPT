@@ -256,6 +256,16 @@ namespace Geometry
 			}
 			return false;
 		}
+
+		bool isInside(Math::Vector3f const& vec)const
+		{
+			for (int i = 0; i < 3; ++i)
+			{
+				if (vec[i] < m_bounds[0][i] || vec[i] > m_bounds[1][i])
+					return false;
+			}
+			return true;
+		}
 	} ;
 
 	template <class out_t>

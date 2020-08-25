@@ -34,6 +34,7 @@
 #include <System/Parallel.h>
 #include <map>
 #include <unordered_map>
+#include <Integrators/VisibilityCache.h>
 
 namespace Geometry
 {
@@ -786,7 +787,8 @@ namespace Geometry
 
 		int m_ris_estimate_N = 1;
 
-		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, RGBColor const& common = 1, RGBColor* Contribution = nullptr)const
+		void sampleLiRIS(Math::Sampler& sampler, SurfaceSample& sample, Hit const& ref, 
+			RGBColor const& common = 1, RGBColor* Contribution = nullptr, Integrator::VisibilityCache<double> * vis_cache = nullptr)const
 		{
 			if (m_ris_number_of_candidates == 1) // M = 1 -> classic sampleLi
 			{
@@ -823,8 +825,9 @@ namespace Geometry
 				double G = std::abs((candidate.sample.normal * to_light) * (ref.primitive_normal * to_light)) / dist2;
 				const RGBColor Le = candidate.sample.geo->getMaterial()->Le(candidate.sample.normal, candidate.sample.uv, -to_light);
 				const RGBColor bsdf = ref.type == Hit::Type::CameraT ? ref.camera->We(to_light) : ref.geometry->getMaterial()->BSDF(ref, to_light, false);
+				const double visibility_estimation = vis_cache ? vis_cache->estimateSucess(ref.point, candidate.sample.vector) : 1;
 				const RGBColor L = Le * bsdf * G;
-				double target = (common * L).energy();
+				double target = (common * L).energy() * visibility_estimation;
 				if (L.anythingWrong() || L.isBlack() || target < 1e-100) // I don't like this, but is creates nan else
 				{
 					// candidate = 0;
@@ -879,25 +882,31 @@ namespace Geometry
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, RGBColor const& common=1)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, 
+			RGBColor const& contribution, RGBColor const& common=1, Integrator::VisibilityCache<double>* vis_cache = nullptr)const
 		{
-			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, m_ris_estimate_N);
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, m_ris_estimate_N, vis_cache);
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, Math::Vector3f const& omega_o, RGBColor const& common = 1)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, 
+			RGBColor const& contribution, Math::Vector3f const& omega_o, RGBColor const& common = 1, 
+			Integrator::VisibilityCache<double>* vis_cache = nullptr)const
 		{
-			return pdfRISEstimate(ref, sample, sampler, contribution, common, omega_o, m_ris_estimate_N);
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, omega_o, m_ris_estimate_N, vis_cache);
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, RGBColor const& contribution, RGBColor const& common, int N)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler& sampler, 
+			RGBColor const& contribution, RGBColor const& common, int N, Integrator::VisibilityCache<double>* vis_cache = nullptr)const
 		{
-			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, N);
+			return pdfRISEstimate(ref, sample, sampler, contribution, common, ref.to_view, N, vis_cache);
 		}
 
 		// Contribution should be in area density
-		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, RGBColor const& contribution, RGBColor const& common, Math::Vector3f const& omega_o, int N)const
+		double pdfRISEstimate(Hit const& ref, Hit const& sample, Math::Sampler & sampler, 
+			RGBColor const& contribution, RGBColor const& common, Math::Vector3f const& omega_o, 
+			int N, Integrator::VisibilityCache<double> * vis_cache=nullptr)const
 		{
 			if (N == 0)	return 0;
 			if (m_ris_number_of_candidates == 1)
