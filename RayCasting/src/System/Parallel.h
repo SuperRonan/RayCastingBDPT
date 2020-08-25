@@ -47,6 +47,10 @@ public:
 		return omp_get_thread_num();
 	}
 
+	/// <summary>
+	/// Executes a parallel for loop in range [min, max[
+	/// Calls f(index) at each step
+	/// </summary>
 	template <class Function>
 	__forceinline static void ParallelFor(int min, int max, Function const& function)
 	{

@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\SDL2-2.0.4\include;$(ProjectDir)..\src;$(ProjectDir)..\..\dependencies_ima\include;$(ProjectDir)..\..\libs-x64\zlib-1.2.11;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Iex;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Half;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IexMath;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\IlmThread;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\Imath;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImf;$(ProjectDir)..\..\libs-x64\openexr\OpenEXR\IlmImfUtil;$(ProjectDir)..\..\libs-x64\openexr\IlmBase\config;$(ProjectDir)..\..\libs-x64\eigen-3.3.7;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>false</OpenMPSupport>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <OpenMP>GenerateParallelCode</OpenMP>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
@@ -189,7 +189,7 @@
       <StructMemberAlignment>Default</StructMemberAlignment>
       <CompileAsManaged>false</CompileAsManaged>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <OpenMP>GenerateParallelCode</OpenMP>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
@@ -290,6 +290,7 @@
     <ClInclude Include="..\src\Integrators\SimpleVCM.h" />
     <ClInclude Include="..\src\Integrators\UncorellatedBDPT.h" />
     <ClInclude Include="..\src\Integrators\VCM.h" />
+    <ClInclude Include="..\src\Integrators\VisibilityCache.h" />
     <ClInclude Include="..\src\Integrators\ZIntegrator.h" />
     <ClInclude Include="..\src\Math\Constant.h" />
     <ClInclude Include="..\src\Math\finite.h" />
@@ -318,6 +319,7 @@
     <ClInclude Include="..\src\System\Parallel.h" />
     <ClInclude Include="..\src\System\ProgressReporter.h" />
     <ClInclude Include="..\src\System\ScopedAssignment.h" />
+    <ClInclude Include="..\src\Tests.h" />
     <ClInclude Include="..\src\utils.h" />
     <ClInclude Include="..\src\Visualizer\namespaceDoc.h" />
     <ClInclude Include="..\src\Visualizer\Visualizer.h" />

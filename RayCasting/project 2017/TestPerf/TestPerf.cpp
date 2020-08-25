@@ -3,6 +3,7 @@
 #include <settings.h>
 #include <System/Parallel.h>
 
+
 double function(int i, int j)
 {
 	double res = 0;
@@ -118,6 +119,7 @@ void testPerf()
 	}
 	toc();
 }
+
 
 int main()
 {
