@@ -44,6 +44,7 @@
 #include <Integrators/OptiVCM.h>
 #include <Integrators/RWMCPT.h>
 #include <Integrators/riscbdpt.h>
+#include <Integrators/StratifiedPT.h>
 
 #include <Auto/Auto.h>
 #include <Auto/TestScenes.h>
@@ -58,6 +59,9 @@
 const std::string m_modelDirectory = "..\\..\\Models";
 
 using Geometry::RGBColor;
+
+
+#if false
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \fn	void createGround(GeometryCollection::Scene & scene)
@@ -948,7 +952,7 @@ void initEngine(Geometry::Scene & scene, Visualizer::Visualizer const& visu)
 }
 
 
-
+#endif
 
 
 
@@ -963,6 +967,7 @@ enum RenderMode : int {
 	PhotonMapper = 70, ProgressivePhotonMapper = 71, 
 	VCM = 80, SimpleVCM = 81, OptiVCM = 82,
 	RWMCPT = 90,
+	SPT = 100,
 	};
 
 std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pixel, unsigned int maxLen, double alpha, unsigned int lights_divisions, size_t w, size_t h)
@@ -1115,6 +1120,11 @@ std::vector<Integrator::Integrator*> init_integrators(unsigned int sample_per_pi
 
 	{
 		res[RenderMode::AmbientOcclusion] = new Integrator::AmbientOcclusionIntegrator(sample_per_pixel, w, h);
+	}
+
+	{
+		res[RenderMode::SPT] = new Integrator::StratifiedPT(sample_per_pixel, w, h);
+		res[RenderMode::SPT]->setLen(maxLen);
 	}
 
 
@@ -1344,6 +1354,11 @@ void get_input(std::vector<SDL_Event> const& events,bool * keys, RenderMode & re
 					std::cout << "switching to Reweighted Monte Carlo Path Tracing" << std::endl;
 				render_mode = RenderMode::RWMCPT;
 				break;
+			case SDLK_k:
+				if (render_mode != RenderMode::SPT)
+					std::cout << "switching to SPT" << std::endl;
+				render_mode = RenderMode::SPT;
+				break;
 			case SDLK_a:
 				rt = RenderOption::Pass;
 				break;
@@ -1436,10 +1451,10 @@ int main(int argc, char** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2048, 2048, scale);// pour les ecrans 4K
-	//Visualizer::Visualizer visu(1024, 1024, scale);
+	Visualizer::Visualizer visu(1024, 1024, scale);
 	//Visualizer::Visualizer visu(2048, 1024, scale);
 	//Visualizer::Visualizer visu(1024, 512, scale);
-	Visualizer::Visualizer visu(512, 512, scale);
+	//Visualizer::Visualizer visu(512, 512, scale);
 	//Visualizer::Visualizer visu(384, 384, scale) ;
 	//Visualizer::Visualizer visu(256, 256, scale) ;
 	//Visualizer::Visualizer visu(128, 128, scale) ;
@@ -1453,14 +1468,14 @@ int main(int argc, char** argv)
 	Geometry::Scene scene;
 
 	// 2.1 initializes the geometry (choose only one initialization)
-	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
+	Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
 	//Auto::initCornellThreeLights(scene, visu.width(), visu.height(), 0, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	Auto::initVeach(scene, visu.width(), visu.height(), 5);
+	//Auto::initVeach(scene, visu.width(), visu.height(), 5);
 	//Auto::initSDSCornell(scene, visu.width(), visu.height(), 1);
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
@@ -1513,7 +1528,7 @@ int main(int argc, char** argv)
 
 
 	RenderOption render_option = RenderOption::RealTime;
-	RenderMode render_mode = RenderMode::rayTracing;
+	RenderMode render_mode = RenderMode::SPT;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 

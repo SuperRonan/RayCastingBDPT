@@ -40,12 +40,19 @@ namespace Geometry
 		virtual void divide(unsigned int div=1) = 0;
 
 		virtual void sampleLight(SurfaceSample& res, Math::Sampler& sampler, unsigned int i=0)const = 0;
+		
+		virtual void sampleLight(SurfaceSample& res, double xi1, double xi2)const = 0;
 
 	public:
 
 		virtual void sampleLight(SurfaceSample& res, const Hit& hit, Math::Sampler& sampler, unsigned int i = 0)const
 		{
 			sampleLight(res, sampler, i);
+		}
+
+		virtual void sampleLight(SurfaceSample& res, const Hit& hit, double xi1, double xi2)const
+		{
+			sampleLight(res, xi1, xi2);
 		}
 
 

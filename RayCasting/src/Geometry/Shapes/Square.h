@@ -95,6 +95,15 @@ namespace Geometry
 			
 		}
 
+		virtual void sampleLight(SurfaceSample& res, double u, double v)const override
+		{
+			const Triangle* tri = u + v > 1 ? &m_triangles[1] : &m_triangles[0];
+			Math::Vector3f u_axis = (m_vertices[1] - m_vertices[0]), v_axis = (m_vertices[2] - m_vertices[0]);
+			Math::Vector3f point = m_vertices[0] + u_axis * u + v_axis * v;
+			res = { 1.0 / surface(), this, tri, {u, v}, GeometryCollection::m_triangles[0].normal(), point };
+
+		}
+
 	} ;
 
 

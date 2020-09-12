@@ -2,6 +2,7 @@
 #define _Geometry_Cone_H
 
 #include <Geometry/Shapes/Geometry.h>
+#include <Geometry/Shapes/Disk.h>
 
 namespace Geometry
 {

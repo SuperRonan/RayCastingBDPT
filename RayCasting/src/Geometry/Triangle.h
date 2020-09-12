@@ -756,6 +756,16 @@ namespace Geometry
 			return { u, v };
 		}
 
+		Math::Vector2f sampleUV(double u, double v)const
+		{
+			if (u + v > 1)
+			{
+				u = 1 - u;
+				v = 1 - v;
+			}
+			return { u, v };
+		}
+
 		/// <summary>
 		/// Computes the distance between the point and the plane on which the triangle lies.
 		/// </summary>

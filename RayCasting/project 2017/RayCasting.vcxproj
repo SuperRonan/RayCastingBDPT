@@ -288,6 +288,7 @@
     <ClInclude Include="..\src\Integrators\RayTracingIntegrator.h" />
     <ClInclude Include="..\src\Integrators\RegularIntegrators.h" />
     <ClInclude Include="..\src\Integrators\SimpleVCM.h" />
+    <ClInclude Include="..\src\Integrators\StratifiedPT.h" />
     <ClInclude Include="..\src\Integrators\UncorellatedBDPT.h" />
     <ClInclude Include="..\src\Integrators\VCM.h" />
     <ClInclude Include="..\src\Integrators\VisibilityCache.h" />

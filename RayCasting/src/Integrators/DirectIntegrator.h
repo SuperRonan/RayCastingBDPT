@@ -38,7 +38,7 @@ namespace Integrator
 		virtual void fast_render_begin(Scene const& scene, Visualizer::Visualizer& visu)
 		{}
 
-		void render(Scene const& scene, Visualizer::Visualizer& visu) final override
+		virtual void render(Scene const& scene, Visualizer::Visualizer& visu) override
 		{
 			resizeFrameBuffer(visu.width(), visu.height());
 			m_frame_buffer.fill(Image::MultiSample<RGBColor>());
@@ -115,7 +115,7 @@ namespace Integrator
 		}
 
 
-		virtual void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult & res)final override
+		virtual void render(Scene const& scene, size_t width, size_t height, Auto::RenderResult & res)override
 		{
 			resizeFrameBuffer(width, height);
 			m_frame_buffer.fill(Image::MultiSample<RGBColor>());
@@ -173,7 +173,7 @@ namespace Integrator
 
 
 
-		void fastRender(Scene const& scene, Visualizer::Visualizer& visu) final override
+		virtual void fastRender(Scene const& scene, Visualizer::Visualizer& visu) override
 		{
 #ifdef TIME_SEED
 			size_t time_seed = nano();

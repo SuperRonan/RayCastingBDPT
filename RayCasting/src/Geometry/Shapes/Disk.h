@@ -160,6 +160,11 @@ namespace Geometry
 
 		}
 
+		virtual void sampleLight(SurfaceSample& res, double xi1, double xi2)const
+		{
+
+		}
+
 
 		template <class out_t>
 		out_t& printAxis(out_t& out)const

@@ -387,6 +387,9 @@
     <ClInclude Include="..\src\Tests.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Integrators\StratifiedPT.h">
+      <Filter>src\Integrators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

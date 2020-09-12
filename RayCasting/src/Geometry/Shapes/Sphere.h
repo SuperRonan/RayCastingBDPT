@@ -160,7 +160,15 @@ namespace Geometry
 			res = { pdf, this, this, uv(normal, true), normal, point };
 		}
 
-	public: 
+		virtual void sampleLight(SurfaceSample& res, double xi1, double xi2)const final override
+		{
+			double inclination = std::acos(1 - 2 * xi1);
+			double azimuth = xi2 * Math::twoPi;
+			Math::Vector3f normal = Math::Vector3f::make_sphere(inclination, azimuth);
+			Math::Vector3f point = m_center + (normal * m_radius);
+			double pdf = 1.0 / surface();
+			res = { pdf, this, this, uv(normal, true), normal, point };
+		}
 
 		
 		virtual void sampleLight(SurfaceSample& res, Hit const& hit, Math::Sampler& sampler, unsigned int i = 0)const final override
@@ -213,6 +221,53 @@ namespace Geometry
 			const double area_pdf = pdf_solid_angle * std::abs(sampled_dir * sampled_normal) / (t*t);
 
 			res = { area_pdf, this, this, uv(sampled_normal, true), sampled_normal, sampled_point};
+		}
+
+		virtual void sampleLight(SurfaceSample& res, Hit const& hit, double xi1, double xi2)const final override
+		{
+			const Math::Vector3f cp = (m_center - hit.point);
+			const double dist2 = cp.norm2();
+			const double dist = std::sqrt(dist2);
+			if (dist2 <= m_radius_2)
+			{
+				return Sphere::sampleLight(res, xi1, xi2);
+			}
+			const double sint = m_radius / dist;
+			const double cost = std::sqrt(1 - sint * sint);
+			const double theta = acos(cost);
+
+			const double pdf_solid_angle = 1.0 / (Math::twoPi * (1 - cost));
+			const Math::SolidAngleSampler sasampler(cp / dist, theta, cost);
+
+			const Math::Vector3f sampled_dir = sasampler.generate(xi1, xi2);
+			const double sampled_cos_theta = sampled_dir * cp.normalized();
+			const double sampled_theta = std::acos(sampled_cos_theta);
+			assert(sampled_theta <= theta);
+			//Now get the point on the sphere
+			double t;
+			{
+				const double a = 1.0;
+				const double b = -2.0 * (cp * sampled_dir);
+				const double c = (dist2 - m_radius_2);
+				const double delta = b * b - 4.0 * a * c;
+				assert(delta >= std::numeric_limits<double>::epsilon());
+				if (std::abs(delta) < std::numeric_limits<double>::epsilon())
+				{
+					t = -b / (2.0 * a);
+				}
+				else
+				{
+					const double left = -b / (2.0 * a);
+					const double right = std::sqrt(delta) / (2.0 * a);
+					t = left - right;
+				}
+				assert(t >= 0);
+			}
+			const Math::Vector3f sampled_point = hit.point + sampled_dir * t;
+			const Math::Vector3f sampled_normal = (sampled_point - m_center) / m_radius;
+			const double area_pdf = pdf_solid_angle * std::abs(sampled_dir * sampled_normal) / (t * t);
+
+			res = { area_pdf, this, this, uv(sampled_normal, true), sampled_normal, sampled_point };
 		}
 
 		virtual double pdfSamplingPoint(Hit const& hit, Math::Vector3f const& point)const override

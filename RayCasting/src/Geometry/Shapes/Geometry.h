@@ -12,20 +12,12 @@
 #include <map>
 #include <System/aligned_allocator.h>
 #include <Math/Constant.h>
-#include "medium.h"
 #include <Geometry/GeometryBase.h>
 #include <Geometry/BoundingBox.h>
 
 namespace Geometry
 {
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	/// \class	GeometryCollection
-	///
-	/// \brief	A 3D geometry. (made of triangles)
-	///
-	/// \author	F. Lamarche, Université de Rennes 1
-	/// \date	04/12/2013
-	////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	class GeometryCollection : public GeometryBase
 	{
 	public:
@@ -494,6 +486,22 @@ namespace Geometry
 			
 			double pdf = 1.0 / surface();
 			
+			//TODO maybe use the interpolated normal
+			res = { pdf, this, &tri, tri.interpolateTextureCoordinate(uv[0], uv[1]), tri.normal(), point };
+		}
+
+		virtual void sampleLight(SurfaceSample& res, double xi1, double xi2)const override
+		{
+			xi1 *= m_current_sum;
+			auto found = std::lower_bound(m_surface_sum.cbegin(), m_surface_sum.cend(), xi1);
+			size_t index = found - m_surface_sum.cbegin();
+			xi1 = (xi1 - index) / m_surface_sum.size();
+			const Triangle& tri = m_triangles[index];
+			Math::Vector2f uv = tri.sampleUV(xi1, xi2);
+			Math::Vector3f point = tri.samplePoint(uv[0], uv[1]);
+
+			double pdf = 1.0 / surface();
+
 			//TODO maybe use the interpolated normal
 			res = { pdf, this, &tri, tri.interpolateTextureCoordinate(uv[0], uv[1]), tri.normal(), point };
 		}
