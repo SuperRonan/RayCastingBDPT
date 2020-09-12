@@ -11,7 +11,7 @@ namespace Integrator
 	{
 	protected:
 
-#define USE_VISIBILITY_CACHE
+//#define USE_VISIBILITY_CACHE
 #ifdef USE_VISIBILITY_CACHE
 		mutable VisibilityCache<double> m_vis_cache;
 #endif
@@ -21,8 +21,26 @@ namespace Integrator
 		virtual void render_begin(Scene const& scene, Visualizer::Visualizer& visu)override
 		{
 #ifdef USE_VISIBILITY_CACHE
-			int N = 20;
-			m_vis_cache.init(scene.m_sceneBoundingBox.larger(), { N, N, N });
+			if constexpr (USE_RIS)
+			{
+				int N = 30;
+				m_vis_cache.reset();
+				m_vis_cache.init(scene.m_sceneBoundingBox.larger(), { N, N, N });
+			}
+#endif
+		}
+
+		virtual void fast_render_begin(Scene const& scene, Visualizer::Visualizer& visu)override
+		{
+#ifdef USE_VISIBILITY_CACHE
+			if constexpr (USE_RIS)
+			{
+				if (!m_vis_cache.isInitialized())
+				{
+					int N = 30;
+					m_vis_cache.init(scene.m_sceneBoundingBox.larger(), { N, N, N });
+				}
+			}
 #endif
 		}
 

@@ -11,6 +11,7 @@
 #include <Geometry/Materials/Dielectric.h>
 #include <Geometry/Materials/Phong.h>
 #include <Geometry/Materials/BadLambert.h>
+#include <Geometry/Materials/Glossy.h>
 #include <Image/ImRead.h>
 
 namespace Auto
@@ -366,6 +367,59 @@ namespace Auto
 		}
 	}
 
+	void initCornellMatSphere(Geometry::Scene& scene, size_t width, size_t height, int mode, bool closed = false)
+	{
+		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
+		Geometry::Material* pure_white = new Geometry::Lambertian<Geometry::REFLECT>(0.9);
+		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
+		Geometry::Material* red = new Geometry::Lambertian<Geometry::REFLECT>({ 0.62, 0.061, 0.061 });
+		Geometry::Material* green = new Geometry::Lambertian<Geometry::REFLECT>({ 0.122, 0.406, 0.1 });
+
+		Geometry::Material* blue = new Geometry::Lambertian<Geometry::REFLECT>({ 0.1, 0.2, 0.75 });
+		Geometry::Material* orange = new Geometry::Lambertian<Geometry::REFLECT>({ 0.8, 0.4, 0.1 });
+
+		Geometry::Material* spec10 = new Geometry::Glossy(1, 10);
+		Geometry::Material* spec100 = new Geometry::Glossy(1, 100);
+		Geometry::Material* spec1000 = new Geometry::Glossy(1, 1000);
+		Geometry::Material* mirror = new Geometry::DeltaMirror(1.0);
+
+		double scale = 5;
+		Geometry::Material* fourth_wall = closed ? white : nullptr;
+		Geometry::Cornel::init_cornell(scene, white, white, white, fourth_wall, red, green, scale);
+
+		double light_size = 1;
+		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
+		Geometry::Square* up_light = new Geometry::Square(light);
+		up_light->scale(scale * 0.2 * light_size);
+		up_light->translate({ 0, 0, scale / 2 - 0.001 });
+		scene.add(up_light);
+
+		Geometry::Material* materials[] = { pure_white, spec1000, mirror };
+		double radius = scale * 0.1;
+		for (int i = 0; i < 3; ++i)
+		{
+			double y = -(double(i) - 1.0) * scale * 0.4;
+			double x = 0;
+			double z = -scale * 0.4;
+
+			Geometry::Sphere sphere({ x, y, z }, radius, materials[i]);
+			scene.add(sphere);
+		}
+
+
+		// Sets the camera
+		if (closed)
+		{
+			Geometry::Camera camera({ -scale * 0.49, 0 ,0}, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+		else
+		{
+			Geometry::Camera camera({ -scale * 2.4, 0 ,0.25*scale }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f);
+			scene.setCamera(camera);
+		}
+	}
+
 	void initTestNonSymmetry(Geometry::Scene& scene, size_t width, size_t height, int mode)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
@@ -401,7 +455,7 @@ namespace Auto
 	}
 
 
-	void initSDSCornell(Geometry::Scene& scene, size_t width, size_t height)
+	void initSDSCornell(Geometry::Scene& scene, size_t width, size_t height, int mat_option=0)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
 		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
@@ -452,6 +506,12 @@ namespace Auto
 		
 		Geometry::Material* cube_mats[] = { glass, glass };
 		Geometry::Material* sphere_mats[] = { orange, orange };
+		if (mat_option == 1)
+			sphere_mats[1] = mirror;
+		else if (mat_option == 2)
+		{
+			sphere_mats[0] = sphere_mats[1] = glass;
+		}
 		double cube_size = 0.3;
 		Math::Vector3f centers[] = { Math::Vector3f(0.0, 0.2, -0.4 + cube_size/2), Math::Vector3f(0.0, -0.2, -0.4 + cube_size / 2) };
 		double radii[] = { 0.4, 0.4 };
@@ -540,7 +600,8 @@ namespace Auto
 		// Sets the camera
 		{
 			//Geometry::Camera camera = mode ? Geometry::Camera({ -scale * 2.4, 0 ,0 }, { 0, 0, 0 }, 2.f, ((double)width) / ((double)height), 1.0f) : Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
-			Geometry::Camera camera = Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			//Geometry::Camera camera = Geometry::Camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.45, ((double)width) / ((double)height), 1.0f);
+			Geometry::Camera camera = Geometry::Camera({ -0.588, -2.382 ,0.021 }, { -0.073, -1.646, -0.417 }, 0.45, ((double)width) / ((double)height), 1.0f);
 			//Geometry::Camera camera({ -scale * 0.49, 0 ,0 }, { 0, 0, 0 }, 0.35, ((double)width) / ((double)height), 1.0f);
 			scene.setCamera(camera);
 		}

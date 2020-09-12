@@ -45,6 +45,11 @@ namespace Integrator
 			reset();
 		}
 
+		bool isInitialized()const
+		{
+			return m_data.size();
+		}
+
 		void reset()
 		{
 			std::fill(m_data.begin(), m_data.end(), CacheInfo{ 1, 0 });
@@ -90,6 +95,8 @@ namespace Integrator
 		Float estimateSucess(Vector3f const& a, Vector3f const& b)const
 		{
 			Int a_index = index(a), b_index = index(b);
+			assert(a_index >= 0 && a_index < m_3D_size);
+			assert(b_index >= 0 && b_index < m_3D_size);
 			Int sucess = 0, failed = 0;
 			const CacheInfo& cell1 = m_data[a_index * m_3D_size + b_index];
 			sucess += cell1.sucess;

@@ -35,6 +35,9 @@ namespace Integrator
 		virtual void render_begin(Scene const& scene, Visualizer::Visualizer& visu)
 		{}
 
+		virtual void fast_render_begin(Scene const& scene, Visualizer::Visualizer& visu)
+		{}
+
 		void render(Scene const& scene, Visualizer::Visualizer& visu) final override
 		{
 			resizeFrameBuffer(visu.width(), visu.height());
@@ -43,9 +46,9 @@ namespace Integrator
 
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 
+			render_begin(scene, visu);
 			ProgressReporter reporter;
 			reporter.start(m_sample_per_pixel);
-			render_begin(scene, visu);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
 			{
 				OMP_PARALLEL_FOR
@@ -175,6 +178,7 @@ namespace Integrator
 #ifdef TIME_SEED
 			size_t time_seed = nano();
 #endif
+			fast_render_begin(scene, visu);
 			OMP_PARALLEL_FOR
 			for (long y = 0; y < visu.height(); ++y)
 			{

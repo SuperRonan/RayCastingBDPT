@@ -1428,7 +1428,6 @@ int main(int argc, char** argv)
 	int nthread = 4 * 2 * 2;
 	Parallel::setNumThreads(nthread);
 
-
 #ifdef _DEBUG
 	int scale = 10;
 #else
@@ -1437,10 +1436,10 @@ int main(int argc, char** argv)
 
 	// 1 - Initializes a window for rendering
 	//Visualizer::Visualizer visu(2048, 2048, scale);// pour les ecrans 4K
-	Visualizer::Visualizer visu(1024, 1024, scale);
+	//Visualizer::Visualizer visu(1024, 1024, scale);
 	//Visualizer::Visualizer visu(2048, 1024, scale);
 	//Visualizer::Visualizer visu(1024, 512, scale);
-	//Visualizer::Visualizer visu(512, 512, scale);
+	Visualizer::Visualizer visu(512, 512, scale);
 	//Visualizer::Visualizer visu(384, 384, scale) ;
 	//Visualizer::Visualizer visu(256, 256, scale) ;
 	//Visualizer::Visualizer visu(128, 128, scale) ;
@@ -1455,19 +1454,20 @@ int main(int argc, char** argv)
 
 	// 2.1 initializes the geometry (choose only one initialization)
 	//Auto::initRealCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
-	Auto::initCornellThreeLights(scene, visu.width(), visu.height(), 0, 0);
+	//Auto::initCornellThreeLights(scene, visu.width(), visu.height(), 0, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 0, 1, 0);
 	//Auto::initCausticCornell(scene, visu.width(), visu.height(), 1, 1, 0);
 	//Auto::initCornellLamp(scene, visu.width(), visu.height());
 	//Auto::initSimpleCornell(scene, visu.width(), visu.height(), 0);
 	//Auto::initVeach(scene, visu.width(), visu.height());
-	//Auto::initVeach(scene, visu.width(), visu.height(), 5);
-	//Auto::initSDSCornell(scene, visu.width(), visu.height());
+	Auto::initVeach(scene, visu.width(), visu.height(), 5);
+	//Auto::initSDSCornell(scene, visu.width(), visu.height(), 1);
 	//Auto::initCornellLaserPrism(scene, visu.width(), visu.height());
 	//Auto::initTest(scene, visu.width(), visu.height());
 	//Auto::initTestNonSymmetry(scene, visu.width(), visu.height(), 0);
 	//Auto::initBadCornell(scene, visu.width(), visu.height(), 0, 1, 0, 0);
-	
+	//Auto::initCornellMatSphere(scene, visu.width(), visu.height(), 0);
+
 	//initGuitar(scene, visu);
 	//initDog(scene, visu);
 	//initGarage(scene, visu);
@@ -1495,11 +1495,10 @@ int main(int argc, char** argv)
 
 	// 3 - Computes the scene
 	unsigned int sample_per_pixel = 16;
-										
 	// max lenght is included
-	unsigned int maxLen = 7;
+	unsigned int maxLen = 5;
 
-	unsigned int lights_divisions = sample_per_pixel*0+1;
+	unsigned int lights_divisions = sample_per_pixel*0 + 1;
 
 
 	double alpha = 1;
@@ -1513,19 +1512,19 @@ int main(int argc, char** argv)
 	scene.check_capacity();
 
 
-	RenderOption render_option = RenderOption::Pass;
-	RenderMode render_mode = RenderMode::RISPathTracing;
+	RenderOption render_option = RenderOption::RealTime;
+	RenderMode render_mode = RenderMode::rayTracing;
 
 	std::vector<Integrator::Integrator*> integrators = init_integrators(sample_per_pixel, maxLen, alpha, lights_divisions, visu.width(), visu.height());
 
 	Integrator::Integrator* integrator = integrators[render_mode];
 
 
-	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.01, 1000000);
-	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, 1000000);
+	((Integrator::PhotonMapper*)integrators[RenderMode::PhotonMapper])->setParams(scene, 0.005, visu.width()* visu.height());
+	((Integrator::ProgressivePhotonMapper*)integrators[RenderMode::ProgressivePhotonMapper])->setParams(scene, 0.01, visu.width()* visu.height());
 	//((Integrator::SimpleVCM*)integrators[RenderMode::SimpleVCM])->setParams(scene, 0.01, 1000);
-	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.0075, 0.25);
-	((Integrator::OptiVCM*)integrators[RenderMode::OptiVCM])->setParams(scene, 0.0075, 0.25);
+	((Integrator::VCM*)integrators[RenderMode::VCM])->setParams(scene, 0.005, 1);
+	((Integrator::OptiVCM*)integrators[RenderMode::OptiVCM])->setParams(scene, 0.005, 1);
 
 	std::cout << help_message << std::endl;
 

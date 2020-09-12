@@ -61,11 +61,4 @@ static std::string RESULT_FOLDER = "../../results/";
 //Use the same seed for all the pixels at each frame, which reduces significantly the noise (to 0 naiiiiiiiiiiisu)
 //#define SAMPLER_BIAS
 
-//for MIS, show the weight of MIS
-//#define MIS_SHOW_WEIGHTS
-
-//for debug of bdpt, shows the result of only one technique, see the bdpt integrator::computeSample for more settings
-//#define BDPT_SINGLE_TECHNIQUE
-
-//deactivate MIS for bdpt <=> weight = 1
-//#define BDPT_NO_WEIGHT
+#define RIS_STRATIFICATION

@@ -31,8 +31,8 @@ namespace Integrator
 
 #define USE_VISIBILITY_CACHE
 
-		//using Estimator = MIS::DirectEstimator<RGBColor>;
-		using Estimator = MIS::BalanceEstimator<RGBColor>;
+		using Estimator = MIS::DirectEstimator<RGBColor>;
+		//using Estimator = MIS::BalanceEstimator<RGBColor>;
 
 		Image::Image<RGBColor> m_frame_buffer;
 

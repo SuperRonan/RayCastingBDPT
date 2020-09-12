@@ -148,7 +148,7 @@ namespace Integrator
 		unsigned int m_spicky_samples;
 
 
-		double alpha = 0.9999;
+		double ppm_alpha = 0.5;
 
 	public:
 
@@ -266,7 +266,7 @@ namespace Integrator
 						//m_mutex[imp.m_pixel].lock();
 						RGBColor tau = beta * hit.geometry->getMaterial()->BSDF(hit, imp.m_dir, hit.to_view);
 
-						double g = (imp.NdivbyAlpha*m_alpha+m_alpha) / (imp.NdivbyAlpha*m_alpha+1.0);
+						double g = (imp.NdivbyAlpha*ppm_alpha+ppm_alpha) / (imp.NdivbyAlpha*ppm_alpha+1.0);
 						RGBColor new_tau = (imp.Ntau() + tau) * g;
 						double new_radius2 = radius2 * g;
 
@@ -341,7 +341,7 @@ namespace Integrator
 					if (!m_importons_index[i].isInvalid())
 					{
 						Importonf& imp = m_map[m_importons_index[i]];
-						//double g = (imp.NdivbyAlpha * alpha + imp.M * alpha) / std::max(1.0, (imp.NdivbyAlpha * alpha + imp.M));
+						//double g = (imp.NdivbyAlpha * ppm_alpha + imp.M * ppm_alpha) / std::max(1.0, (imp.NdivbyAlpha * ppm_alpha + imp.M));
 						//if (g == 0)	g = 1;
 						//imp.NdivbyAlpha += imp.M;
 						//imp.setNTau(imp.Ntau() + imp.Mtau() * g);

@@ -814,8 +814,11 @@ namespace Geometry
 			for (int i = 0; i < m_ris_number_of_candidates; ++i)
 			{
 				RISCandidate& candidate = candidates[index];
-				//int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+#ifdef RIS_STRATIFICATION
 				int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+#else
+				int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+#endif
 				const GeometryBase* geo = m_surface_lights[light_index];
 				geo->sampleLight(candidate.sample, ref, sampler);
 				candidate.sample.pdf /= m_surface_lights.size();
@@ -936,8 +939,11 @@ namespace Geometry
 						continue; //discard this index 
 					}
 					RISCandidate& candidate = candidates[index];
-					//int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+#ifdef RIS_STRATIFICATION
 					int light_index = sampler.generateStratified<double>(0, m_surface_lights.size(), i, m_ris_number_of_candidates);
+#else
+					int light_index = sampler.generate(0, m_surface_lights.size() - 1);
+#endif
 					const GeometryBase* geo = m_surface_lights[light_index];
 					geo->sampleLight(candidate.sample, ref, sampler);
 					candidate.sample.pdf /= m_surface_lights.size();
