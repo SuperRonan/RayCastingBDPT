@@ -328,19 +328,19 @@ namespace Auto
 			{
 				scenes["cornell"] = [](Geometry::Scene & scene, size_t w, size_t h)
 				{
-					initRealCornell(scene, w, h, 0, 0, 0);
+					initRealCornell(scene, w, h, 0, 0, 0, 1);
 				};
 				scenes["cornellColors"] = [](Geometry::Scene& scene, size_t w, size_t h)
 				{
-					initRealCornell(scene, w, h, 0, 1, 0);
+					initRealCornell(scene, w, h, 0, 1, 0, 1);
 				};
 				scenes["cornellColorsSpec"] = [](Geometry::Scene& scene, size_t w, size_t h)
 				{
-					initRealCornell(scene, w, h, 1, 1, 0);
+					initRealCornell(scene, w, h, 1, 1, 0, 1);
 				};
 				scenes["cornellColorsMirror"] = [](Geometry::Scene& scene, size_t w, size_t h)
 				{
-					initRealCornell(scene, w, h, 2, 1, 0);
+					initRealCornell(scene, w, h, 2, 1, 0, 1);
 				};
 				scenes["cornellLamp"] = [](Geometry::Scene & scene, size_t w, size_t h)
 				{

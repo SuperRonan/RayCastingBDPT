@@ -204,7 +204,7 @@ namespace Auto
 
 
 
-	void initRealCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder, bool closed=false)
+	void initRealCornell(Geometry::Scene& scene, size_t width, size_t height, int mode, bool colors, bool cylinder, double _light_size, bool closed=false)
 	{
 		Geometry::Material* white = new Geometry::Lambertian<Geometry::REFLECT>(0.7);
 		Geometry::Material* black = new Geometry::Lambertian<Geometry::REFLECT>(0);
@@ -219,15 +219,19 @@ namespace Auto
 
 		double scale = 5;
 		Geometry::Material* fourth_wall = closed ? white : nullptr;
-		Geometry::Cornel::init_cornell(scene, white, white, white, fourth_wall, red, green, scale);
-
-		double light_size = 1;
+		double light_size = _light_size == 0 ? 5 : _light_size;
 		Geometry::Material* light = new Geometry::Lambertian<Geometry::REFLECT>(0.78, RGBColor(16, 10, 5) / (light_size * light_size));//0.78, RGBColor(16, 10, 5)
-		Geometry::Square* up_light = new Geometry::Square(light);
-		up_light->scale(scale * 0.2 * light_size);
-		up_light->translate({ 0, 0, scale / 2 - 0.001 });
-		scene.add(up_light);
-
+		
+		Geometry::Material* ceiling = _light_size == 0 ? light : white;
+		
+		Geometry::Cornel::init_cornell(scene, ceiling, white, white, fourth_wall, red, green, scale);
+		if (_light_size != 0)
+		{
+			Geometry::Square* up_light = new Geometry::Square(light);
+			up_light->scale(scale * 0.2 * light_size);
+			up_light->translate({ 0, 0, scale / 2 - 0.001 });
+			scene.add(up_light);
+		}
 
 		//tall block
 		{

@@ -145,6 +145,8 @@ namespace Integrator
 
 			Visualizer::Visualizer::KeyboardRequest kbr = Visualizer::Visualizer::KeyboardRequest::none;
 
+			computeStrata(scene, visu.width(), visu.height());
+
 			ProgressReporter reporter;
 			reporter.start(m_sample_per_pixel);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
@@ -169,7 +171,7 @@ namespace Integrator
 							Ray ray = scene.m_camera.getRay(u, v);
 
 
-							RGBColor result = sendRay(scene, ray, sampler, 0);
+							RGBColor result = sendRay(scene, ray, sampler, m_strata[x * visu.width() + y]);
 
 
 
