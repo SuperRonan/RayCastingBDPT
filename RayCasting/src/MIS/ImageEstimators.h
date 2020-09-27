@@ -119,7 +119,7 @@ namespace MIS
 	protected:
 
 #define ONE_CONTIGUOUS_ARRAY
-#define ENABLE_DEBUG
+//#define ENABLE_DEBUG
 		using solvingFloat = Float;
 		using MatrixT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, Eigen::Dynamic>;
 		using VectorT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, 1>;
@@ -554,6 +554,355 @@ namespace MIS
 
 #undef ONE_CONTIGUOUS_ARRAY
 #undef ENABLE_DEBUG
+	};
+
+	template <class Spectrum, class Float, bool MAJOR>
+	class ClusteredDirectEstimatorImage : public ImageEstimator<Spectrum, Float, MAJOR>
+	{
+	protected:
+
+#define ONE_CONTIGUOUS_ARRAY
+		//#define ENABLE_DEBUG
+		using solvingFloat = Float;
+		using MatrixT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, Eigen::Dynamic>;
+		using VectorT = Eigen::Matrix<solvingFloat, Eigen::Dynamic, 1>;
+
+		using StorageUInt = unsigned int;
+		using StorageFloat = Float;
+
+		const int msize;
+
+		size_t matTo1D(int row, int col) const {
+			// return row * numTechs + col;
+			if (col > row) std::swap(row, col);
+			return (row * (row + 1)) / 2 + col;
+		}
+
+		struct PixelData
+		{
+			StorageFloat* techMatrix;
+			// The three channels are one after the other [RRRRRRRR GGGGGGGG BBBBBBBBB]
+			StorageFloat* contribVector;
+			StorageUInt* sampleCount;
+
+			PixelData(StorageFloat* tm, StorageFloat* cv, StorageUInt* sc) :
+				techMatrix(tm),
+				contribVector(cv),
+				sampleCount(sc)
+			{}
+
+			PixelData(const StorageFloat* tm, const StorageFloat* cv, const StorageUInt* sc) :
+				techMatrix((StorageFloat*)tm),
+				contribVector((StorageFloat*)cv),
+				sampleCount((StorageUInt*)sc)
+			{}
+		};
+
+		PixelData getPixelData(int index)const
+		{
+#ifdef ONE_CONTIGUOUS_ARRAY
+			const size_t offset = index * m_pixel_data_size;
+			const char* address = (m_data.data() + offset);
+			PixelData res((StorageFloat*)address, (StorageFloat*)(address + m_vector_ofsset), (StorageUInt*)+(address + m_counter_offset));
+			return res;
+#else
+			const StorageFloat* matrix = m_matrices.data() + msize * index;
+			const StorageFloat* vector = m_vectors.data() + m_numtechs * spectrumDim() * index;
+			const StorageUInt* counts = m_sampleCounts.data() + m_numtechs * index;
+			PixelData res(matrix, vector, counts);
+			return res;
+#endif
+		}
+
+
+		PixelData getPixelData(Float u, Float v)const
+		{
+			const Math::Vector<int, 2> pixel(u * m_width, v * m_height);
+			const int index = PixelTo1D(pixel[0], pixel[1]);
+			return getPixelData(index);
+		}
+
+		std::string debugFolder()const
+		{
+			return RESULT_FOLDER + "debug/";
+		}
+
+		const unsigned int m_num_clusters;
+		// of size 'm_num_techs'
+		// m_clusters[i] = j -> the i-th technique is in the j-th cluster
+		std::vector<int> m_clusters;
+
+
+#ifdef ONE_CONTIGUOUS_ARRAY
+		// In Byte
+		const unsigned int m_pixel_data_size;
+		const unsigned int m_vector_ofsset;
+		const unsigned int m_counter_offset;
+
+		static_assert(sizeof(char) == 1);
+		std::vector<char> m_data;
+
+#else
+		std::vector<StorageFloat> m_matrices;
+		std::vector<StorageFloat> m_vectors;
+		std::vector<StorageUInt> m_sampleCounts;
+#endif
+
+		// Contains two vectors: 
+		// the first: describes how many times more samples each technique has ([0, N[)
+		// the second: the number of technique by cluster ([N, N+M[)
+		std::vector<unsigned int> m_sample_per_technique;
+
+		mutable std::vector<std::vector<StorageFloat>> _m_cluster_weights_buffer;
+
+		std::mutex m_mutex;
+
+	public:
+
+		static std::vector<int> defaultCluster(int N)
+		{
+			std::vector<int> res(N);
+			std::iota(res.begin(), res.end(), 0);
+			return res;
+		}
+
+#ifdef ONE_CONTIGUOUS_ARRAY
+		ClusteredDirectEstimatorImage(int N, int width, int height) :
+			ImageEstimator(N, width, height),
+			m_num_clusters(N),
+			m_clusters(defaultCluster(N)),
+			msize(m_num_clusters* (m_num_clusters + 1) / 2),
+			m_pixel_data_size(msize * sizeof(StorageFloat) + spectrumDim() * m_num_clusters * sizeof(StorageFloat) + m_num_clusters * sizeof(StorageUInt)),
+			m_vector_ofsset(msize * sizeof(StorageFloat)),
+			m_counter_offset(msize * sizeof(StorageFloat) + spectrumDim() * m_num_clusters * sizeof(StorageFloat)),
+			m_data(std::vector<char>(width* height* m_pixel_data_size, (char)0)),
+			m_sample_per_technique(std::vector<unsigned int>(m_numtechs + m_num_clusters, 1)),
+			_m_cluster_weights_buffer(Parallel::preAllocate<std::vector<StorageFloat>(std::vector<StorageFloat>(m_num_clusters)))
+		{}
+
+		ClusteredDirectEstimatorImage(ClusteredDirectEstimatorImage const& other) :
+			ImageEstimator(other),
+			msize(other.msize),
+			m_pixel_data_size(other.m_pixel_data_size),
+			m_vector_ofsset(other.m_vector_ofsset),
+			m_counter_offset(other.m_counter_offset),
+			m_data(other.m_data),
+			m_sample_per_technique(other.m_sample_per_technique),
+			_m_cluster_weights_buffer(other._m_cluster_weights_buffer)
+		{}
+
+		ClusteredDirectEstimatorImage(ClusteredDirectEstimatorImage&& other) :
+			ImageEstimator(other),
+			msize(other.msize),
+			m_pixel_data_size(other.m_pixel_data_size),
+			m_vector_ofsset(other.m_vector_ofsset),
+			m_counter_offset(other.m_counter_offset),
+			m_data(std::move(other.m_data)),
+			m_sample_per_technique(std::move(other.m_sample_per_technique))
+			_m_cluster_weights_buffer(std::move(other._m_cluster_weights_buffer))
+		{}
+#else
+		DirectEstimatorImage(int N, int width, int height) :
+			ImageEstimator(N, width, height),
+			msize(N* (N + 1) / 2),
+			m_sample_per_technique(std::vector<unsigned int>(m_numtechs, 1))
+		{
+			int res = width * height;
+			m_matrices = std::vector<StorageFloat>(res * msize, (StorageFloat)0.0);
+			m_vectors = std::vector<StorageFloat>(res * m_numtechs * spectrumDim(), (StorageFloat)0.0);
+			m_sampleCounts = std::vector<StorageUInt>(res * m_numtechs, (StorageUInt)0);
+		}
+
+		DirectEstimatorImage(DirectEstimatorImage const& other) :
+			ImageEstimator(other),
+			msize(other.msize),
+			m_matrices(other.m_matrices),
+			m_vectors(other.m_vectors),
+			m_sampleCounts(other.m_sampleCounts),
+			m_sample_per_technique(other.m_sample_per_technique)
+		{}
+
+		DirectEstimatorImage(DirectEstimatorImage&& other) :
+			ImageEstimator(other),
+			msize(other.msize),
+			m_matrices(std::move(other.m_matrices)),
+			m_vectors(std::move(other.m_vectors)),
+			m_sampleCounts(std::move(other.m_sampleCounts)),
+			m_sample_per_technique(std::move(other.m_sample_per_technique))
+		{}
+#endif
+
+		void updateSamplerPerCluster()
+		{
+			unsigned int* sample_per_cluster = m_sample_per_technique.data() + m_numtechs;
+			std::fill(sample_per_cluster, m_sample_per_technique.data() + m_sample_per_technique.size(), 0);
+			for (int i = 0; i < m_numtechs; ++i)
+			{
+				int cluster = m_clusters[i];
+				sample_per_cluster[cluster] += m_sample_per_technique[i];
+			}
+		}
+
+		virtual void setSampleForTechnique(int techIndex, int n) override
+		{
+			m_sample_per_technique[techIndex] = n;
+			updateSamplerPerCluster();
+		}
+
+		void checkSample(Spectrum const& balance_estimate, Float* balance_weights, int tech_index)
+		{
+			for (int i = 0; i < m_numtechs; ++i)
+			{
+				Float weight = balance_weights[i];
+				if (weight < 0 || std::isnan(weight) || std::isinf(weight))
+				{
+					std::cout << weight << std::endl;
+					__debugbreak();
+				}
+			}
+		}
+
+		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) override
+		{
+			PixelData data = getPixelData(u, v);
+			const int cluster_index = m_clusters[tech_index];
+			StorageFloat* cluster_weights = _m_cluster_weights_buffer[Parallel::tid()].data();
+			std::fill(cluster_weights, cluster_weights + m_num_clusters, 0);
+			for (int i = 0; i < m_numtechs; ++i)
+			{
+				cluster_weights[m_clusters[i]] += balance_weights[i];
+			}
+
+			if (thread_safe_update)
+				m_mutex.lock();
+			
+			++data.sampleCount[tech_index];
+			for (int i = 0; i < m_num_clusters; ++i)
+			{
+				for (int j = 0; j <= i; ++j)
+				{
+					const int mat_index = matTo1D(i, j);
+					Float tmp = cluster_weights[i] * cluster_weights[j];
+					data.techMatrix[mat_index] = data.techMatrix[mat_index] + tmp;
+				}
+			}
+			if (!balance_estimate.isBlack())
+			{
+				for (int k = 0; k < spectrumDim(); ++k)
+				{
+					StorageFloat* vector = data.contribVector + k * m_num_clusters;
+					for (int i = 0; i < m_num_clusters; ++i)
+					{
+						Float tmp = cluster_weights[i] * balance_estimate[k];
+						vector[i] = vector[i] + tmp;
+					}
+				}
+			}
+			if (thread_safe_update)
+				m_mutex.unlock();
+		}
+
+		virtual void addOneTechniqueEstimate(Spectrum const& balance_estimate, int tech_index, Float u, Float v, bool thread_safe_update = false) override
+		{
+			PixelData data = getPixelData(u, v);
+			const int cluster_index = m_clusters[tech_index];
+			int mat_index = matTo1D(cluster_index, cluster_index);
+			if (thread_safe_update)
+				m_mutex.lock();
+			++data.sampleCount[tech_index];
+			data.techMatrix[mat_index] = data.techMatrix[mat_index] + 1.0;
+			for (int k = 0; k < spectrumDim(); ++k)
+			{
+				StorageFloat* vector = data.contribVector + k * m_num_clusters;
+				vector[cluster_index] = vector[cluster_index] + balance_estimate[k];
+			}
+			if (thread_safe_update)
+				m_mutex.unlock();
+		}
+
+		virtual void loop() override
+		{}
+
+		inline void fillMatrix(MatrixT& matrix, PixelData const& data, int iterations)const
+		{
+			for (int i = 0; i < m_num_clusters; ++i)
+			{
+				for (int j = 0; j < i; ++j)
+				{
+					Float elem = data.techMatrix[matTo1D(i, j)];
+					if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;
+					matrix(i, j) = elem;
+					matrix(j, i) = elem;
+				}
+				matrix(i, i) = data.techMatrix[matTo1D(i, i)];
+				// Unsampled samples
+				size_t expected = m_sample_per_technique[i + m_numtechs] * iterations;
+				size_t actually = data.sampleCount[i];
+				matrix(i, i) += (Float)(expected - actually);
+			}
+		}
+
+
+
+		virtual void debug(int iterations, bool col_sum, bool matrix, bool vec, bool alpha)const override
+		{
+
+		}
+
+		virtual void solve(Image::Image<Spectrum, MAJOR>& res, int iterations) override
+		{
+			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
+			VectorT MVector(m_numtechs);
+			for (int i = 0; i < m_numtechs; ++i)	MVector(i) = m_sample_per_technique[i];
+			std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
+			std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
+			std::vector<Solver> solvers = Parallel::preAllocate(Solver(m_numtechs, m_numtechs));
+			int resolution = m_width * m_height;
+			Parallel::ParallelFor(0, resolution, [&](int pixel)
+				{
+					int tid = Parallel::tid();
+					MatrixT& matrix = matrices[tid];
+					VectorT& vector = vectors[tid];
+					Solver& solver = solvers[tid];
+
+					Spectrum color = 0;
+
+					PixelData data = getPixelData(pixel);
+
+					bool matrix_done = false;
+
+					for (int k = 0; k < spectrumDim(); ++k)
+					{
+						bool isZero = true;
+						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
+						for (int i = 0; i < m_numtechs; ++i)
+						{
+							Float elem = contribVector[i];
+							if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;
+							vector[i] = elem;
+							isZero = isZero & (contribVector[i] == 0);
+						}
+						if (!isZero)
+						{
+							if (!matrix_done)
+							{
+								fillMatrix(matrix, data, iterations);
+								solver = matrix.colPivHouseholderQr();
+								matrix_done = true;
+							}
+							// Now vector is alpha
+							vector = solver.solve(vector);
+
+							solvingFloat estimate = vector.dot(MVector);
+							color[k] = estimate;
+						}
+					}
+					res[pixel] += color;
+				});
+		}
+
+#undef ONE_CONTIGUOUS_ARRAY
+
 	};
 
 } // namespace MIS
