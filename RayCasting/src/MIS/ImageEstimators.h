@@ -570,7 +570,6 @@ namespace MIS
 		using StorageUInt = unsigned int;
 		using StorageFloat = Float;
 
-		const int msize;
 
 		size_t matTo1D(int row, int col) const {
 			// return row * numTechs + col;
@@ -627,7 +626,8 @@ namespace MIS
 			return RESULT_FOLDER + "debug/";
 		}
 
-		const unsigned int m_num_clusters;
+		unsigned int m_num_clusters;
+		const int msize;
 		// of size 'm_num_techs'
 		// m_clusters[i] = j -> the i-th technique is in the j-th cluster
 		std::vector<int> m_clusters;
@@ -667,17 +667,17 @@ namespace MIS
 		}
 
 #ifdef ONE_CONTIGUOUS_ARRAY
-		ClusteredDirectEstimatorImage(int N, int width, int height) :
+		ClusteredDirectEstimatorImage(int N, int width, int height, int n_clusters, std::vector<int> const& clusters) :
 			ImageEstimator(N, width, height),
-			m_num_clusters(N),
-			m_clusters(defaultCluster(N)),
+			m_num_clusters(n_clusters),
 			msize(m_num_clusters* (m_num_clusters + 1) / 2),
+			m_clusters(clusters),
 			m_pixel_data_size(msize * sizeof(StorageFloat) + spectrumDim() * m_num_clusters * sizeof(StorageFloat) + m_num_clusters * sizeof(StorageUInt)),
 			m_vector_ofsset(msize * sizeof(StorageFloat)),
 			m_counter_offset(msize * sizeof(StorageFloat) + spectrumDim() * m_num_clusters * sizeof(StorageFloat)),
 			m_data(std::vector<char>(width* height* m_pixel_data_size, (char)0)),
 			m_sample_per_technique(std::vector<unsigned int>(m_numtechs + m_num_clusters, 1)),
-			_m_cluster_weights_buffer(Parallel::preAllocate<std::vector<StorageFloat>(std::vector<StorageFloat>(m_num_clusters)))
+			_m_cluster_weights_buffer(Parallel::preAllocate<std::vector<StorageFloat>>(std::vector<StorageFloat>(m_num_clusters)))
 		{}
 
 		ClusteredDirectEstimatorImage(ClusteredDirectEstimatorImage const& other) :
@@ -698,7 +698,7 @@ namespace MIS
 			m_vector_ofsset(other.m_vector_ofsset),
 			m_counter_offset(other.m_counter_offset),
 			m_data(std::move(other.m_data)),
-			m_sample_per_technique(std::move(other.m_sample_per_technique))
+			m_sample_per_technique(std::move(other.m_sample_per_technique)),
 			_m_cluster_weights_buffer(std::move(other._m_cluster_weights_buffer))
 		{}
 #else
@@ -732,7 +732,7 @@ namespace MIS
 		{}
 #endif
 
-		void updateSamplerPerCluster()
+		void updateSamplesPerCluster()
 		{
 			unsigned int* sample_per_cluster = m_sample_per_technique.data() + m_numtechs;
 			std::fill(sample_per_cluster, m_sample_per_technique.data() + m_sample_per_technique.size(), 0);
@@ -746,7 +746,7 @@ namespace MIS
 		virtual void setSampleForTechnique(int techIndex, int n) override
 		{
 			m_sample_per_technique[techIndex] = n;
-			updateSamplerPerCluster();
+			updateSamplesPerCluster();
 		}
 
 		void checkSample(Spectrum const& balance_estimate, Float* balance_weights, int tech_index)
@@ -764,6 +764,11 @@ namespace MIS
 
 		virtual void addEstimate(Spectrum const& balance_estimate, const Float* balance_weights, int tech_index, Float u, Float v, bool thread_safe_update = false) override
 		{
+			//if (m_numtechs == 6 && balance_weights[2] == 0 && balance_weights[5] != 0 && balance_weights[3] == 0 && balance_weights[4] == 0)
+			//{
+			//	for (int i = 0; i < m_numtechs; ++i)
+			//		std::cout << balance_weights[i] << std::endl;
+			//}
 			PixelData data = getPixelData(u, v);
 			const int cluster_index = m_clusters[tech_index];
 			StorageFloat* cluster_weights = _m_cluster_weights_buffer[Parallel::tid()].data();
@@ -776,7 +781,7 @@ namespace MIS
 			if (thread_safe_update)
 				m_mutex.lock();
 			
-			++data.sampleCount[tech_index];
+			++data.sampleCount[cluster_index];
 			for (int i = 0; i < m_num_clusters; ++i)
 			{
 				for (int j = 0; j <= i; ++j)
@@ -788,11 +793,13 @@ namespace MIS
 			}
 			if (!balance_estimate.isBlack())
 			{
+				//Spectrum cluster_estimate = balance_estimate * (cluster_weights[cluster_index] / balance_weights[tech_index]);
 				for (int k = 0; k < spectrumDim(); ++k)
 				{
 					StorageFloat* vector = data.contribVector + k * m_num_clusters;
 					for (int i = 0; i < m_num_clusters; ++i)
 					{
+						//Float tmp = cluster_weights[i] * cluster_estimate[k];
 						Float tmp = cluster_weights[i] * balance_estimate[k];
 						vector[i] = vector[i] + tmp;
 					}
@@ -852,11 +859,11 @@ namespace MIS
 		virtual void solve(Image::Image<Spectrum, MAJOR>& res, int iterations) override
 		{
 			using Solver = Eigen::ColPivHouseholderQR<MatrixT>;
-			VectorT MVector(m_numtechs);
-			for (int i = 0; i < m_numtechs; ++i)	MVector(i) = m_sample_per_technique[i];
-			std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_numtechs, m_numtechs));
-			std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_numtechs));
-			std::vector<Solver> solvers = Parallel::preAllocate(Solver(m_numtechs, m_numtechs));
+			VectorT MVector(m_num_clusters);
+			for (int i = 0; i < m_num_clusters; ++i)	MVector(i) = m_sample_per_technique[i + m_numtechs];
+			std::vector<MatrixT> matrices = Parallel::preAllocate(MatrixT(m_num_clusters, m_num_clusters));
+			std::vector<VectorT> vectors = Parallel::preAllocate(VectorT(m_num_clusters));
+			std::vector<Solver> solvers = Parallel::preAllocate(Solver(m_num_clusters, m_num_clusters));
 			int resolution = m_width * m_height;
 			Parallel::ParallelFor(0, resolution, [&](int pixel)
 				{
@@ -874,8 +881,8 @@ namespace MIS
 					for (int k = 0; k < spectrumDim(); ++k)
 					{
 						bool isZero = true;
-						const StorageFloat* contribVector = data.contribVector + k * m_numtechs;
-						for (int i = 0; i < m_numtechs; ++i)
+						const StorageFloat* contribVector = data.contribVector + k * m_num_clusters;
+						for (int i = 0; i < m_num_clusters; ++i)
 						{
 							Float elem = contribVector[i];
 							if (std::isnan(elem) || std::isinf(elem) || elem < 0)	elem = 0;

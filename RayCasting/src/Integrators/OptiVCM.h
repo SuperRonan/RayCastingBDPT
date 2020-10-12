@@ -508,7 +508,8 @@ namespace Integrator
 #endif
 		}
 
-		using Estimator = MIS::DirectEstimatorImage < RGBColor, double, Image::IMAGE_ROW_MAJOR > ;
+		//using Estimator = MIS::DirectEstimatorImage < RGBColor, double, Image::IMAGE_ROW_MAJOR > ;
+		using Estimator = MIS::ClusteredDirectEstimatorImage<RGBColor, double, Image::IMAGE_ROW_MAJOR>;
 		//using Estimator = MIS::BalanceEstimatorImage < RGBColor, double, Image::IMAGE_ROW_MAJOR > ;
 		mutable std::vector<Estimator> solvers;
 
@@ -533,13 +534,37 @@ namespace Integrator
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int num_tech = numTech(len);
-				solvers.emplace_back(num_tech, visu.width(), visu.height());
+				std::vector<int> clusters;
+				int n_clusters;
+				if (len == 2)
+				{
+					clusters = { 0, 1 };
+					n_clusters = 2;
+				}
+				else if (len == 3)
+				{
+					clusters = { 0, 1, 2, 3 };
+					n_clusters = 4;
+				}
+				else
+				{
+					// two clusters: One for VC, and one for VM
+					clusters = std::vector<int>(num_tech);
+					std::fill(clusters.begin(), clusters.end(), 0);
+					clusters.back() = 1;
+					n_clusters = 2;
+				}
+				solvers.emplace_back(num_tech, visu.width(), visu.height(), n_clusters, clusters);
+				//solvers.emplace_back(num_tech, visu.width(), visu.height());
 				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size()); // LT
 				if(num_tech > len)
 					solvers.back().setSampleForTechnique(len, m_photon_emitted); // PM
+				//solvers.back().setClusters(clusters, n_clusters);
 				reporter.report(len - 1);
 			}
 			reporter.finish();
+
+
 			std::cout << "Sampling..." << std::endl;
 			reporter.start(m_sample_per_pixel);
 			for (size_t pass = 0; pass < m_sample_per_pixel; ++pass)
@@ -643,7 +668,9 @@ namespace Integrator
 			for (int len = 2; len <= m_max_len; ++len)
 			{
 				int num_tech = numTech(len);
-				solvers.emplace_back(num_tech, width, height);
+				// TODO
+				assert(false);
+				//solvers.emplace_back(num_tech, width, height);
 				solvers.back().setSampleForTechnique(len - 1, m_frame_buffer.size()); // LT
 				if (len >= 2)
 					solvers.back().setSampleForTechnique(len, m_photon_emitted); // PM
